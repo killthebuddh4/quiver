@@ -9,7 +9,6 @@
 <p align="center">
 <a href="https://opensource.org/licenses/MIT" rel="nofollow"><img src="https://img.shields.io/github/license/killthebuddh4/quiver" alt="License"></a>
 <a href="https://twitter.com/killthebuddha_" rel="nofollow"><img src="https://img.shields.io/badge/created%20by-@killthebuddha_-4BBAAB.svg" alt="Created by Achilles Schmelzer"></a>
-<a href="https://www.npmjs.com/package/TODO" rel="nofollow"><img src="https://img.shields.io/npm/killthebuddha/quiver.svg" alt="npm"></a>
 <a href="https://github.com/killthebuddh4/quiver" rel="nofollow"><img src="https://img.shields.io/github/stars/killthebuddh4/quiver" alt="stars"></a>
 </p>
 
