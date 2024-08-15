@@ -63,20 +63,20 @@ export const hello = createFunction({
 })
 ```
 
-Then attach it to a `QuiverServer`:
+Then serve it from a `Quiver`.
 
 ```JavaScript
 // server.ts
-
-import { createServer } from "@killthebuddha/quiver";
+import { createQuiver } from "@killthebuddha/quiver";
 import * as api from "./api.js";
 
-const server = await createServer({ api });
+const quiver = createQuiver({});
 
-// Note this an Ethereum address.
-console.log(`Server listening to ${server.address}`)
+quiver.router(api);
 
-server.start();
+console.log(`Running quiver at ${server.address}`)
+
+quiver.start();
 ```
 
 And that's it 🎉, you've just __deployed a service to the internet in ~10 lines of code!__
@@ -85,19 +85,18 @@ It's just as easy to call your service:
 
 ```JavaScript
 // client.ts
-
-import { createClient } from "@killthebuddha/quiver";
+import { createQuiver } from "@killthebuddha/quiver";
 import * as api from "./api.js";
 
-const client = await createClient({
-  api,
-  server: { address: "YOUR_SERVER_ADDRESS" }
+const quiver = createQuiver({});
+
+const client = quiver.client(api, {
+  address: "YOUR_SERVER_ADDESS"
 });
 
 const message = await client.hello();
 
 console.log(message.data);
-
 ```
 
 And a bonus for all the TypeScript developers (🦾) out there: _everything above is automagically ✨ and fully type-safe !_
