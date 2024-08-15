@@ -1,10 +1,13 @@
+import { z } from "zod";
 import { QuiverSuccess } from "./QuiverSuccess.js";
 import { QuiverError } from "./QuiverError.js";
 import { QuiverApiSpec } from "./QuiverApiSpec.js";
 
 export type QuiverClient<A extends QuiverApiSpec> = {
-  [K in keyof A]: WrapInQuiverResult<
-    RemoveSingleUndefinedArgument<(i: A[K]["input"]) => Promise<A[K]["output"]>>
+  [K in keyof A]: RemoveSingleUndefinedArgument<
+    (
+      i: z.infer<A[K]["input"]>,
+    ) => Promise<QuiverSuccess<z.infer<A[K]["output"]>> | QuiverError>
   >;
 };
 
@@ -17,10 +20,4 @@ type RemoveSingleUndefinedArgument<F> = F extends (
       ? (...args: Rest) => R
       : F
     : F
-  : never;
-
-type QuiverResult<D> = QuiverSuccess<D> | QuiverError;
-
-type WrapInQuiverResult<F> = F extends (...args: infer Args) => infer R
-  ? (...args: Args) => Promise<QuiverResult<Awaited<R>>>
   : never;

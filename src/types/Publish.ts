@@ -1,15 +1,21 @@
 import { Message } from "./Message.js";
-import { Topic } from "./Topic.js";
+import { Conversation } from "./Conversation.js";
 
 export type Publish = (args: {
-  topic: Topic;
+  conversation: Conversation;
   content: unknown;
   options?: {
-    onCreatingTopic?: (args: { topic: Topic }) => void;
-    onCreatedTopic?: (args: { topic: Topic }) => void;
-    onCreateTopicError?: (args: { topic: Topic; error: unknown }) => void;
-    onSendingMessage?: (args: { topic: Topic; content: unknown }) => void;
+    onCreatingTopic?: (args: { topic: Conversation }) => void;
+    onCreatedTopic?: (args: { topic: Conversation }) => void;
+    onCreateTopicError?: (args: {
+      topic: Conversation;
+      error: unknown;
+    }) => void;
+    onSendingMessage?: (args: {
+      topic: Conversation;
+      content: unknown;
+    }) => void;
     onSentMessage?: (args: { message: Message }) => void;
-    onSendError?: (args: { topic: Topic; error: unknown }) => void;
+    onSendError?: (args: { topic: Conversation; error: unknown }) => void;
   };
 }) => Promise<{ published: Message }>;

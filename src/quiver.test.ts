@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Wallet } from "@ethersproject/wallet";
 import { createFunction } from "./createFunction.js";
-import { createBrpc } from "./createBrpc.js";
+import { createQuiver } from "./createQuiver.js";
 
 const authorizedWallet = Wallet.createRandom();
 
@@ -41,7 +41,7 @@ const stealTreasure = createFunction({
   },
 });
 
-describe("Brpc", () => {
+describe("Quiver", () => {
   afterEach(() => {
     for (const cleanup of CLEANUP) {
       cleanup();
@@ -51,39 +51,24 @@ describe("Brpc", () => {
   it("should work", async function () {
     this.timeout(15000);
 
-    const brpcForServer = createBrpc({});
+    const backend = await createQuiver({});
 
-    brpcForServer.router({
-      api: { add, concat },
-      topic: {
-        peerAddress: "",
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    backend.router({ add, concat });
 
-    await brpcForServer.start({});
+    await backend.start({});
 
-    CLEANUP.push(brpcForServer.stop);
+    CLEANUP.push(backend.stop);
 
-    const brpcForClient = createBrpc({});
+    const frontend = await createQuiver({});
 
-    const client = brpcForClient.client({
-      api: { add, concat },
-      topic: {
-        peerAddress: brpcForServer.address,
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    const client = frontend.client(
+      { add, concat },
+      { address: backend.address },
+    );
 
-    await brpcForClient.start({});
+    await frontend.start({});
 
-    CLEANUP.push(brpcForClient.stop);
+    CLEANUP.push(frontend.stop);
 
     const addResult = await client.add({ a: 1, b: 2 });
 
@@ -114,39 +99,24 @@ describe("Brpc", () => {
   it("should not allow public access to private procedures", async function () {
     this.timeout(15000);
 
-    const brpcForServer = createBrpc({});
+    const backend = await createQuiver({});
 
-    brpcForServer.router({
-      api: { stealTreasure },
-      topic: {
-        peerAddress: "",
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    backend.router({ stealTreasure });
 
-    await brpcForServer.start({});
+    await backend.start({});
 
-    CLEANUP.push(brpcForServer.stop);
+    CLEANUP.push(backend.stop);
 
-    const brpcForClient = createBrpc({});
+    const frontend = await createQuiver({});
 
-    const client = brpcForClient.client({
-      api: { stealTreasure },
-      topic: {
-        peerAddress: brpcForServer.address,
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    const client = frontend.client(
+      { stealTreasure },
+      { address: backend.address },
+    );
 
-    await brpcForClient.start({});
+    await frontend.start({});
 
-    CLEANUP.push(brpcForClient.stop);
+    CLEANUP.push(frontend.stop);
 
     const result = await client.stealTreasure({ amount: 100 });
 
@@ -154,10 +124,9 @@ describe("Brpc", () => {
       throw new Error("stealTreasure should have failed");
     }
 
-    if (result.code !== "UNAUTHORIZED") {
-      console.log("RESULT IS", result);
+    if (result.status !== "UNAUTHORIZED") {
       throw new Error(
-        "stealTreasure should have failed with UNAUTHORIZED code",
+        `stealTreasure should have failed with UNAUTHORIZED code, got ${result.status}`,
       );
     }
 
@@ -177,70 +146,51 @@ describe("Brpc", () => {
       },
     });
 
-    const brpcForServer = createBrpc({});
+    const backend = await createQuiver({});
 
-    brpcForServer.router({
-      api: { auth },
-      topic: {
-        peerAddress: "",
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    backend.router({ auth });
 
-    await brpcForServer.start({});
+    await backend.start({});
 
-    CLEANUP.push(brpcForServer.stop);
+    CLEANUP.push(backend.stop);
 
-    const brpcForUnauthorizedClient = createBrpc({});
+    const unauthorizedFrontend = await createQuiver({});
 
-    const unauthorizedClient = brpcForUnauthorizedClient.client({
-      api: { auth },
-      topic: {
-        peerAddress: brpcForServer.address,
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    const unauthorizedClient = unauthorizedFrontend.client(
+      { auth },
+      { address: backend.address },
+    );
 
-    await brpcForUnauthorizedClient.start({});
+    await unauthorizedFrontend.start({});
 
-    CLEANUP.push(brpcForUnauthorizedClient.stop);
+    CLEANUP.push(unauthorizedFrontend.stop);
 
-    const brpcForAuthorizedClient = createBrpc({
+    const authorizedFrontend = await createQuiver({
       options: {
         wallet: authorizedWallet,
       },
     });
 
-    const authorizedClient = brpcForAuthorizedClient.client({
-      api: { auth },
-      topic: {
-        peerAddress: brpcForServer.address,
-        context: {
-          conversationId: "banyan.sh/brpc",
-          metadata: {},
-        },
-      },
-    });
+    const authorizedClient = authorizedFrontend.client(
+      { auth },
+      { address: backend.address },
+    );
 
-    await brpcForAuthorizedClient.start({});
+    await authorizedFrontend.start({});
 
-    CLEANUP.push(brpcForAuthorizedClient.stop);
+    CLEANUP.push(authorizedFrontend.stop);
 
     const unauthorizedResult = await unauthorizedClient.auth();
 
     if (unauthorizedResult.ok) {
+      console.error(unauthorizedResult);
       throw new Error("auth should have failed for unauthorized client");
     }
 
     const authorizedResult = await authorizedClient.auth();
 
     if (!authorizedResult.ok) {
+      console.error(authorizedResult);
       throw new Error("auth should have succeeded for authorized client");
     }
 

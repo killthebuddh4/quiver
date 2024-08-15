@@ -1,13 +1,10 @@
-import { QuiverRequest } from "./QuiverRequest.js";
-import { QuiverResponse } from "./QuiverResponse.js";
-
 export type QuiverError = {
   ok: false;
   status:
     | "INPUT_SERIALIZATION_FAILED"
     | "XMTP_SEND_FAILED"
     | "XMTP_BROADCAST_FAILED"
-    | "UNKNOWN_PROCEDURE"
+    | "UNKNOWN_FUNCTION"
     | "INPUT_TYPE_MISMATCH"
     | "OUTPUT_TYPE_MISMATCH"
     | "OUTPUT_SERIALIZATION_FAILED"
@@ -16,6 +13,4 @@ export type QuiverError = {
     | "UNAUTHORIZED"
     | "REQUEST_TIMEOUT"
     | "SERVER_ERROR";
-  request: QuiverRequest;
-  response?: QuiverResponse;
 };

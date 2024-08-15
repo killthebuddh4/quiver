@@ -1,5 +1,5 @@
 {
-  "name": "@killthebuddha/brpc",
+  "name": "@killthebuddha/quiver",
   "type": "module",
   "types": "build/index.d.ts",
   "module": "build/index.js",
@@ -16,7 +16,6 @@
     "clean": "rm -rf ./build"
   },
   "devDependencies": {
-    "@ethersproject/wallet": "^5.7.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.8.10",
     "@types/uuid": "^10.0.0",
@@ -30,6 +29,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@ethersproject/wallet": "^5.7.0",
     "@xmtp/xmtp-js": "^11.2.1",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
