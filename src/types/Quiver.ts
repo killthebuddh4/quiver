@@ -1,11 +1,11 @@
-import { StartPubSub } from "./StartPubSub.js";
 import { Publish } from "./Publish.js";
 import { Subscribe } from "./Subscribe.js";
+import { Start } from "./Start.js";
 
-export type PubSub = {
+export type Quiver = {
   address: string;
-  start: StartPubSub;
+  start: Start;
   stop: () => void;
-  subscribe: Subscribe;
   publish: Publish;
+  subscribe: Subscribe;
 };

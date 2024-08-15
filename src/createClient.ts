@@ -1,42 +1,59 @@
 import { z } from "zod";
-import * as Brpc from "./types/brpc.js";
 import { v4 as uuidv4 } from "uuid";
-import { jsonStringSchema } from "./lib/jsonStringSchema.js";
+import { quiverResponseSchema } from "./lib/quiverResponseSchema.js";
+import { quiverErrorSchema } from "./lib/quiverErrorSchema.js";
+import { quiverSuccessSchema } from "./lib/quiverSuccessSchema.js";
 import { Topic } from "./types/Topic.js";
-import { ClientOptions } from "./types/ClientOptions.js";
-import { Publish } from "./types/Publish.js";
-import { Subscribe } from "./types/Subscribe.js";
+import { Message } from "./types/Message.js";
+import { Quiver } from "./types/Quiver.js";
+import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
+import { QuiverError } from "./types/QuiverError.js";
+import { QuiverSuccess } from "./types/QuiverSuccess.js";
+import { QuiverClient } from "./types/QuiverClient.js";
 
-export const createClient = <A extends Brpc.BrpcApi>(args: {
-  api: A;
-  publish: Publish;
-  subscribe: Subscribe;
-  topic: Topic;
-  options?: ClientOptions;
+export const createClient = <Api extends QuiverApiSpec>(args: {
+  api: Api;
+  router: {
+    address: string;
+    topic: Topic;
+  };
+  quiver: Quiver;
+  options?: {
+    timeoutMs?: number;
+    onRequestTimeout?: () => void;
+    onSelfSentMessage?: (args: { message: Message }) => void;
+    onUnknownSender?: (args: { message: Message }) => void;
+    onTopicMismatch?: (args: { message: Message }) => void;
+    onReceivedInvalidJson?: (args: { message: Message }) => void;
+    onReceivedInvalidResponse?: (args: { message: Message }) => void;
+    onOutputTypeMismatch?: (args: { message: Message }) => void;
+    onInvalidPayload: (args: { message: Message }) => void;
+    onIdMismatch?: (args: { message: Message }) => void;
+    onResponseHandlerError?: (args: { error: unknown }) => void;
+    onInputSerializationError?: () => void;
+    onSendingRequest?: (args: { topic: Topic; content: string }) => void;
+    onSentRequest?: (args: { message: Message }) => void;
+    onSendRequestError?: (args: { error: unknown }) => void;
+  };
 }) => {
   const client = {};
 
   for (const [key, value] of Object.entries(args.api)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (client as any)[key as keyof typeof args.api] = async (
       input: z.infer<typeof value.input>,
     ) => {
       const request = {
         id: uuidv4(),
-        name: key,
-        payload: input,
+        function: key,
+        arguments: input,
       };
 
       let str: string;
       try {
         str = JSON.stringify(request);
       } catch {
-        if (args.options?.onInputSerializationError) {
-          try {
-            args.options.onInputSerializationError();
-          } catch {
-            console.warn("onInputSerializationError threw an error");
-          }
-        }
+        args.options?.onInputSerializationError?.();
 
         return {
           ok: false,
@@ -47,180 +64,118 @@ export const createClient = <A extends Brpc.BrpcApi>(args: {
       }
 
       const promise = new Promise<
-        Brpc.BrpcResult<z.infer<typeof value.output>>
+        QuiverError | QuiverSuccess<z.infer<typeof value.output>>
       >((resolve) => {
         const timeout = setTimeout(() => {
-          if (args.options?.onRequestTimeout) {
-            try {
-              args.options.onRequestTimeout();
-            } catch (error) {
-              console.warn("onRequestTimeout threw an error", error);
-            }
-          }
+          args.options?.onRequestTimeout?.();
 
           resolve({
             ok: false,
-            code: "REQUEST_TIMEOUT",
+            status: "REQUEST_TIMEOUT",
             request,
-            response: null,
           });
         }, args.options?.timeoutMs ?? 10000);
 
-        const { unsubscribe } = args.subscribe(async (message) => {
-          if (message.senderAddress !== args.topic.peerAddress) {
-            if (args.options?.onSelfSentMessage) {
-              try {
-                args.options.onSelfSentMessage({ message });
-              } catch {
-                console.warn("onSelfSentMessage threw an error");
-              }
+        /* TODO, when do we throw and when do we not throw????? */
+        const { unsubscribe } = args.quiver.subscribe({
+          handler: (message) => {
+            if (message.senderAddress === args.quiver.address) {
+              args.options?.onSelfSentMessage?.({ message });
+              return;
             }
 
-            return;
-          }
-
-          if (
-            message.conversation.context?.conversationId !==
-            args.topic.context.conversationId
-          ) {
-            if (args.options?.onTopicMismatch) {
-              try {
-                args.options.onTopicMismatch({ message });
-              } catch {
-                console.warn("onTopicMismatch threw an error");
-              }
+            if (message.senderAddress !== args.router.address) {
+              args.options?.onUnknownSender?.({ message });
+              return;
             }
 
-            return;
-          }
-
-          const json = jsonStringSchema.safeParse(message.content);
-
-          if (!json.success) {
-            if (args.options?.onReceivedInvalidJson) {
-              try {
-                args.options.onReceivedInvalidJson({ message });
-              } catch (error) {
-                console.warn("onReceivedInvalidJson threw an error", error);
-              }
+            if (
+              message.conversation.context?.conversationId !==
+              args.router.topic.context.conversationId
+            ) {
+              args.options?.onTopicMismatch?.({ message });
+              return;
             }
-            return;
-          }
 
-          const response = Brpc.brpcResponseSchema.safeParse(json.data);
-
-          if (!response.success) {
-            if (args.options?.onReceivedInvalidResponse) {
-              try {
-                args.options.onReceivedInvalidResponse({ message });
-              } catch (error) {
-                console.warn("onReceivedInvalidResponse threw an error", error);
-              }
+            let json;
+            try {
+              json = JSON.parse(String(message.content));
+            } catch (error) {
+              args.options?.onReceivedInvalidJson?.({ message });
+              return;
             }
-            return;
-          }
 
-          const id = response.data.id;
+            const response = quiverResponseSchema.safeParse(json);
 
-          if (id !== request.id) {
-            if (args.options?.onIdMismatch) {
-              try {
-                args.options.onIdMismatch({ message });
-              } catch {
-                console.warn("onNoSubscription threw an error");
-              }
+            if (!response.success) {
+              args?.options?.onReceivedInvalidResponse?.({ message });
+              return;
             }
-            return;
-          }
 
-          unsubscribe();
+            const id = response.data.id;
 
-          clearTimeout(timeout);
+            if (id !== request.id) {
+              args.options?.onIdMismatch?.({ message });
+              return;
+            }
 
-          const error = Brpc.brpcErrorSchema.safeParse(response.data.payload);
+            unsubscribe();
 
-          if (error.success) {
-            resolve({
-              ok: false,
-              code: error.data.code,
-              request,
-              response: response.data,
-            });
-          }
+            clearTimeout(timeout);
 
-          const success = Brpc.brpcSuccessSchema.safeParse(
-            response.data.payload,
-          );
+            const error = quiverErrorSchema.safeParse(response.data.data);
 
-          if (success.success) {
-            const output = value.output.safeParse(success.data.data);
+            if (error.success) {
+              resolve({
+                ok: false,
+                status: error.data.status,
+                request,
+              });
+            }
+
+            const success = quiverSuccessSchema.safeParse(response.data.data);
+
+            if (!success.success) {
+              resolve({
+                ok: false,
+                status: "INVALID_RESPONSE",
+                request,
+              });
+            }
+
+            const output = value.output.safeParse(success.data?.data);
 
             if (!output.success) {
               resolve({
                 ok: false,
-                code: "OUTPUT_TYPE_MISMATCH",
+                status: "OUTPUT_TYPE_MISMATCH",
                 request,
-                response: response.data,
               });
             }
 
             resolve({
               ok: true,
-              code: "SUCCESS",
+              status: "SUCCESS",
               data: output.data,
-              request,
-              response: response.data,
             });
-          }
-
-          if (args.options?.onInvalidPayload) {
-            try {
-              args.options.onInvalidPayload({ message });
-            } catch {
-              console.warn("onInvalidPayload threw an error", error);
-            }
-          }
-
-          resolve({
-            ok: false,
-            code: "INVALID_PAYLOAD",
-            request,
-            response: response.data,
-          });
+          },
         });
       });
 
       try {
-        const sendRequestArgs = {
-          topic: args.topic,
+        args.options?.onSendingRequest?.({
+          topic: args.router.topic,
           content: str,
-        };
+        });
 
-        if (args.options?.onSendingRequest) {
-          try {
-            args.options.onSendingRequest(sendRequestArgs);
-          } catch {
-            console.warn("onSendingRequest threw an error");
-          }
-        }
+        const sent = await args.quiver.publish({
+          topic: args.router.topic,
+          content: str,
+        });
 
-        const sent = await args.publish(sendRequestArgs);
-
-        if (args.options?.onSentRequest) {
-          try {
-            args.options.onSentRequest({ message: sent.published });
-          } catch {
-            console.warn("onSentRequest threw an error");
-          }
-        }
+        args.options?.onSentRequest?.({ message: sent.published });
       } catch (error) {
-        if (args.options?.onSendRequestError) {
-          try {
-            args.options.onSendRequestError({ error: error as Error });
-          } catch {
-            console.warn("onSendRequestFailed threw an error");
-          }
-        }
+        args.options?.onSendRequestError?.({ error });
 
         return {
           ok: false,
@@ -234,5 +189,5 @@ export const createClient = <A extends Brpc.BrpcApi>(args: {
     };
   }
 
-  return client as Brpc.BrpcClient<typeof args.api>;
+  return client as QuiverClient<typeof args.api>;
 };

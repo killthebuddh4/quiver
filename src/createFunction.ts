@@ -1,7 +1,7 @@
 import { z } from "zod";
 import * as Brpc from "./types/brpc.js";
 
-export const createProcedure = <I = undefined, O = undefined>(args: {
+export const createFunction = <I = undefined, O = undefined>(args: {
   input?: z.ZodType<I>;
   output?: z.ZodType<O>;
   auth: Brpc.BrpcAuth;

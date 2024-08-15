@@ -4,7 +4,7 @@ export type Message = {
     peerAddress: string;
     context?: {
       conversationId: string;
-      metadata: {};
+      metadata: unknown;
     };
   };
   senderAddress: string;

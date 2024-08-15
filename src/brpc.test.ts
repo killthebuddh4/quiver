@@ -1,13 +1,13 @@
 import { z } from "zod";
 import { Wallet } from "@ethersproject/wallet";
-import { createProcedure } from "./createProcedure.js";
+import { createFunction } from "./createFunction.js";
 import { createBrpc } from "./createBrpc.js";
 
 const authorizedWallet = Wallet.createRandom();
 
 const CLEANUP: Array<() => void> = [];
 
-const add = createProcedure({
+const add = createFunction({
   input: z.object({
     a: z.number(),
     b: z.number(),
@@ -18,7 +18,7 @@ const add = createProcedure({
   },
 });
 
-const concat = createProcedure({
+const concat = createFunction({
   input: z.object({
     a: z.string(),
     b: z.string(),
@@ -30,7 +30,7 @@ const concat = createProcedure({
   },
 });
 
-const stealTreasure = createProcedure({
+const stealTreasure = createFunction({
   input: z.object({
     amount: z.number(),
   }),
@@ -167,7 +167,7 @@ describe("Brpc", () => {
   it("should allow authorized access to private procedures", async function () {
     this.timeout(15000);
 
-    const auth = createProcedure({
+    const auth = createFunction({
       output: z.literal("you are authorized"),
       auth: async ({ context }) => {
         return context.message.senderAddress === authorizedWallet.address;
