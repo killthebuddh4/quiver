@@ -1,9 +1,6 @@
 <p align="center">
   <img src="quiver-logo.png" width="200px" align="center" alt="Quiver logo" />
   <h1 align="center">Quiver</h1>
-  <p align="center">
-    The <em>quickest way to deploy secure services to the internet</em>.
-  </p>
 </p>
 <br/>
 <p align="center">
@@ -30,7 +27,6 @@
 # Overview
 
 `quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC library powered by [XMTP](https://xmtp.org) (and inspired by [trpc](https://trpc.io)).
-
 
 # Table of Contents
 
