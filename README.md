@@ -59,7 +59,7 @@ export const hello = createFunction({
 })
 ```
 
-Then serve it from a `Quiver`.
+Then serve it:
 
 ```JavaScript
 // server.ts
