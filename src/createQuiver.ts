@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { Wallet } from "@ethersproject/wallet";
 import { Client, Conversation as Xonversation } from "@xmtp/xmtp-js";
-import { Conversation } from "./types/Conversation.js";
 import { Message } from "./types/Message.js";
 import { v4 as uuidv4 } from "uuid";
 import { Publish } from "./types/Publish.js";
@@ -16,34 +15,12 @@ import { QuiverResponse } from "./types/QuiverResponse.js";
 import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
 import { QuiverClient } from "./types/QuiverClient.js";
 import { QuiverResult } from "./types/QuiverResult.js";
+import { QuiverOptions } from "./types/QuiverOptions.js";
+import { Quiver } from "./types/Quiver.js";
+import { QuiverClientOptions } from "./types/QuiverClientOptions.js";
+import { QuiverRouterOptions } from "./types/QuiverRouterOptions.js";
 
-export const createQuiver = async (args: {
-  options?: {
-    wallet?: Wallet;
-    env?: "dev" | "production";
-    onAlreadyCreated?: () => void;
-    onCreateWalletError?: (error: unknown) => void;
-    onCreatingXmtp?: () => void;
-    onCreatedXmtp?: () => void;
-    onCreateXmtpError?: (error: unknown) => void;
-    onStartingStream?: () => void;
-    onStartedStream?: () => void;
-    onStartStreamError?: (error: unknown) => void;
-    onMessageReceived?: (message: Message) => void;
-    onMissedMessage?: (message: Message) => void;
-    onHandlerError?: (error: unknown) => void;
-    onCreatingTopic?: (args: { topic: Conversation }) => void;
-    onCreatedTopic?: (args: { topic: Conversation }) => void;
-    onCreateTopicError?: (args: {
-      topic: Conversation;
-      error: unknown;
-    }) => void;
-    onSendingMessage?: (args: { topic: Conversation }) => void;
-    onSentMessage?: (args: { message: Message }) => void;
-    onSendError?: (args: { topic: Conversation }) => void;
-    onReceivedInvalidJson?: () => void;
-  };
-}) => {
+export const createQuiver = (args: { options?: QuiverOptions }): Quiver => {
   let wallet: Wallet;
   try {
     if (args.options?.wallet !== undefined) {
@@ -228,27 +205,8 @@ export const createQuiver = async (args: {
       address: string;
       namespace?: string;
     },
-    options?: {
-      timeoutMs?: number;
-      onRequestTimeout?: () => void;
-      onSelfSentMessage?: (args: { message: Message }) => void;
-      onUnknownSender?: (args: { message: Message }) => void;
-      onTopicMismatch?: (args: { message: Message }) => void;
-      onReceivedInvalidJson?: (args: { message: Message }) => void;
-      onReceivedInvalidResponse?: (args: { message: Message }) => void;
-      onOutputTypeMismatch?: (args: { message: Message }) => void;
-      onInvalidPayload?: (args: { message: Message }) => void;
-      onIdMismatch?: (args: { message: Message }) => void;
-      onResponseHandlerError?: (args: { error: unknown }) => void;
-      onInputSerializationError?: () => void;
-      onSendingRequest?: (args: {
-        topic: Conversation;
-        content: string;
-      }) => void;
-      onSentRequest?: (args: { message: Message }) => void;
-      onSendRequestError?: (args: { error: unknown }) => void;
-    },
-  ) => {
+    options?: QuiverClientOptions,
+  ): QuiverClient<typeof api> => {
     const namespace = router.namespace ?? "quiver/0.0.1";
 
     const client = {};
@@ -415,27 +373,7 @@ export const createQuiver = async (args: {
     return client as QuiverClient<typeof api>;
   };
 
-  const router = (
-    api: QuiverApi,
-    options?: {
-      namespace?: string;
-      onReceivedMessage?: (args: { message: Message }) => void;
-      onSelfSentMessage?: (args: { message: Message }) => void;
-      onTopicMismatch?: (args: { message: Message }) => void;
-      onReceivedInvalidJson?: (args: { message: Message }) => void;
-      onReceivedInvalidRequest?: (args: { message: Message }) => void;
-      onUnknownFunction?: () => void;
-      onAuthError?: (args: { error: unknown }) => void;
-      onUnauthorized?: () => void;
-      onInputTypeMismatch?: () => void;
-      onHandlingInput?: (args: { input: unknown }) => void;
-      onHandlerError?: (args: { error: unknown }) => void;
-      onOutputSerializationError?: () => void;
-      onSendingResponse?: () => void;
-      onSentResponse?: ({ sent }: { sent: Message }) => void;
-      onSendResponseError?: () => void;
-    },
-  ) => {
+  const router = (api: QuiverApi, options?: QuiverRouterOptions) => {
     const namespace = options?.namespace ?? "quiver/0.0.1";
 
     return subscribe({

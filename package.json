@@ -1,5 +1,6 @@
 {
   "name": "@killthebuddha/quiver",
+  "version": "0.0.1",
   "type": "module",
   "types": "build/index.d.ts",
   "module": "build/index.js",
