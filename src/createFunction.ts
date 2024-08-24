@@ -1,18 +1,16 @@
 import { z } from "zod";
 import { QuiverFunction } from "./types/QuiverFunction.js";
-import { QuiverAuth } from "./types/QuiverAuth.js";
-import { QuiverHandler } from "./types/QuiverHandler.js";
+import { QuiverContext } from "./types/QuiverContext.js";
+import { QuiverFunctionOptions } from "./types/QuiverFunctionOptions.js";
 
-export const createFunction = <I = undefined, O = undefined>(args: {
-  input?: z.ZodType<I>;
-  output?: z.ZodType<O>;
-  auth: QuiverAuth;
-  handler: QuiverHandler<I, O>;
-}): QuiverFunction<I, O> => {
+export const createFunction = <I = undefined, O = undefined>(
+  // TODO, how can we have an args signature like (a, b, c, context)
+  handler: (i: I, context: QuiverContext) => Promise<O>,
+  options?: QuiverFunctionOptions<I, O>,
+): QuiverFunction<I, O> => {
   return {
-    input: args.input ?? z.any(),
-    output: args.output ?? z.any(),
-    auth: args.auth,
-    handler: args.handler,
+    input: options?.input ?? z.any(),
+    output: options?.output ?? z.any(),
+    handler,
   };
 };

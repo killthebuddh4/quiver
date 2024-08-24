@@ -1,12 +1,8 @@
+import { Conversation } from "./Conversation.js";
+
 export type Message = {
   id: string;
-  conversation: {
-    peerAddress: string;
-    context?: {
-      conversationId: string;
-      metadata: unknown;
-    };
-  };
+  conversation: Conversation;
   senderAddress: string;
   sent: Date;
   content: unknown;

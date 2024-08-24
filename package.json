@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@ethersproject/wallet": "^5.7.0",
-    "@xmtp/xmtp-js": "^11.2.1",
+    "@xmtp/xmtp-js": "latest",
     "uuid": "^10.0.0",
     "zod": "^3.23.8"
   }

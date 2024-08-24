@@ -1,3 +1,3 @@
 import { QuiverContext } from "./QuiverContext.js";
 
-export type QuiverHandler<I, O> = (i: I, context: QuiverContext) => Promise<O>;
+export type QuiverHandler = (context: QuiverContext) => Promise<void>;

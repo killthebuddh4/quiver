@@ -1,16 +1,21 @@
 export type QuiverError = {
+  id: string;
   ok: false;
   status:
+    | "XMTP_NETWORK_ERROR"
     | "INPUT_SERIALIZATION_FAILED"
-    | "XMTP_SEND_FAILED"
-    | "XMTP_BROADCAST_FAILED"
-    | "UNKNOWN_FUNCTION"
-    | "INPUT_TYPE_MISMATCH"
+    | "NO_REQUEST_HANDLER"
     | "OUTPUT_TYPE_MISMATCH"
-    | "OUTPUT_SERIALIZATION_FAILED"
     | "INVALID_RESPONSE"
-    | "INVALID_PAYLOAD"
-    | "UNAUTHORIZED"
     | "REQUEST_TIMEOUT"
+    | "INVALID_REQUEST"
+    | "UNKNOWN_FUNCTION"
+    | "INPUT_INVALID_JSON"
+    | "INPUT_TYPE_MISMATCH"
+    | "OUTPUT_SERIALIZATION_FAILED"
+    | "UNAUTHORIZED"
+    | "CLIENT_ERROR"
     | "SERVER_ERROR";
+  reason?: string;
+  data?: undefined;
 };

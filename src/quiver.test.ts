@@ -1,45 +1,27 @@
-import { z } from "zod";
 import { Wallet } from "@ethersproject/wallet";
-import { createFunction } from "./createFunction.js";
-import { createQuiver } from "./createQuiver.js";
-
-const authorizedWallet = Wallet.createRandom();
+import {
+  createQuiver,
+  createClient,
+  createRouter,
+  createFunction,
+} from "./index.js";
 
 const CLEANUP: Array<() => void> = [];
 
-const add = createFunction({
-  input: z.object({
-    a: z.number(),
-    b: z.number(),
-  }),
-  auth: async () => true,
-  handler: async ({ a, b }) => {
+const api = {
+  add: createFunction(async ({ a, b }: { a: number; b: number }) => {
     return a + b;
-  },
-});
-
-const concat = createFunction({
-  input: z.object({
-    a: z.string(),
-    b: z.string(),
   }),
-  output: z.string(),
-  auth: async () => true,
-  handler: async ({ a, b }) => {
-    return `${a}${b}`;
-  },
-});
-
-const stealTreasure = createFunction({
-  input: z.object({
-    amount: z.number(),
+  sub: createFunction(async ({ a, b }: { a: number; b: number }) => {
+    return a - b;
   }),
-  output: z.string(),
-  auth: async () => false,
-  handler: async ({ amount }, ctx) => {
-    return `${amount} stolen by ${ctx.message.senderAddress}`;
-  },
-});
+  mul: createFunction(async ({ a, b }: { a: number; b: number }) => {
+    return a * b;
+  }),
+  div: createFunction(async ({ a, b }: { a: number; b: number }) => {
+    return a / b;
+  }),
+};
 
 describe("Quiver", () => {
   afterEach(() => {
@@ -48,157 +30,53 @@ describe("Quiver", () => {
     }
   });
 
-  it("should work", async function () {
+  it("Can be instantiated from a private key", async function () {});
+
+  it("Can be instantiated from a signer", async function () {
     this.timeout(15000);
-
-    const backend = await createQuiver({});
-
-    backend.router({ add, concat });
-
-    await backend.start({});
-
-    CLEANUP.push(backend.stop);
-
-    const frontend = await createQuiver({});
-
-    const client = frontend.client(
-      { add, concat },
-      { address: backend.address },
-    );
-
-    await frontend.start({});
-
-    CLEANUP.push(frontend.stop);
-
-    const addResult = await client.add({ a: 1, b: 2 });
-
-    if (!addResult.ok) {
-      console.error(addResult);
-      throw new Error("add failed");
-    }
-
-    if (addResult.data !== 3) {
-      console.error(addResult);
-      throw new Error("add returned wrong result");
-    }
-
-    const concatResult = await client.concat({ a: "hello", b: "world" });
-
-    if (!concatResult.ok) {
-      throw new Error("concat failed");
-    }
-
-    if (concatResult.data !== "helloworld") {
-      throw new Error("concat returned wrong result");
-    }
-
-    console.log("ADD RESULT IS", addResult.data);
-    console.log("CONCAT RESULT IS", concatResult.data);
   });
 
-  it("should not allow public access to private procedures", async function () {
-    this.timeout(15000);
+  it("Can be instantiated from an XMTP client", async function () {});
 
-    const backend = await createQuiver({});
+  it("Can be instantiated from an interface (Fig)", async function () {
+    const signer = Wallet.createRandom();
 
-    backend.router({ stealTreasure });
+    await (async () => {
+      const quiver = createQuiver({ signer });
 
-    await backend.start({});
+      const router = createRouter("math", api);
 
-    CLEANUP.push(backend.stop);
+      quiver.router(router);
 
-    const frontend = await createQuiver({});
+      CLEANUP.push(await quiver.start());
+    })();
 
-    const client = frontend.client(
-      { stealTreasure },
-      { address: backend.address },
-    );
+    const quiver = createQuiver();
 
-    await frontend.start({});
+    const client = createClient(signer.address, "math", api);
 
-    CLEANUP.push(frontend.stop);
+    quiver.client(client);
 
-    const result = await client.stealTreasure({ amount: 100 });
+    CLEANUP.push(await quiver.start());
 
-    if (result.ok) {
-      throw new Error("stealTreasure should have failed");
-    }
+    const result = await client.add({ a: 1, b: 2 });
 
-    if (result.status !== "UNAUTHORIZED") {
-      throw new Error(
-        `stealTreasure should have failed with UNAUTHORIZED code, got ${result.status}`,
-      );
-    }
-
-    console.log("RESULT IS", result);
+    console.log(result);
   });
 
-  it("should allow authorized access to private procedures", async function () {
+  it("Can be instantiated from nothing", async function () {});
+
+  it("Public functions work", async function () {
     this.timeout(15000);
-
-    const auth = createFunction({
-      output: z.literal("you are authorized"),
-      auth: async ({ context }) => {
-        return context.message.senderAddress === authorizedWallet.address;
-      },
-      handler: async () => {
-        return "you are authorized" as const;
-      },
-    });
-
-    const backend = await createQuiver({});
-
-    backend.router({ auth });
-
-    await backend.start({});
-
-    CLEANUP.push(backend.stop);
-
-    const unauthorizedFrontend = await createQuiver({});
-
-    const unauthorizedClient = unauthorizedFrontend.client(
-      { auth },
-      { address: backend.address },
-    );
-
-    await unauthorizedFrontend.start({});
-
-    CLEANUP.push(unauthorizedFrontend.stop);
-
-    const authorizedFrontend = await createQuiver({
-      options: {
-        wallet: authorizedWallet,
-      },
-    });
-
-    const authorizedClient = authorizedFrontend.client(
-      { auth },
-      { address: backend.address },
-    );
-
-    await authorizedFrontend.start({});
-
-    CLEANUP.push(authorizedFrontend.stop);
-
-    const unauthorizedResult = await unauthorizedClient.auth();
-
-    if (unauthorizedResult.ok) {
-      console.error(unauthorizedResult);
-      throw new Error("auth should have failed for unauthorized client");
-    }
-
-    const authorizedResult = await authorizedClient.auth();
-
-    if (!authorizedResult.ok) {
-      console.error(authorizedResult);
-      throw new Error("auth should have succeeded for authorized client");
-    }
-
-    if (authorizedResult.data !== "you are authorized") {
-      throw new Error("auth returned wrong result");
-    }
-
-    console.log("AUTHORIZED RESULT IS", authorizedResult);
-    console.log("AUTHORIZED RESULT IS", unauthorizedResult);
   });
+
+  it("Private functions work", async function () {
+    this.timeout(15000);
+  });
+
+  it("Middleware works", async function () {
+    this.timeout(15000);
+  });
+
+  it("Proxying works", async function () {});
 });

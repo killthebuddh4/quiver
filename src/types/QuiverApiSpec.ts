@@ -1,6 +1,18 @@
 import { QuiverFunction } from "./QuiverFunction.js";
+import { QuiverHandler } from "./QuiverHandler.js";
+import { QuiverMiddleware } from "./QuiverMiddleware.js";
 
 export type QuiverApiSpec = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: Omit<QuiverFunction<any, any>, "handler">;
+  [key in string]: key extends "bind" | "use"
+    ? key extends "bind"
+      ? () => {
+          namespace: string;
+          handler: QuiverHandler;
+        }
+      : (mw: QuiverMiddleware) => void
+    : Omit<
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        QuiverFunction<any, any>,
+        "handler"
+      >;
 };
