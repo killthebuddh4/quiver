@@ -55,15 +55,24 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     const path = parseQuiverPath(message.conversation.context?.conversationId);
 
     if (!path.ok) {
+      console.error(
+        `Received invalid path: ${message.conversation.context?.conversationId}`,
+      );
       return;
     }
 
     if (path.value.version !== VERSION) {
+      console.error(
+        `Received invalid path: ${message.conversation.context?.conversationId}`,
+      );
       // TODO - How do we handle incompatible versions?
       return;
     }
 
     if (path.value.address !== message.senderAddress) {
+      console.error(
+        `Received invalid path: ${message.conversation.context?.conversationId}`,
+      );
       // TODO - How do we handle mismatched addresses?
       return;
     }
@@ -135,7 +144,7 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
   const client: Quiver["client"] = (qc) => {
     const id = uuid();
 
-    const bound = qc.bind();
+    const bound = qc.bind(fig.publish);
 
     state.clients.set(id, bound);
   };

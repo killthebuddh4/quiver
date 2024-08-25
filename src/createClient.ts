@@ -44,7 +44,7 @@ export const createClient = <Api extends QuiverApiSpec>(
 
   const client = {} as QuiverClient<typeof api>;
 
-  for (const [name] of Object.keys(api)) {
+  for (const name of Object.keys(api)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (client as any)[name] = async (
       input: z.infer<(typeof api)[typeof name]["input"]>,
@@ -71,9 +71,9 @@ export const createClient = <Api extends QuiverApiSpec>(
 
       const message = await state.publish({
         conversation: {
-          peerAddress: "TODO",
+          peerAddress: address,
           context: {
-            conversationId: "TODO",
+            conversationId: `quiver/0.0.1/client/${namespace}/${name}`,
             metadata: {},
           },
         },

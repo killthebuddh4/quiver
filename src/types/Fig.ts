@@ -2,13 +2,14 @@ import { Message } from "./Message.js";
 import { Conversation } from "./Conversation.js";
 
 export type Fig = {
-  start: () => Promise<void>;
+  address: string;
+  start: () => Promise<() => void>;
   stop: () => void;
   publish: (args: {
     conversation: Conversation;
-    content: unknown;
+    content: string;
   }) => Promise<Message>;
   subscribe: (handler: (message: Message) => void) => Promise<{
-    unsubscribe: () => Promise<void>;
+    unsubscribe: () => void;
   }>;
 };

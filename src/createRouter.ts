@@ -16,12 +16,16 @@ export const createRouter = (
   const middleware: QuiverMiddleware[] = options?.middleware ?? [];
 
   const handler: QuiverHandler = async (context: QuiverContext) => {
+    console.log(`Router ${namespace} received a request`);
+
     let ctx: QuiverContext = context;
     for (const mw of middleware) {
       try {
         ctx = await mw(ctx);
       } catch {
         const name = "NOT_YET_IMPLEMENTED";
+
+        console.error(`Router middleware ${name} threw an error`);
 
         ctx.throw({
           status: "SERVER_ERROR",
@@ -33,6 +37,10 @@ export const createRouter = (
     }
 
     if (context.metadata?.request === undefined) {
+      console.error(
+        `No request found in context (probably because of a buggy middleware)`,
+      );
+
       ctx.throw({
         status: "SERVER_ERROR",
         reason: `No request found in context (probably because of a buggy middleware)`,
@@ -45,6 +53,10 @@ export const createRouter = (
     try {
       request = quiverRequestSchema.parse(context.metadata?.request);
     } catch {
+      console.error(
+        `Malformed request found in context (probably because of a buggy middleware)`,
+      );
+
       ctx.throw({
         status: "INVALID_REQUEST",
         reason: `Malformed request found in context (probably because of a buggy middleware)`,

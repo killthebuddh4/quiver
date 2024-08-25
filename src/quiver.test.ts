@@ -1,5 +1,5 @@
-import { Wallet } from "@ethersproject/wallet";
 import {
+  createFig,
   createQuiver,
   createClient,
   createRouter,
@@ -38,11 +38,13 @@ describe("Quiver", () => {
 
   it("Can be instantiated from an XMTP client", async function () {});
 
-  it("Can be instantiated from an interface (Fig)", async function () {
-    const signer = Wallet.createRandom();
+  it.only("Can be instantiated from an interface (Fig)", async function () {
+    this.timeout(15000);
+
+    const routerFig = await createFig();
 
     await (async () => {
-      const quiver = createQuiver({ signer });
+      const quiver = createQuiver({ fig: routerFig });
 
       const router = createRouter("math", api);
 
@@ -51,9 +53,11 @@ describe("Quiver", () => {
       CLEANUP.push(await quiver.start());
     })();
 
-    const quiver = createQuiver();
+    const clientFig = await createFig();
 
-    const client = createClient(signer.address, "math", api);
+    const quiver = createQuiver({ fig: clientFig });
+
+    const client = createClient(routerFig.address, "math", api);
 
     quiver.client(client);
 

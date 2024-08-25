@@ -15,3 +15,4 @@ export * from "./createQuiver.js";
 export * from "./createRouter.js";
 export * from "./createClient.js";
 export * from "./createFunction.js";
+export * from "./createFig.js";

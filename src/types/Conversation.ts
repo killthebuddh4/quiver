@@ -2,6 +2,6 @@ export type Conversation = {
   peerAddress: string;
   context?: {
     conversationId: string;
-    metadata: Record<string, unknown>;
+    metadata: Record<string, string>;
   };
 };
