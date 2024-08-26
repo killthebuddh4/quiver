@@ -3,6 +3,7 @@ import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverApi } from "./types/QuiverApi.js";
 import { QuiverRouter } from "./types/QuiverRouter.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
+import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 
 export const createRouter = (
@@ -12,8 +13,19 @@ export const createRouter = (
 ): QuiverRouter => {
   const middleware: QuiverMiddleware[] = options?.middleware ?? [];
 
-  const handler: QuiverHandler = async (dispatch, context) => {
-    let ctx: QuiverContext = context;
+  const handler: QuiverHandler = async (dispatch, ctx) => {
+    const request = parseQuiverRequest(ctx.message);
+
+    if (!request.ok) {
+      dispatch.throw({
+        status: "INVALID_REQUEST",
+        reason: `No request found in message ${ctx.message.id}`,
+      });
+
+      return;
+    }
+
+    ctx.request = request.value;
 
     for (const mw of middleware) {
       try {
@@ -30,13 +42,13 @@ export const createRouter = (
       }
     }
 
-    const fn = api[ctx.request.function];
+    const fn = api[request.value.function];
 
     if (fn === undefined) {
-      return ctx.throw({ status: "UNKNOWN_FUNCTION" });
+      return dispatch.throw({ status: "UNKNOWN_FUNCTION" });
     }
 
-    const input = fn.input(ctx.request.arguments);
+    const input = fn.input(request.value.arguments);
 
     if (!input.ok) {
       return ctx.throw({

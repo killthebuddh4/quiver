@@ -140,15 +140,28 @@ A middleware should be able to:
 - exit
 - mutate
 
-Quiver
+Quiver (router)
 
-- received
-- path check
-- get a router (or client)
-- parse json
-- parse request
-- create context (middleware)
-- pass to router or client
+- middleware
+- message
+- check the path
+- check the json
+- check the request
+- middleware
+- pass to router
+- middleware
+- pass to function
+- middleware
+- parse inputs
+- call handler
+- return value
+- publish value
+
+Function
+
+- parse input
+- create context
+- call function
 
 Client
 
@@ -159,17 +172,6 @@ Client
 - get response resolver
 - parse output
 - return value
-
-Router
-
-- create context
-- get function
-
-Function
-
-- parse input
-- create context
-- call function
 
 Send
 
