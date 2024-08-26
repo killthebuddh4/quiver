@@ -1,7 +1,7 @@
 import { Maybe } from "../types/Maybe.js";
 import { QuiverPath } from "../types/QuiverPath.js";
 
-export const parseQuiverPath = (path: unknown): Maybe<QuiverPath> => {
+export const parsePath = (path: unknown): Maybe<QuiverPath> => {
   if (typeof path !== "string") {
     return {
       ok: false,

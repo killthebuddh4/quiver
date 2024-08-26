@@ -53,6 +53,7 @@ export const createRouter = (
     try {
       request = quiverRequestSchema.parse(context.metadata?.request);
     } catch {
+      console.log("request", context.metadata?.request);
       console.error(
         `Malformed request found in context (probably because of a buggy middleware)`,
       );

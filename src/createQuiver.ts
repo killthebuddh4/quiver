@@ -4,9 +4,10 @@ import { v4 as uuid } from "uuid";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
 import { Message } from "./types/Message.js";
-import { parseQuiverPath } from "./lib/parseQuiverPath.js";
+import { parsePath } from "./lib/parsePath.js";
 import { createReturn } from "./lib/createReturn.js";
 import { createThrow } from "./lib/createThrow.js";
+import { createCall } from "./lib/createCall.js";
 import { parseRequest } from "./lib/parseRequest.js";
 import { parseResponse } from "./lib/parseResponse.js";
 
@@ -52,18 +53,18 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
 
   // TODO HOW DO I MANAGE THE SUBSCRIPTIONS?
   const handler = (message: Message) => {
-    const path = parseQuiverPath(message.conversation.context?.conversationId);
+    const path = parsePath(message.conversation.context?.conversationId);
 
     if (!path.ok) {
       console.error(
-        `Received invalid path: ${message.conversation.context?.conversationId}`,
+        `!path.ok: ${message.conversation.context?.conversationId}`,
       );
       return;
     }
 
     if (path.value.version !== VERSION) {
       console.error(
-        `Received invalid path: ${message.conversation.context?.conversationId}`,
+        `bad path version: ${message.conversation.context?.conversationId}`,
       );
       // TODO - How do we handle incompatible versions?
       return;
@@ -71,7 +72,7 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
 
     if (path.value.address !== message.senderAddress) {
       console.error(
-        `Received invalid path: ${message.conversation.context?.conversationId}`,
+        `bad path address: ${message.conversation.context?.conversationId}`,
       );
       // TODO - How do we handle mismatched addresses?
       return;
@@ -97,10 +98,10 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
         }
 
         const context: QuiverContext = {
-          return: createReturn(message, fig.publish),
-          throw: createThrow(message, fig.publish),
+          return: createReturn(fig.address, message, fig.publish),
+          throw: createThrow(fig.address, message, fig.publish),
           message,
-          metadata: { request },
+          metadata: { request: request.value },
         };
 
         router.handler(context);
@@ -128,10 +129,10 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
         }
 
         const context: QuiverContext = {
-          return: createReturn(message, fig.publish),
-          throw: createThrow(message, fig.publish),
+          return: createReturn(fig.address, message, fig.publish),
+          throw: createThrow(fig.address, message, fig.publish),
           message,
-          metadata: { response },
+          metadata: { response: response.value },
         };
 
         client.handler(context);
@@ -144,7 +145,9 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
   const client: Quiver["client"] = (qc) => {
     const id = uuid();
 
-    const bound = qc.bind(fig.publish);
+    const call = createCall(fig.address, fig.publish);
+
+    const bound = qc.bind(call);
 
     state.clients.set(id, bound);
   };

@@ -1,12 +1,11 @@
 import { z } from "zod";
 import { QuiverClient } from "./types/QuiverClient.js";
 import { QuiverClientOptions } from "./types/QuiverClientOptions.js";
-import { QuiverRequest } from "./types/QuiverRequest.js";
+import { QuiverCall } from "./types/QuiverCall.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverResponse } from "./types/QuiverResponse.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
-import { Fig } from "./types/Fig.js";
 
 export const createClient = <Api extends QuiverApiSpec>(
   address: string,
@@ -16,26 +15,33 @@ export const createClient = <Api extends QuiverApiSpec>(
 ): QuiverClient<typeof api> => {
   const state: {
     middleware: QuiverMiddleware[];
-    publish: Fig["publish"] | null;
+    call: QuiverCall | null;
     queue: Map<string, (response: QuiverResponse<unknown>) => void>;
   } = {
     middleware: options?.middleware ?? [],
-    publish: null,
+    call: null,
     queue: new Map(),
   };
 
   const handler = async (context: QuiverContext) => {
+    console.log(`Client ${namespace} received a response`);
+
     if (context.metadata?.response === undefined) {
-      // TODO
+      console.error(
+        `No response found in context (probably because of a buggy middleware)`,
+      );
       return;
     }
 
     const response = context.metadata.response as QuiverResponse<unknown>;
 
-    const resolve = state.queue.get(context.message.id);
+    console.log(`Response is ${JSON.stringify(response)}`);
+
+    const resolve = state.queue.get(response.id);
 
     if (resolve === undefined) {
       // TODO Handle errors
+      console.error(`No resolve function found for response ${response.id}`);
       return;
     }
 
@@ -49,38 +55,17 @@ export const createClient = <Api extends QuiverApiSpec>(
     (client as any)[name] = async (
       input: z.infer<(typeof api)[typeof name]["input"]>,
     ) => {
-      if (state.publish === null) {
+      if (state.call === null) {
         throw new Error("Client hasn't been bound to Quiver yet");
       }
 
-      const request: QuiverRequest = {
+      const message = await state.call(address, namespace, {
         function: name,
         arguments: input,
-      };
-
-      let str: string;
-      try {
-        str = JSON.stringify(request);
-      } catch {
-        return {
-          ok: false,
-          code: "INPUT_SERIALIZATION_FAILED",
-          response: null,
-        };
-      }
-
-      const message = await state.publish({
-        conversation: {
-          peerAddress: address,
-          context: {
-            conversationId: `quiver/0.0.1/client/${namespace}/${name}`,
-            metadata: {},
-          },
-        },
-        content: str,
       });
 
       return new Promise((resolve) => {
+        console.log(`Putting message ${message.id} in the queue`);
         state.queue.set(message.id, resolve);
       });
     };
@@ -90,8 +75,8 @@ export const createClient = <Api extends QuiverApiSpec>(
     state.middleware.push(middleware);
   };
 
-  const bind = (publish: Fig["publish"]) => {
-    state.publish = publish;
+  const bind = (call: QuiverCall) => {
+    state.call = call;
 
     return {
       namespace,

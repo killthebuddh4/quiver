@@ -1,13 +1,13 @@
 import { QuiverHandler } from "./QuiverHandler.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { Fig } from "./Fig.js";
+import { QuiverCall } from "./QuiverCall.js";
 
 export type Quiver = {
   start: () => Promise<() => void>;
   stop: () => void;
   router: (router: QuiverRouter) => void;
-  client: (c: {
-    bind: (publish: Fig["publish"]) => {
+  client: (client: {
+    bind: (call: QuiverCall) => {
       address: string;
       namespace: string;
       handler: QuiverHandler;
