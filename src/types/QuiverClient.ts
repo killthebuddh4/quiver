@@ -1,23 +1,25 @@
-import { z } from "zod";
 import { QuiverSuccess } from "./QuiverSuccess.js";
 import { QuiverError } from "./QuiverError.js";
 import { QuiverApiSpec } from "./QuiverApiSpec.js";
-import { QuiverHandler } from "./QuiverHandler.js";
+import { QuiverClientHandler } from "./QuiverClientHandler.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { Actually } from "./Actually.js";
 
 export type QuiverClient<A extends QuiverApiSpec> = {
   [K in keyof A | "bind" | "use"]: K extends "bind"
     ? () => {
         address: string;
         namespace: string;
-        handler: QuiverHandler;
+        handler: QuiverClientHandler;
       }
     : K extends "use"
       ? (mw: QuiverMiddleware) => void
       : RemoveSingleUndefinedArgument<
           (
-            i: z.infer<A[K]["input"]>,
-          ) => Promise<QuiverSuccess<z.infer<A[K]["output"]>> | QuiverError>
+            i: Actually<ReturnType<A[K]["input"]>>,
+          ) =>
+            | Promise<QuiverSuccess<Actually<ReturnType<A[K]["output"]>>>>
+            | QuiverError
         >;
 };
 

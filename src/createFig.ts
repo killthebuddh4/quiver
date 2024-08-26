@@ -3,8 +3,8 @@ import { Client } from "@xmtp/xmtp-js";
 import { Message } from "./types/Message.js";
 import { Conversation } from "./types/Conversation.js";
 import { Fig } from "./types/Fig.js";
-import { v4 as uuid } from "uuid";
 import { Signer } from "./types/Signer.js";
+import { getUniqueId } from "./lib/getUniqueId.js";
 
 export const createFig = async (options?: {
   signer?: Signer;
@@ -21,9 +21,6 @@ export const createFig = async (options?: {
       }
 
       for (const handler of Array.from(handlers.values())) {
-        console.log(
-          `Fig ${signer.address} handling message: ${message.content} from ${message.senderAddress}`,
-        );
         handler(message);
       }
     }
@@ -38,7 +35,8 @@ export const createFig = async (options?: {
   };
 
   const subscribe = async (handler: (message: Message) => void) => {
-    const id = uuid();
+    const id = getUniqueId();
+
     handlers.set(id, handler);
     return {
       unsubscribe: () => {
@@ -51,16 +49,12 @@ export const createFig = async (options?: {
     conversation: Conversation;
     content: string;
   }) => {
-    console.log(
-      `Fig ${signer.address} publishing message: ${args.content} to ${args.conversation.peerAddress}`,
-    );
-
-    const c = await xmtp.conversations.newConversation(
+    const conversation = await xmtp.conversations.newConversation(
       args.conversation.peerAddress,
       args.conversation.context,
     );
 
-    return c.send(args.content);
+    return conversation.send(args.content);
   };
 
   return {

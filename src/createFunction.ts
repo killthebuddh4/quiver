@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { QuiverFunction } from "./types/QuiverFunction.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverFunctionOptions } from "./types/QuiverFunctionOptions.js";
@@ -8,9 +7,11 @@ export const createFunction = <I = undefined, O = undefined>(
   handler: (i: I, context: QuiverContext) => Promise<O>,
   options?: QuiverFunctionOptions<I, O>,
 ): QuiverFunction<I, O> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const any = (v: any): any => v;
   return {
-    input: options?.input ?? z.any(),
-    output: options?.output ?? z.any(),
+    input: options?.input ?? any,
+    output: options?.output ?? any,
     handler,
   };
 };

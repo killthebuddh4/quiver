@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { QuiverClient } from "./types/QuiverClient.js";
 import { QuiverClientOptions } from "./types/QuiverClientOptions.js";
 import { QuiverCall } from "./types/QuiverCall.js";
@@ -6,6 +5,7 @@ import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverResponse } from "./types/QuiverResponse.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
+import { parseQuiverResponse } from "./lib/parseQuiverResponse.js";
 
 export const createClient = <Api extends QuiverApiSpec>(
   address: string,
@@ -24,28 +24,19 @@ export const createClient = <Api extends QuiverApiSpec>(
   };
 
   const handler = async (context: QuiverContext) => {
-    console.log(`Client ${namespace} received a response`);
+    const response = parseQuiverResponse(context.metadata?.response);
 
-    if (context.metadata?.response === undefined) {
-      console.error(
-        `No response found in context (probably because of a buggy middleware)`,
-      );
+    if (!response.ok) {
       return;
     }
 
-    const response = context.metadata.response as QuiverResponse<unknown>;
-
-    console.log(`Response is ${JSON.stringify(response)}`);
-
-    const resolve = state.queue.get(response.id);
+    const resolve = state.queue.get(response.value.id);
 
     if (resolve === undefined) {
-      // TODO Handle errors
-      console.error(`No resolve function found for response ${response.id}`);
       return;
     }
 
-    resolve(response);
+    resolve(response.value);
   };
 
   const client = {} as QuiverClient<typeof api>;
@@ -53,7 +44,7 @@ export const createClient = <Api extends QuiverApiSpec>(
   for (const name of Object.keys(api)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (client as any)[name] = async (
-      input: z.infer<(typeof api)[typeof name]["input"]>,
+      input: ReturnType<(typeof api)[typeof name]["input"]>,
     ) => {
       if (state.call === null) {
         throw new Error("Client hasn't been bound to Quiver yet");
@@ -65,7 +56,6 @@ export const createClient = <Api extends QuiverApiSpec>(
       });
 
       return new Promise((resolve) => {
-        console.log(`Putting message ${message.id} in the queue`);
         state.queue.set(message.id, resolve);
       });
     };

@@ -1,10 +1,8 @@
-import { z } from "zod";
 import { QuiverRouterOptions } from "./types/QuiverRouterOptions.js";
-import { quiverRequestSchema } from "./lib/quiverRequestSchema.js";
 import { QuiverContext } from "./types/QuiverContext.js";
+import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverApi } from "./types/QuiverApi.js";
-import { QuiverRequest } from "./types/QuiverRequest.js";
 import { QuiverRouter } from "./types/QuiverRouter.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
 
@@ -16,16 +14,12 @@ export const createRouter = (
   const middleware: QuiverMiddleware[] = options?.middleware ?? [];
 
   const handler: QuiverHandler = async (context: QuiverContext) => {
-    console.log(`Router ${namespace} received a request`);
-
     let ctx: QuiverContext = context;
     for (const mw of middleware) {
       try {
         ctx = await mw(ctx);
       } catch {
         const name = "NOT_YET_IMPLEMENTED";
-
-        console.error(`Router middleware ${name} threw an error`);
 
         ctx.throw({
           status: "SERVER_ERROR",
@@ -37,10 +31,6 @@ export const createRouter = (
     }
 
     if (context.metadata?.request === undefined) {
-      console.error(
-        `No request found in context (probably because of a buggy middleware)`,
-      );
-
       ctx.throw({
         status: "SERVER_ERROR",
         reason: `No request found in context (probably because of a buggy middleware)`,
@@ -49,15 +39,9 @@ export const createRouter = (
       return;
     }
 
-    let request: QuiverRequest;
-    try {
-      request = quiverRequestSchema.parse(context.metadata?.request);
-    } catch {
-      console.log("request", context.metadata?.request);
-      console.error(
-        `Malformed request found in context (probably because of a buggy middleware)`,
-      );
+    const request = parseQuiverRequest(context.metadata?.request);
 
+    if (!request.ok) {
       ctx.throw({
         status: "INVALID_REQUEST",
         reason: `Malformed request found in context (probably because of a buggy middleware)`,
@@ -66,7 +50,7 @@ export const createRouter = (
       return;
     }
 
-    const fn = api[request.function];
+    const fn = api[request.value.function];
 
     if (fn === undefined) {
       ctx.throw({ status: "UNKNOWN_FUNCTION" });
@@ -91,19 +75,17 @@ export const createRouter = (
       }
     }
 
-    let input: z.infer<typeof fn.input>;
-    try {
-      input = fn.input.parse(request.arguments);
-    } catch {
+    const input = fn.input(request.value.arguments);
+
+    if (!input.ok) {
       ctx.throw({
         status: "INPUT_TYPE_MISMATCH",
-        // TODO: include more information about the error
       });
 
       return;
     }
 
-    let output: z.infer<typeof fn.output>;
+    let output: ReturnType<typeof fn.output>;
     try {
       output = await fn.handler(input, ctx);
     } catch {
@@ -116,7 +98,6 @@ export const createRouter = (
     }
 
     if (fn.options?.isNotification) {
-      // TODO, validate output with this option (output should be void-ish)
       return;
     }
 
@@ -137,8 +118,5 @@ export const createRouter = (
     };
   };
 
-  return {
-    bind,
-    use,
-  };
+  return { bind, use };
 };

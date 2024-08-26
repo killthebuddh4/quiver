@@ -45,20 +45,15 @@ describe("Quiver", () => {
 
     await (async () => {
       const quiver = createQuiver({ fig: routerFig });
-
       const router = createRouter("math", api);
-
       quiver.router(router);
 
       CLEANUP.push(await quiver.start());
     })();
 
-    const clientFig = await createFig();
-
-    const quiver = createQuiver({ fig: clientFig });
-
+    const fig = await createFig();
+    const quiver = createQuiver({ fig });
     const client = createClient(routerFig.address, "math", api);
-
     quiver.client(client);
 
     CLEANUP.push(await quiver.start());
