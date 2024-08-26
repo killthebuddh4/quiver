@@ -1,7 +1,12 @@
 import { Maybe } from "../types/Maybe.js";
 import { QuiverPath } from "../types/QuiverPath.js";
+import { Message } from "../types/Message.js";
 
-export const parsePath = (path: unknown): Maybe<QuiverPath> => {
+const VERSION = "0.0.1";
+
+export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
+  const path = message.conversation.context?.conversationId;
+
   if (typeof path !== "string") {
     return {
       ok: false,
@@ -20,7 +25,7 @@ export const parsePath = (path: unknown): Maybe<QuiverPath> => {
     };
   }
 
-  const [quiver, version, source, address, namespace, fn] = segments;
+  const [quiver, version, channel, address, namespace, fn] = segments;
 
   if (quiver !== "quiver") {
     return {
@@ -30,20 +35,28 @@ export const parsePath = (path: unknown): Maybe<QuiverPath> => {
     };
   }
 
-  if (source !== "router" && source !== "client") {
+  if (version !== VERSION) {
     return {
       ok: false,
-      code: "INVALID_SOURCE_SEGMENT",
-      reason: `Expected "router" or "client", got "${source}"`,
+      code: "INVALID_VERSION_SEGMENT",
+      reason: `Expected "${VERSION}", got "${version}"`,
+    };
+  }
+
+  if (channel !== "requests" && channel !== "responses") {
+    return {
+      ok: false,
+      code: "INVALID_CHANNEL_SEGMENT",
+      reason: `Expected "requests" or "responses", got "${channel}"`,
     };
   }
 
   // TODO more validation
-  if (address.length !== 42) {
+  if (address !== message.senderAddress) {
     return {
       ok: false,
       code: "INVALID_ADDRESS_SEGMENT",
-      reason: `Expected 42 characters, got ${address.length}`,
+      reason: `Expected "${message.senderAddress}", got "${address}"`,
     };
   }
 
@@ -70,7 +83,7 @@ export const parsePath = (path: unknown): Maybe<QuiverPath> => {
     value: {
       quiver,
       version,
-      source,
+      channel,
       address,
       namespace,
       function: fn,

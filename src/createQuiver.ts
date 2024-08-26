@@ -4,16 +4,12 @@ import { v4 as uuid } from "uuid";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
 import { Message } from "./types/Message.js";
-import { parsePath } from "./lib/parsePath.js";
-import { createReturn } from "./lib/createReturn.js";
-import { createThrow } from "./lib/createThrow.js";
-import { QuiverClientHandler } from "./types/QuiverClientHandler.js";
+import { parseQuiverPath } from "./lib/parseQuiverPath.js";
 import { createCall } from "./lib/createCall.js";
 import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
 import { parseQuiverResponse } from "./lib/parseQuiverResponse.js";
-import { QuiverClientContext } from "./types/QuiverClientContext.js";
-
-const VERSION = "0.0.1";
+import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
+import { QuiverDispatch } from "./types/QuiverDispatch.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
   const fig = options?.fig;
@@ -24,15 +20,17 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
 
   const state: {
     sub: { unsubscribe: () => void } | null;
-    routers: Map<string, { namespace: string; handler: QuiverHandler }>;
-    clients: Map<
+    // NOTE, "request routers" are identified by the PEER address,
+    // while "response routers" are identified by this fig's address
+    routers: Map<
       string,
-      { address: string; namespace: string; handler: QuiverClientHandler }
+      { address: string; namespace: string; handler: QuiverHandler }
     >;
+    middleware: QuiverMiddleware[];
   } = {
     sub: null,
     routers: new Map(),
-    clients: new Map(),
+    middleware: options?.middleware ?? [],
   };
 
   const stop: Quiver["stop"] = () => {
@@ -54,94 +52,101 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
   };
 
   // TODO HOW DO I MANAGE THE SUBSCRIPTIONS?
-  const handler = (message: Message) => {
-    const path = parsePath(message.conversation.context?.conversationId);
+  const handler = async (message: Message) => {
+    const path = parseQuiverPath(message);
 
     if (!path.ok) {
       return;
     }
 
-    if (path.value.version !== VERSION) {
-      return;
-    }
+    let ctx: QuiverContext = {
+      path: path.value,
+      message,
+      continue: true,
+      metadata: {},
+    };
 
-    if (path.value.address !== message.senderAddress) {
-      return;
-    }
+    const dispatch = {} as QuiverDispatch;
 
-    switch (path.value.source) {
-      case "client": {
-        const router = Array.from(state.routers.values()).find((router) => {
-          return path.value.namespace === router.namespace;
-        });
-
-        if (router === undefined) {
-          return;
-        }
-
+    switch (path.value.channel) {
+      case "requests": {
         const request = parseQuiverRequest(message);
 
         if (!request.ok) {
           return;
         }
 
-        const context: QuiverContext = {
-          return: createReturn(fig.address, message, fig.publish),
-          throw: createThrow(fig.address, message, fig.publish),
-          message,
-          request: request.value,
-          metadata: {},
-        };
-
-        router.handler(context);
-
-        return;
+        ctx.request = request.value;
       }
-      case "router": {
-        const client = Array.from(state.clients.values()).find((client) => {
-          return (
-            path.value.namespace === client.namespace &&
-            path.value.address === client.address
-          );
-        });
-
-        if (client === undefined) {
-          return;
-        }
-
+      case "responses": {
         const response = parseQuiverResponse(message);
 
         if (!response.ok) {
           return;
         }
 
-        const context: QuiverClientContext = {
-          message,
-          response: response.value,
-          metadata: {},
-        };
+        ctx.response = response.value;
+      }
+    }
 
-        client.handler(context);
+    const router = Array.from(state.routers.values()).find((router) => {
+      if (router.namespace !== path.value.namespace) {
+        return false;
+      }
 
+      if (path.value.channel === "requests") {
+        return router.address === message.conversation.peerAddress;
+      }
+
+      if (path.value.channel === "responses") {
+        return router.address === fig.address;
+      }
+    });
+
+    if (router === undefined) {
+      return;
+    }
+
+    for (const mw of state.middleware) {
+      try {
+        ctx = await mw(dispatch, ctx);
+      } catch {
+        // TODO!
+        return;
+      }
+
+      if (!ctx.continue) {
         return;
       }
     }
+
+    router.handler(dispatch, ctx);
+
+    return;
   };
 
   const client: Quiver["client"] = (qc) => {
     const id = uuid();
     const call = createCall(fig.address, fig.publish);
     const bound = qc.bind(call);
-    state.clients.set(id, bound);
+    state.routers.set(id, bound);
   };
 
   const router: Quiver["router"] = (qr) => {
     const id = uuid();
     const bound = qr.bind();
-    state.routers.set(id, bound);
+    state.routers.set(id, {
+      address: fig.address,
+      ...bound,
+    });
+  };
+
+  const use = (mw: QuiverMiddleware) => {
+    state.middleware.push(mw);
   };
 
   return {
+    use,
     client,
     router,
     start,

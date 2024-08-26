@@ -1,8 +1,7 @@
 import { QuiverSuccess } from "./QuiverSuccess.js";
 import { QuiverError } from "./QuiverError.js";
 import { QuiverApiSpec } from "./QuiverApiSpec.js";
-import { QuiverClientHandler } from "./QuiverClientHandler.js";
-import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { QuiverHandler } from "./QuiverHandler.js";
 import { Actually } from "./Actually.js";
 
 export type QuiverClient<A extends QuiverApiSpec> = {
@@ -10,10 +9,10 @@ export type QuiverClient<A extends QuiverApiSpec> = {
     ? () => {
         address: string;
         namespace: string;
-        handler: QuiverClientHandler;
+        handler: QuiverHandler;
       }
     : K extends "use"
-      ? (mw: QuiverMiddleware) => void
+      ? (mw: QuiverHandler) => void
       : RemoveSingleUndefinedArgument<
           (
             i: Actually<ReturnType<A[K]["input"]>>,

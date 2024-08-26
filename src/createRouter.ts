@@ -1,10 +1,9 @@
 import { QuiverRouterOptions } from "./types/QuiverRouterOptions.js";
 import { QuiverContext } from "./types/QuiverContext.js";
-import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
-import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverApi } from "./types/QuiverApi.js";
 import { QuiverRouter } from "./types/QuiverRouter.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
+import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 
 export const createRouter = (
   namespace: string,
@@ -13,15 +12,16 @@ export const createRouter = (
 ): QuiverRouter => {
   const middleware: QuiverMiddleware[] = options?.middleware ?? [];
 
-  const handler: QuiverHandler = async (context: QuiverContext) => {
+  const handler: QuiverHandler = async (dispatch, context) => {
     let ctx: QuiverContext = context;
+
     for (const mw of middleware) {
       try {
-        ctx = await mw(ctx);
+        ctx = await mw(dispatch, ctx);
       } catch {
         const name = "NOT_YET_IMPLEMENTED";
 
-        ctx.throw({
+        dispatch.throw({
           status: "SERVER_ERROR",
           reason: `Router middleware ${name} threw an error`,
         });
@@ -30,32 +30,18 @@ export const createRouter = (
       }
     }
 
-    if (context.metadata?.request === undefined) {
-      ctx.throw({
-        status: "SERVER_ERROR",
-        reason: `No request found in context (probably because of a buggy middleware)`,
-      });
-
-      return;
-    }
-
-    const request = parseQuiverRequest(context.metadata?.request);
-
-    if (!request.ok) {
-      ctx.throw({
-        status: "INVALID_REQUEST",
-        reason: `Malformed request found in context (probably because of a buggy middleware)`,
-      });
-
-      return;
-    }
-
-    const fn = api[request.value.function];
+    const fn = api[ctx.request.function];
 
     if (fn === undefined) {
-      ctx.throw({ status: "UNKNOWN_FUNCTION" });
+      return ctx.throw({ status: "UNKNOWN_FUNCTION" });
+    }
 
-      return;
+    const input = fn.input(ctx.request.arguments);
+
+    if (!input.ok) {
+      return ctx.throw({
+        status: "INPUT_TYPE_MISMATCH",
+      });
     }
 
     if (fn.options?.middleware !== undefined) {
@@ -65,49 +51,31 @@ export const createRouter = (
         } catch {
           const name = "NOT_YET_IMPLEMENTED";
 
-          ctx.throw({
+          return ctx.throw({
             status: "SERVER_ERROR",
             reason: `Function middleware ${name} threw an error`,
           });
-
-          return;
         }
       }
-    }
-
-    const input = fn.input(request.value.arguments);
-
-    if (!input.ok) {
-      ctx.throw({
-        status: "INPUT_TYPE_MISMATCH",
-      });
-
-      return;
     }
 
     let output: ReturnType<typeof fn.output>;
     try {
       output = await fn.handler(input, ctx);
     } catch {
-      ctx.throw({
+      return ctx.throw({
         status: "SERVER_ERROR",
         reason: `The function handler threw an error`,
       });
-
-      return;
     }
 
-    if (fn.options?.isNotification) {
-      return;
-    }
-
-    ctx.return({
+    return ctx.return({
       status: "SUCCESS",
       data: output,
     });
   };
 
-  const use = (mw: QuiverMiddleware) => {
+  const use = (mw: QuiverHandler) => {
     middleware.push(mw);
   };
 

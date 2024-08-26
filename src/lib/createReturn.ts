@@ -2,7 +2,8 @@ import { Message } from "../types/Message.js";
 import { QuiverReturn } from "../types/QuiverReturn.js";
 import { QuiverSuccess } from "../types/QuiverSuccess.js";
 import { Fig } from "../types/Fig.js";
-import { parsePath } from "./parsePath.js";
+import { parseQuiverPath } from "./parseQuiverPath.js";
+import { QuiverContext } from "../types/QuiverContext.js";
 
 export const createReturn = (
   address: string,
@@ -26,7 +27,7 @@ export const createReturn = (
       );
     }
 
-    const path = parsePath(message.conversation.context?.conversationId);
+    const path = parseQuiverPath(message.conversation.context?.conversationId);
 
     if (!path.ok) {
       // TODO!

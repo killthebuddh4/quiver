@@ -24,27 +24,33 @@
   <br />
 </div>
 
-# Overview
+## Overview
 
 `quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC library powered by [XMTP](https://xmtp.org) (and inspired by [trpc](https://trpc.io)).
 
-# Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Table of Contents](#table-of-contents)
 - [Install](#install)
 - [Quickstart](#quickstart)
-- [Auth](#auth)
 - [Examples](#examples)
 - [API Reference](#api-reference)
+    - [createQuiver](#createquiver)
+    - [createFunction](#createfunction)
+    - [createRouter](#createrouter)
+    - [createClient](#createclient)
+    - [createMiddleware](#createmiddleware)
+- [Middleware](#middleware)
 - [How does it work?](#how-does-it-work)
 - [Roadmap](#roadmap)
+    - [TODO](#todo)
 
-# Install
+## Install
 
 `npm install @killthebuddha/quiver`
 
-# Quickstart
+## Quickstart
 
 First create a `QuiverFunction`:
 
@@ -99,32 +105,7 @@ And a bonus for all the TypeScript developers (🦾) out there: _everything abov
 
 TODO: Maybe a `gif` here to show the type-safety?
 
-# Auth
-
-The function we deployed above is public, but we can _add authentication in just a few lines of code_. Let's modify the `hello` function:
-
-```JavaScript
-// api.ts
-
-import { createFunction } from "@killthebuddha/quiver";
-
-const WHITELIST = [
-  'YOUR_MOTHERS_ADDRESS',
-  'YOUR_BFFS_ADDRESS',
-  'YOUR_SECRET_IDENTITY'
-];
-
-export const hello = createFunction({
-  auth: async (context) => {
-    return WHITELIST.includes(context.message.sender.address);
-  },
-  handler: async () => "Hello!",
-})
-```
-
-And that's all there is to it 🔥! For something more dynamic, use your favorite database, auth provider, [ENS](https://app.ens.domains), etc.
-
-# Examples
+## Examples
 
 Check out these runnable examples:
 
@@ -138,14 +119,76 @@ Check out these runnable examples:
 
 If you have a use-case in mind, and are wondering how it might work, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
 
-# API Reference
+## API Reference
 
-TODO
+#### createQuiver
 
-# How does it work?
+#### createFunction
+
+#### createRouter
+
+#### createClient
+
+#### createMiddleware
+
+## Middleware
+
+A middleware should be able to:
+
+- return
+- throw
+- exit
+- mutate
+
+Quiver
+
+- received
+- path check
+- get a router (or client)
+- parse json
+- parse request
+- create context (middleware)
+- pass to router or client
+
+Client
+
+- send request
+- set handler
+- wait for inbound
+- inbound
+- get response resolver
+- parse output
+- return value
+
+Router
+
+- create context
+- get function
+
+Function
+
+- parse input
+- create context
+- call function
+
+Send
+
+- serialize output
+- sent response
+
+## How does it work?
 
 `Quiver` is built on top of the superb [XMTP](https://xmtp.org) messaging protocol. XMTP provides out-of-the-box end-to-end encrypted messaging.
 
-# Roadmap
+## Roadmap
 
 If you have a feature (or bugfix) request, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
+
+#### TODO
+
+- middleware
+  - lifecycle
+  - return/throw + middleware
+  - override/extend
+- parser plugins (just middleware)
+- function and nested router apis

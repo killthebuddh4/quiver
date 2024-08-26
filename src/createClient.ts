@@ -1,11 +1,10 @@
 import { QuiverClient } from "./types/QuiverClient.js";
 import { QuiverClientOptions } from "./types/QuiverClientOptions.js";
 import { QuiverCall } from "./types/QuiverCall.js";
-import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverResponse } from "./types/QuiverResponse.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
-import { parseQuiverResponse } from "./lib/parseQuiverResponse.js";
+import { QuiverClientContext } from "./types/QuiverClientContext.js";
 
 export const createClient = <Api extends QuiverApiSpec>(
   address: string,
@@ -23,20 +22,16 @@ export const createClient = <Api extends QuiverApiSpec>(
     queue: new Map(),
   };
 
-  const handler = async (context: QuiverContext) => {
-    const response = parseQuiverResponse(context.metadata?.response);
-
-    if (!response.ok) {
-      return;
-    }
-
-    const resolve = state.queue.get(response.value.id);
+  const handler = async (context: QuiverClientContext) => {
+    const resolve = state.queue.get(context.response.id);
 
     if (resolve === undefined) {
       return;
     }
 
-    resolve(response.value);
+    state.queue.delete(context.response.id);
+
+    resolve(context.response);
   };
 
   const client = {} as QuiverClient<typeof api>;

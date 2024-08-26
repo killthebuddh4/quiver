@@ -2,7 +2,7 @@ import { Message } from "../types/Message.js";
 import { Fig } from "../types/Fig.js";
 import { QuiverError } from "../types/QuiverError.js";
 import { QuiverThrow } from "../types/QuiverThrow.js";
-import { parsePath } from "./parsePath.js";
+import { parseQuiverPath } from "./parseQuiverPath.js";
 
 export const createThrow = (
   address: string,
@@ -24,7 +24,7 @@ export const createThrow = (
       throw new Error("SHOULD DO SOMETHING HERE");
     }
 
-    const path = parsePath(message.conversation.context?.conversationId);
+    const path = parseQuiverPath(message.conversation.context?.conversationId);
 
     if (!path.ok) {
       // TODO, how should we handle this?

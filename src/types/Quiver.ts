@@ -1,8 +1,10 @@
 import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverCall } from "./QuiverCall.js";
-import { QuiverClientHandler } from "./QuiverClientHandler.js";
+import { QuiverHandler } from "./QuiverHandler.js";
+import { QuiverMiddleware } from "./QuiverMiddleware.js";
 
 export type Quiver = {
+  use: (mw: QuiverMiddleware) => void;
   start: () => Promise<() => void>;
   stop: () => void;
   router: (router: QuiverRouter) => void;
@@ -11,7 +13,7 @@ export type Quiver = {
     bind: (call: QuiverCall) => {
       address: string;
       namespace: string;
-      handler: QuiverClientHandler;
+      handler: QuiverHandler;
     };
   }) => void;
 };

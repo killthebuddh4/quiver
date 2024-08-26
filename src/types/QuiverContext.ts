@@ -1,12 +1,13 @@
 import { Message } from "./Message.js";
-import { QuiverReturn } from "./QuiverReturn.js";
-import { QuiverThrow } from "./QuiverThrow.js";
+import { QuiverPath } from "./QuiverPath.js";
 import { QuiverRequest } from "./QuiverRequest.js";
+import { QuiverResponse } from "./QuiverResponse.js";
 
 export type QuiverContext = {
-  return: QuiverReturn;
-  throw: QuiverThrow;
+  path: QuiverPath;
+  continue: boolean;
   message: Message;
-  request: QuiverRequest;
+  request?: QuiverRequest;
+  response?: QuiverResponse<unknown>;
   metadata?: Record<string, unknown>;
 };
