@@ -1,9 +1,7 @@
-import { QuiverExit } from "./QuiverExit.js";
-import { QuiverReturn } from "./QuiverReturn.js";
-import { QuiverThrow } from "./QuiverThrow.js";
+import { QuiverHandler } from "./QuiverHandler.js";
 
 export type QuiverDispatch = {
-  return: QuiverReturn;
-  throw: QuiverThrow;
-  exit: QuiverExit;
+  return: QuiverHandler;
+  throw: QuiverHandler;
+  exit: QuiverHandler;
 };

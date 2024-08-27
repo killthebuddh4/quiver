@@ -1,7 +1,7 @@
 import { Maybe } from "../types/Maybe.js";
-import { QuiverError } from "../types/QuiverError.js";
+import { QuiverThrow } from "../types/QuiverError.js";
 
-export const parseQuiverError = (error: unknown): Maybe<QuiverError> => {
+export const parseQuiverError = (error: unknown): Maybe<QuiverThrow> => {
   let json;
   if (typeof error === "string") {
     try {
@@ -93,10 +93,12 @@ const STATUSES = [
   "REQUEST_TIMEOUT",
   "INVALID_REQUEST",
   "UNKNOWN_FUNCTION",
+  "INVALID_PATH",
   "INPUT_INVALID_JSON",
   "INPUT_TYPE_MISMATCH",
   "OUTPUT_SERIALIZATION_FAILED",
   "UNAUTHORIZED",
   "SERVER_ERROR",
   "CLIENT_ERROR",
+  "UNKNOWN_NAMESPACE",
 ];

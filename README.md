@@ -178,6 +178,33 @@ Send
 - serialize output
 - sent response
 
+
+router.hooks.use(
+  "target",
+  "before" | "after" | "error" | "throw" | "return"
+  ctx => {
+  }
+)
+
+router.hooks.replace(
+  "target",
+  "name",
+)
+
+
+QM => Ctx | Return | Throw
+
+
+
+
+
+
+
+
+
+
+
+
 ## How does it work?
 
 `Quiver` is built on top of the superb [XMTP](https://xmtp.org) messaging protocol. XMTP provides out-of-the-box end-to-end encrypted messaging.

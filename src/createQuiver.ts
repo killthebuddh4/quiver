@@ -4,12 +4,15 @@ import { v4 as uuid } from "uuid";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
 import { Message } from "./types/Message.js";
-import { parseQuiverPath } from "./lib/parseQuiverPath.js";
 import { createCall } from "./lib/createCall.js";
-import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
 import { parseQuiverResponse } from "./lib/parseQuiverResponse.js";
+import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
-import { QuiverDispatch } from "./types/QuiverDispatch.js";
+import { path } from "./hooks/path.js";
+import { run } from "./hooks/run.js";
+import { json } from "./hooks/json.js";
+import { request } from "./hooks/request.js";
+import { response } from "./hooks/response.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
   const fig = options?.fig;
@@ -51,42 +54,68 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     return stop;
   };
 
+  const isDone = (ctx: QuiverContext) => {
+    return (
+      ctx.return === undefined ||
+      ctx.throw === undefined ||
+      ctx.exit === undefined
+    );
+  };
+
   // TODO HOW DO I MANAGE THE SUBSCRIPTIONS?
-  const handler = async (message: Message) => {
-    const path = parseQuiverPath(message);
+  const handler = async (message: Message): QuiverContext => {
+    let ctx: QuiverContext = { message };
 
-    if (!path.ok) {
-      return;
-    }
-
-    let ctx: QuiverContext = {
-      path: path.value,
-      message,
-      continue: true,
-      metadata: {},
+    const pathHook = {
+      before: [],
+      after: [],
+      catch: [],
+      mw: path,
     };
 
-    const dispatch = {} as QuiverDispatch;
+    const jsonHook = {
+      before: [],
+      after: [],
+      catch: [],
+      mw: json,
+    };
 
-    switch (path.value.channel) {
-      case "requests": {
-        const request = parseQuiverRequest(message);
+    const requestHook = {
+      before: [],
+      after: [],
+      catch: [],
+      mw: request,
+    };
 
-        if (!request.ok) {
-          return;
-        }
+    const responseHook = {
+      before: [],
+      after: [],
+      catch: [],
+      mw: response,
+    };
 
-        ctx.request = request.value;
-      }
-      case "responses": {
-        const response = parseQuiverResponse(message);
+    ctx = await run(pathHook, ctx);
 
-        if (!response.ok) {
-          return;
-        }
+    if (isDone(ctx)) {
+      return ctx;
+    }
 
-        ctx.response = response.value;
-      }
+    ctx = await run(jsonHook, ctx);
+
+    if (isDone(ctx)) {
+      return ctx;
+    }
+
+    if (ctx.path === undefined) {
+      throw new Error("TODO");
+    }
+
+    if (ctx.path.channel === "requests") {
+      ctx = await run(requestHook, ctx);
+    } else if (ctx.path.channel === "responses") {
+      ctx = await run(responseHook, ctx);
+    } else {
+      throw new Error("TODO");
     }
 
     const router = Array.from(state.routers.values()).find((router) => {
@@ -104,23 +133,44 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     });
 
     if (router === undefined) {
-      return;
-    }
+      for (const mw of hooks.router.error) {
+        ctx = await mw(ctx);
 
-    for (const mw of state.middleware) {
-      try {
-        ctx = await mw(dispatch, ctx);
-      } catch {
-        // TODO!
-        return;
+        if (controls.check(ctx)) {
+          return controls.dispatch(ctx);
+        }
       }
 
-      if (!ctx.continue) {
-        return;
-      }
+      return dispatch.throw({
+        status: "UNKNOWN_NAMESPACE",
+        reason: "No router found for this message",
+      });
     }
 
-    router.handler(dispatch, ctx);
+    try {
+      await router.handler(ctx);
+    } catch {
+      for (const mw of hooks.router.error) {
+        ctx = await mw(ctx);
+
+        if (controls.check(ctx)) {
+          return controls.dispatch(ctx);
+        }
+      }
+
+      return dispatch.throw({
+        status: "SERVER_ERROR",
+        reason: "Router threw an error",
+      });
+    }
+
+    for (const mw of hooks.router.after) {
+      ctx = await mw(ctx);
+
+      if (controls.check(ctx)) {
+        return controls.dispatch(ctx);
+      }
+    }
 
     return;
   };

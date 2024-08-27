@@ -1,52 +1,30 @@
 import { Message } from "../types/Message.js";
-import { QuiverReturn } from "../types/QuiverReturn.js";
-import { QuiverSuccess } from "../types/QuiverSuccess.js";
 import { Fig } from "../types/Fig.js";
 import { parseQuiverPath } from "./parseQuiverPath.js";
 import { QuiverContext } from "../types/QuiverContext.js";
+import { QuiverRunHook } from "../types/QuiverHook.js";
 
-export const createReturn = (
+export const createDispatch = (
   address: string,
   message: Message,
+  hooks: {
+    return: QuiverRunHook;
+    throw: QuiverRunHook;
+    error: QuiverRunHook;
+    publish: QuiverRunHook;
+  },
   publish: Fig["publish"],
-): QuiverReturn => {
-  return async (res) => {
-    const ret: QuiverSuccess<unknown> = {
-      id: message.id,
-      ok: true,
-      ...res,
-    };
+) => {
+  const inPath = parseQuiverPath(message);
 
-    let content;
-    try {
-      content = JSON.stringify(ret);
-    } catch {
-      // TODO!
-      throw new Error(
-        `Failed to serialize return response for message ${message.id}`,
-      );
-    }
+  if (!inPath.ok) {
+    throw new Error("TODO");
+  }
 
-    const path = parseQuiverPath(message.conversation.context?.conversationId);
+  const outPath = `${inPath.value.quiver}/${inPath.value.version}/responses/${address}/${inPath.value.namespace}/${inPath.value.function}`;
 
-    if (!path.ok) {
-      // TODO!
-      throw new Error(
-        `Failed to parse path from message ${message.id}: ${path.reason}`,
-      );
-    }
-
-    const conversationId = `${path.value.quiver}/${path.value.version}/router/${address}/${path.value.namespace}/${path.value.function}`;
-
-    await publish({
-      conversation: {
-        peerAddress: message.conversation.peerAddress,
-        context: {
-          conversationId,
-          metadata: {},
-        },
-      },
-      content,
-    });
+  // if (ctx.x) return, won't work here because we know the ctx has
+  // already been populated with certain fields, that's why the function
+  // is called in the first place
   };
 };

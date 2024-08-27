@@ -1,6 +1,6 @@
 import { QuiverContext } from "./QuiverContext.js";
-import { QuiverError } from "./QuiverError.js";
+import { QuiverThrow } from "./QuiverError.js";
 
 export type QuiverThrow = (
-  res: Omit<QuiverError, "id" | "ok">,
+  res: Omit<QuiverThrow, "id" | "ok">,
 ) => Promise<QuiverContext>;

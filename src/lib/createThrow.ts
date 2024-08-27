@@ -1,6 +1,6 @@
 import { Message } from "../types/Message.js";
 import { Fig } from "../types/Fig.js";
-import { QuiverError } from "../types/QuiverError.js";
+import { QuiverThrow } from "../types/QuiverError.js";
 import { QuiverThrow } from "../types/QuiverThrow.js";
 import { parseQuiverPath } from "./parseQuiverPath.js";
 
@@ -10,7 +10,7 @@ export const createThrow = (
   publish: Fig["publish"],
 ): QuiverThrow => {
   return async (res) => {
-    const err: QuiverError = {
+    const err: QuiverThrow = {
       id: message.id,
       ok: false,
       ...res,
