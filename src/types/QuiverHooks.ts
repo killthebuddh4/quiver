@@ -5,7 +5,11 @@ export type QuiverHooks =
   | "request"
   | "response"
   | "router"
+  | "route"
+  | "function"
+  | "input"
+  | "output"
   | "throw"
   | "return"
-  | "error"
+  | "exit"
   | "publish";

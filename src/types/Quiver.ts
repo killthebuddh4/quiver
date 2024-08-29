@@ -1,19 +1,16 @@
-import { QuiverRouter } from "./QuiverRouter.js";
-import { QuiverCall } from "./QuiverCall.js";
-import { QuiverHandler } from "./QuiverHandler.js";
-import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { QuiverController } from "./QuiverController.js";
+import { QuiverRoute } from "./QuiverRoute.js";
+import { QuiverUse } from "./QuiverUse.js";
 
 export type Quiver = {
-  use: (mw: QuiverMiddleware) => void;
+  use: QuiverUse;
   start: () => Promise<() => void>;
   stop: () => void;
-  router: (router: QuiverRouter) => void;
+  router: (router: {
+    bind: (controller: QuiverController) => QuiverRoute;
+  }) => void;
   // client should be a QuiverClient type, but my TypeScript-fu is not strong enough
   client: (client: {
-    bind: (call: QuiverCall) => {
-      address: string;
-      namespace: string;
-      handler: QuiverHandler;
-    };
+    bind: (controller: QuiverController) => QuiverRoute;
   }) => void;
 };

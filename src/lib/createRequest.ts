@@ -1,12 +1,9 @@
-import { Fig } from "../types/Fig.js";
 import { QuiverCall } from "../types/QuiverCall.js";
+import { QuiverController } from "../types/QuiverController.js";
 
-export const createCall = (
-  clientAddress: string,
-  publish: Fig["publish"],
-): QuiverCall => {
+export const createRequest = (controller: QuiverController): QuiverCall => {
   return async (address, namespace, request) => {
-    const path = `quiver/0.0.1/client/${clientAddress}/${namespace}/${request.function}`;
+    const path = `quiver/0.0.1/requests/${controller.address}/${namespace}/${request.function}`;
 
     let content;
     try {
@@ -15,7 +12,7 @@ export const createCall = (
       throw new Error(`Failed to serialize request to ${path}`);
     }
 
-    return publish({
+    return controller.send({
       conversation: {
         peerAddress: address,
         context: {

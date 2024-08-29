@@ -178,10 +178,95 @@ Send
 - serialize output
 - sent response
 
+[A, B] -> C
 
-router.hooks.use(
+[D, E] -> B
+
+A -> B -> C
+
+quiver.use(
   "target",
-  "before" | "after" | "error" | "throw" | "return"
+  "event",
+  "name",
+  handler
+)
+
+quiver.after(
+  "target",
+  "name",
+  handler,
+)
+
+quiver.throw.use(
+  "target",
+  "event",
+  "name",
+  handler
+)
+
+quiver.return.use(
+  "target",
+  "event",
+  "name",
+  handler
+)
+
+quiver.exit.use(
+  "target",
+  "event",
+  "name",
+  handler
+)
+
+quiver.router.use(
+  "target",
+  "event",
+  "name",
+  handler
+)
+
+quiver.send.use(
+  "target",
+  "event",
+  "name",
+  handler
+)
+
+
+
+
+
+quiver.throw.before(
+  "target",
+  "name",
+  handler
+)
+
+quiver.return.before(
+  "target",
+  "name",
+  handler
+)
+
+router.use(
+  "name",
+  "target",
+  "event",
+  handler,
+)
+
+router.use(
+  "name",
+  "target",
+  "event",
+  handler,
+)
+
+
+
+router.trace(
+  router.hooks,
+  router.events,
   ctx => {
   }
 )

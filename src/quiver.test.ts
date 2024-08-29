@@ -1,10 +1,11 @@
 import {
   createFig,
-  createQuiver,
-  createClient,
   createRouter,
+  createClient,
+  createQuiver,
   createFunction,
 } from "./index.js";
+import Chalk from "chalk";
 
 const CLEANUP: Array<() => void> = [];
 
@@ -41,26 +42,77 @@ describe("Quiver", () => {
   it.only("Can be instantiated from an interface (Fig)", async function () {
     this.timeout(15000);
 
-    const routerFig = await createFig();
+    try {
+      const routerFig = await createFig();
 
-    await (async () => {
-      const quiver = createQuiver({ fig: routerFig });
-      const router = createRouter("math", api);
-      quiver.router(router);
+      await (async () => {
+        console.log(`CREATING ROUTER`);
+
+        const quiver = createQuiver({ fig: routerFig });
+        const router = createRouter("math", api);
+
+        quiver.router(router);
+
+        quiver.use("message", "before", "log", (ctx) => {
+          console.log(Chalk.green(`ROUTER RECEIVED MESSAGE`));
+          console.log(`ID: ${ctx.received.id}`);
+          console.log(`FROM: ${ctx.received.senderAddress}`);
+          console.log(`CONTENT: ${ctx.received.content}`);
+          console.log("\n\n\n\n");
+
+          return ctx;
+        });
+
+        quiver.use("path", "before", "log", (ctx) => {
+          console.log(`ROUTER BEFORE PATH`);
+          console.log(`PATH: ${JSON.stringify(ctx.path)}`);
+          console.log("\n\n\n\n");
+
+          return ctx;
+        });
+
+        quiver.use("path", "after", "log", (ctx) => {
+          console.log(`ROUTER AFTER PATH`);
+          console.log(`PATH: ${JSON.stringify(ctx.path)}`);
+          console.log("\n\n\n\n");
+
+          return ctx;
+        });
+
+        quiver.use("path", "throw", "log", (ctx) => {
+          console.log(`ROUTER FAILED PARSING PATH`);
+          console.log(`PATH: ${JSON.stringify(ctx.throw)}`);
+          console.log("\n\n\n\n");
+
+          return ctx;
+        });
+
+        quiver.use("router", "after", "log", (ctx) => {
+          console.log(ctx);
+          return ctx;
+        });
+
+        console.log(`STARTING ROUTER`);
+
+        CLEANUP.push(await quiver.start());
+
+        console.log(`ROUTER STARTED`);
+      })();
+
+      const fig = await createFig();
+      const quiver = createQuiver({ fig });
+      const client = createClient(routerFig.address, "math", api);
+      quiver.client(client);
 
       CLEANUP.push(await quiver.start());
-    })();
 
-    const fig = await createFig();
-    const quiver = createQuiver({ fig });
-    const client = createClient(routerFig.address, "math", api);
-    quiver.client(client);
+      console.log(`CALLING CLIENT.ADD`);
+      const result = await client.add({ a: 1, b: 2 });
 
-    CLEANUP.push(await quiver.start());
-
-    const result = await client.add({ a: 1, b: 2 });
-
-    console.log(result);
+      console.log(result);
+    } catch (e) {
+      console.error(e);
+    }
   });
 
   it("Can be instantiated from nothing", async function () {});

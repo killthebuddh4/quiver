@@ -1,6 +1,6 @@
-import { QuiverContext } from "./QuiverContext.js";
+import { QuiverHandler } from "./QuiverHandler.js";
 
 export type QuiverMiddleware = {
   name: string;
-  handler: (context: QuiverContext) => Promise<QuiverContext> | QuiverContext;
+  handler: QuiverHandler;
 };

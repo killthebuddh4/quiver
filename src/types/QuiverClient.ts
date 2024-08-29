@@ -1,24 +1,22 @@
 import { QuiverSuccess } from "./QuiverSuccess.js";
-import { QuiverThrow } from "./QuiverError.js";
+import { QuiverError } from "./QuiverError.js";
 import { QuiverApiSpec } from "./QuiverApiSpec.js";
-import { QuiverHandler } from "./QuiverHandler.js";
 import { Actually } from "./Actually.js";
+import { QuiverController } from "./QuiverController.js";
+import { QuiverRoute } from "./QuiverRoute.js";
+import { QuiverUse } from "./QuiverUse.js";
 
 export type QuiverClient<A extends QuiverApiSpec> = {
   [K in keyof A | "bind" | "use"]: K extends "bind"
-    ? () => {
-        address: string;
-        namespace: string;
-        handler: QuiverHandler;
-      }
+    ? (ctrl: QuiverController) => QuiverRoute
     : K extends "use"
-      ? (mw: QuiverHandler) => void
+      ? QuiverUse
       : RemoveSingleUndefinedArgument<
           (
             i: Actually<ReturnType<A[K]["input"]>>,
           ) =>
             | Promise<QuiverSuccess<Actually<ReturnType<A[K]["output"]>>>>
-            | QuiverThrow
+            | QuiverError
         >;
 };
 

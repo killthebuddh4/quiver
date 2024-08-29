@@ -1,198 +1,157 @@
 import { QuiverOptions } from "./types/QuiverOptions.js";
 import { Quiver } from "./types/Quiver.js";
-import { v4 as uuid } from "uuid";
-import { QuiverContext } from "./types/QuiverContext.js";
-import { QuiverHandler } from "./types/QuiverHandler.js";
 import { Message } from "./types/Message.js";
-import { createCall } from "./lib/createCall.js";
-import { parseQuiverResponse } from "./lib/parseQuiverResponse.js";
-import { parseQuiverRequest } from "./lib/parseQuiverRequest.js";
-import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
-import { path } from "./hooks/path.js";
-import { run } from "./hooks/run.js";
-import { json } from "./hooks/json.js";
-import { request } from "./hooks/request.js";
-import { response } from "./hooks/response.js";
+import { createMessage } from "./hooks/createMessage.js";
+import { createPath } from "./hooks/createPath.js";
+import { createJson } from "./hooks/createJson.js";
+import { createRequest } from "./hooks/createRequest.js";
+import { createResponse } from "./hooks/createResponse.js";
+import { createRouter } from "./hooks/createRouter.js";
+import { createThrow } from "./hooks/createThrow.js";
+import { createExit } from "./hooks/createExit.js";
+import { createState } from "./lib/createState.js";
+import { getState } from "./lib/getState.js";
+import { createContext } from "./lib/createContext.js";
+import { createHook } from "./lib/createHook.js";
+import { runHook } from "./lib/runHook.js";
+import { addRoute } from "./lib/addRoute.js";
+import { addHook } from "./lib/addHook.js";
+import { QuiverController } from "./types/QuiverController.js";
+import { addUnsubscribe } from "./lib/addUnsubscribe.js";
+import { getUnsubscribe } from "./lib/getUnsubscribe.js";
+import { addMiddleware } from "./lib/addMiddleware.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
-  const fig = options?.fig;
+  const init = createState(options);
+
+  const fig = init.options?.fig;
 
   if (fig === undefined) {
     throw new Error("fig is required, others aren't implemented yet");
   }
 
-  const state: {
-    sub: { unsubscribe: () => void } | null;
-    // NOTE, "request routers" are identified by the PEER address,
-    // while "response routers" are identified by this fig's address
-    routers: Map<
-      string,
-      { address: string; namespace: string; handler: QuiverHandler }
-    >;
-    middleware: QuiverMiddleware[];
-  } = {
-    sub: null,
-    routers: new Map(),
-    middleware: options?.middleware ?? [],
-  };
-
   const stop: Quiver["stop"] = () => {
     fig.stop();
 
-    if (state.sub !== null) {
-      state.sub.unsubscribe();
+    const unsubscribe = getUnsubscribe(init.id);
+
+    if (unsubscribe) {
+      unsubscribe();
     }
   };
 
   const start: Quiver["start"] = async () => {
     await fig.start();
 
-    const sub = await fig.subscribe(handler);
+    const { unsubscribe } = await fig.subscribe(handler);
 
-    state.sub = sub;
+    addUnsubscribe(init.id, unsubscribe);
 
     return stop;
   };
 
-  const isDone = (ctx: QuiverContext) => {
-    return (
-      ctx.return === undefined ||
-      ctx.throw === undefined ||
-      ctx.exit === undefined
-    );
+  const messageHook = createHook("message", createMessage());
+  const pathHook = createHook("path", createPath());
+  const jsonHook = createHook("json", createJson());
+  const requestHook = createHook("request", createRequest());
+  const responseHook = createHook("response", createResponse());
+  const routerHook = createHook("router", createRouter(init.routes));
+  const throwHook = createHook("throw", createThrow());
+  const exitHook = createHook("exit", createExit());
+
+  addHook(init.id, messageHook);
+  addHook(init.id, pathHook);
+  addHook(init.id, jsonHook);
+  addHook(init.id, requestHook);
+  addHook(init.id, responseHook);
+  addHook(init.id, routerHook);
+  addHook(init.id, throwHook);
+  addHook(init.id, exitHook);
+
+  // TODO
+  const ctrl: QuiverController = {
+    address: fig.address,
+    send: fig.publish,
   };
 
-  // TODO HOW DO I MANAGE THE SUBSCRIPTIONS?
-  const handler = async (message: Message): QuiverContext => {
-    let ctx: QuiverContext = { message };
-
-    const pathHook = {
-      before: [],
-      after: [],
-      catch: [],
-      mw: path,
-    };
-
-    const jsonHook = {
-      before: [],
-      after: [],
-      catch: [],
-      mw: json,
-    };
-
-    const requestHook = {
-      before: [],
-      after: [],
-      catch: [],
-      mw: request,
-    };
-
-    const responseHook = {
-      before: [],
-      after: [],
-      catch: [],
-      mw: response,
-    };
-
-    ctx = await run(pathHook, ctx);
-
-    if (isDone(ctx)) {
-      return ctx;
+  const handler = async (received: Message) => {
+    if (received.senderAddress === ctrl.address) {
+      console.log("QUIVER IGNORING OWN MESSAGE");
+      return;
     }
 
-    ctx = await run(jsonHook, ctx);
+    const hooks = getState(init.id).hooks;
 
-    if (isDone(ctx)) {
-      return ctx;
+    const t = hooks.find((h) => h.name === "throw");
+
+    if (t === undefined) {
+      throw new Error("throw hook is required");
     }
 
-    if (ctx.path === undefined) {
-      throw new Error("TODO");
+    const e = hooks.find((h) => h.name === "exit");
+
+    if (e === undefined) {
+      throw new Error("exit hook is required");
     }
 
-    if (ctx.path.channel === "requests") {
-      ctx = await run(requestHook, ctx);
-    } else if (ctx.path.channel === "responses") {
-      ctx = await run(responseHook, ctx);
-    } else {
-      throw new Error("TODO");
-    }
+    let ctx = createContext(fig.address, received);
 
-    const router = Array.from(state.routers.values()).find((router) => {
-      if (router.namespace !== path.value.namespace) {
-        return false;
+    hooks: for (const hook of hooks) {
+      ctx = await runHook(hook, ctx, ctrl);
+
+      if (ctx.abort) {
+        break hooks;
       }
 
-      if (path.value.channel === "requests") {
-        return router.address === message.conversation.peerAddress;
-      }
-
-      if (path.value.channel === "responses") {
-        return router.address === fig.address;
-      }
-    });
-
-    if (router === undefined) {
-      for (const mw of hooks.router.error) {
-        ctx = await mw(ctx);
-
-        if (controls.check(ctx)) {
-          return controls.dispatch(ctx);
-        }
-      }
-
-      return dispatch.throw({
-        status: "UNKNOWN_NAMESPACE",
-        reason: "No router found for this message",
-      });
-    }
-
-    try {
-      await router.handler(ctx);
-    } catch {
-      for (const mw of hooks.router.error) {
-        ctx = await mw(ctx);
-
-        if (controls.check(ctx)) {
-          return controls.dispatch(ctx);
-        }
-      }
-
-      return dispatch.throw({
-        status: "SERVER_ERROR",
-        reason: "Router threw an error",
-      });
-    }
-
-    for (const mw of hooks.router.after) {
-      ctx = await mw(ctx);
-
-      if (controls.check(ctx)) {
-        return controls.dispatch(ctx);
+      if (ctx.exit || ctx.throw) {
+        break hooks;
       }
     }
 
-    return;
+    if (ctx.abort) {
+      if (ctx.throw) {
+        ctx = await t.mw.handler(ctx, ctrl);
+
+        return;
+      }
+
+      if (ctx.exit) {
+        ctx = await e.mw.handler(ctx, ctrl);
+
+        return;
+      }
+
+      return;
+    }
+
+    if (ctx.exit) {
+      ctx = await runHook(e, ctx, ctrl);
+
+      return;
+    }
+
+    if (ctx.throw) {
+      ctx = await runHook(t, ctx, ctrl);
+
+      return;
+    }
   };
 
   const client: Quiver["client"] = (qc) => {
-    const id = uuid();
-    const call = createCall(fig.address, fig.publish);
-    const bound = qc.bind(call);
-    state.routers.set(id, bound);
+    const bound = qc.bind(ctrl);
+    addRoute(init.id, bound);
   };
 
   const router: Quiver["router"] = (qr) => {
-    const id = uuid();
-    const bound = qr.bind();
-    state.routers.set(id, {
-      address: fig.address,
-      ...bound,
-    });
+    const router = qr.bind(ctrl);
+    addRoute(init.id, router);
   };
 
-  const use = (mw: QuiverMiddleware) => {
-    state.middleware.push(mw);
+  const use: Quiver["use"] = (hook, on, name, handler) => {
+    addMiddleware(init.id, hook, on, {
+      name,
+      handler,
+    });
   };
 
   return {

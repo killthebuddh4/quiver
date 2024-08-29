@@ -1,7 +1,7 @@
 import { Maybe } from "../types/Maybe.js";
-import { QuiverThrow } from "../types/QuiverError.js";
+import { QuiverError } from "../types/QuiverError.js";
 
-export const parseQuiverError = (error: unknown): Maybe<QuiverThrow> => {
+export const parseQuiverError = (error: unknown): Maybe<QuiverError> => {
   let json;
   if (typeof error === "string") {
     try {
