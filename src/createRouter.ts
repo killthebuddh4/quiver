@@ -2,25 +2,38 @@ import { QuiverHandler } from "./types/QuiverHandler.js";
 import { createThrow } from "./hooks/createThrow.js";
 import { createReturn } from "./hooks/createReturn.js";
 import { createExit } from "./hooks/createExit.js";
-import { createHook } from "./lib/createHook.js";
+import { createHook } from "./quiver/createHook.js";
 import { createRoute } from "./hooks/createRoute.js";
 import { createFunction } from "./hooks/createFunction.js";
 import { createDispatch } from "./hooks/createDispatch.js";
-import { runHook } from "./lib/runHook.js";
+import { runHook } from "./quiver/runHook.js";
 import { QuiverApi } from "./types/QuiverApi.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverController } from "./types/QuiverController.js";
 import { QuiverRouter } from "./types/QuiverRouter.js";
+import { QuiverUse } from "./types/QuiverUse.js";
+import { addMiddleware } from "./router/addMiddleware.js";
+import { createState } from "./router/createState.js";
+import { addHook } from "./router/addHook.js";
 
 export const createRouter = (
   namespace: string,
   api: QuiverApi,
 ): QuiverRouter => {
+  const init = createState();
+
   const bind: QuiverRouter["bind"] = () => {
     return {
       match: (ctx) => ctx.path?.namespace === namespace,
       handler,
     };
+  };
+
+  const use: QuiverUse = (hook, on, name, handler) => {
+    addMiddleware(init.id, hook, on, {
+      name,
+      handler,
+    });
   };
 
   const routeHook = createHook("route", createRoute());
@@ -29,6 +42,13 @@ export const createRouter = (
   const throwHook = createHook("throw", createThrow());
   const returnHook = createHook("return", createReturn());
   const exitHook = createHook("exit", createExit());
+
+  addHook(init.id, routeHook);
+  addHook(init.id, dispatchHook);
+  addHook(init.id, functionHook);
+  addHook(init.id, throwHook);
+  addHook(init.id, returnHook);
+  addHook(init.id, exitHook);
 
   const hooks = [
     routeHook,
@@ -62,6 +82,7 @@ export const createRouter = (
     }
 
     hooks: for (const hook of hooks) {
+      console.log("RUNNING HOOK", hook.name);
       ctx = await runHook(hook, ctx, ctrl);
 
       if (ctx.abort) {
@@ -116,5 +137,5 @@ export const createRouter = (
     return ctx;
   };
 
-  return { bind };
+  return { use, bind };
 };

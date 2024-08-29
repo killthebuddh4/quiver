@@ -1,17 +1,16 @@
 import { store } from "./store.js";
 import { getUniqueId } from "../quiver/getUniqueId.js";
-import { QuiverClientState } from "../types/QuiverClientState.js";
+import { QuiverRouterState } from "../types/QuiverRouterState.js";
 
 export const createState = () => {
   const id = getUniqueId();
 
-  const state: QuiverClientState = {
+  const state: QuiverRouterState = {
     id,
     hooks: [],
-    queue: new Map(),
-    controller: null,
   };
 
+  console.log(`Setting id ${id} in store`);
   store.set(id, state);
 
   return state;

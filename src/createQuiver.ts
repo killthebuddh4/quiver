@@ -9,17 +9,16 @@ import { createResponse } from "./hooks/createResponse.js";
 import { createRouter } from "./hooks/createRouter.js";
 import { createThrow } from "./hooks/createThrow.js";
 import { createExit } from "./hooks/createExit.js";
-import { createState } from "./lib/createState.js";
-import { getState } from "./lib/getState.js";
-import { createContext } from "./lib/createContext.js";
-import { createHook } from "./lib/createHook.js";
-import { runHook } from "./lib/runHook.js";
-import { addRoute } from "./lib/addRoute.js";
-import { addHook } from "./lib/addHook.js";
+import { createState } from "./quiver/createState.js";
+import { createContext } from "./quiver/createContext.js";
+import { createHook } from "./quiver/createHook.js";
+import { runHook } from "./quiver/runHook.js";
+import { addRoute } from "./quiver/addRoute.js";
+import { addHook } from "./quiver/addHook.js";
 import { QuiverController } from "./types/QuiverController.js";
-import { addUnsubscribe } from "./lib/addUnsubscribe.js";
-import { getUnsubscribe } from "./lib/getUnsubscribe.js";
-import { addMiddleware } from "./lib/addMiddleware.js";
+import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
+import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
+import { addMiddleware } from "./quiver/addMiddleware.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
   const init = createState(options);
@@ -76,23 +75,17 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
 
   const handler = async (received: Message) => {
     if (received.senderAddress === ctrl.address) {
-      console.log("QUIVER IGNORING OWN MESSAGE");
       return;
     }
 
-    const hooks = getState(init.id).hooks;
-
-    const t = hooks.find((h) => h.name === "throw");
-
-    if (t === undefined) {
-      throw new Error("throw hook is required");
-    }
-
-    const e = hooks.find((h) => h.name === "exit");
-
-    if (e === undefined) {
-      throw new Error("exit hook is required");
-    }
+    const hooks = [
+      messageHook,
+      pathHook,
+      jsonHook,
+      requestHook,
+      responseHook,
+      routerHook,
+    ];
 
     let ctx = createContext(fig.address, received);
 
@@ -108,15 +101,32 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
       }
     }
 
+    // TODO, what's the most elegant way to handle this pass-down?
+
+    if (ctx.route) {
+      ctx = await ctx.route.handler(ctx, ctrl);
+    }
+
+    console.log(`CTX AT END`, ctx);
+
+    const isThrowDisabled = Boolean(
+      options?.hooks?.disabled?.includes("throw"),
+    );
+    const isExitDisabled = Boolean(options?.hooks?.disabled?.includes("exit"));
+
     if (ctx.abort) {
       if (ctx.throw) {
-        ctx = await t.mw.handler(ctx, ctrl);
+        if (!isThrowDisabled) {
+          ctx = await throwHook.mw.handler(ctx, ctrl);
+        }
 
         return;
       }
 
       if (ctx.exit) {
-        ctx = await e.mw.handler(ctx, ctrl);
+        if (!isExitDisabled) {
+          ctx = await exitHook.mw.handler(ctx, ctrl);
+        }
 
         return;
       }
@@ -125,13 +135,17 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     }
 
     if (ctx.exit) {
-      ctx = await runHook(e, ctx, ctrl);
+      if (!isExitDisabled) {
+        ctx = await runHook(exitHook, ctx, ctrl);
+      }
 
       return;
     }
 
     if (ctx.throw) {
-      ctx = await runHook(t, ctx, ctrl);
+      if (!isThrowDisabled) {
+        ctx = await runHook(throwHook, ctx, ctrl);
+      }
 
       return;
     }

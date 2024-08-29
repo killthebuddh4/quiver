@@ -3,10 +3,10 @@ import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
 import { QuiverController } from "./types/QuiverController.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
-import { runHook } from "./lib/runHook.js";
+import { runHook } from "./quiver/runHook.js";
 import { createResolve } from "./hooks/createResolve.js";
-import { createHook } from "./lib/createHook.js";
-import { createRequest } from "./lib/createRequest.js";
+import { createHook } from "./quiver/createHook.js";
+import { createRequest } from "./quiver/createRequest.js";
 import { QuiverRoute } from "./types/QuiverRoute.js";
 import { createState } from "./client/createState.js";
 import { addMiddleware } from "./client/addMiddleware.js";
@@ -68,46 +68,6 @@ export const createClient = <Api extends QuiverApiSpec>(
       if (ctx.exit || ctx.return || ctx.throw) {
         break hooks;
       }
-    }
-
-    if (ctx.abort) {
-      if (ctx.throw) {
-        ctx = await t.mw.handler(ctx, ctrl);
-
-        return ctx;
-      }
-
-      if (ctx.return) {
-        ctx = await r.mw.handler(ctx, ctrl);
-
-        return ctx;
-      }
-
-      if (ctx.exit) {
-        ctx = await e.mw.handler(ctx, ctrl);
-
-        return ctx;
-      }
-
-      return ctx;
-    }
-
-    if (ctx.exit) {
-      ctx = await runHook(e, ctx, ctrl);
-
-      return ctx;
-    }
-
-    if (ctx.return) {
-      ctx = await runHook(r, ctx, ctrl);
-
-      return ctx;
-    }
-
-    if (ctx.throw) {
-      ctx = await runHook(t, ctx, ctrl);
-
-      return ctx;
     }
 
     return ctx;

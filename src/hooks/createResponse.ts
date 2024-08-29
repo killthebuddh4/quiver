@@ -1,6 +1,6 @@
 import { QuiverHandler } from "../types/QuiverHandler.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { parseQuiverResponse } from "../lib/parseQuiverResponse.js";
+import { parseQuiverResponse } from "../quiver/parseQuiverResponse.js";
 
 export const createResponse = (): QuiverMiddleware => {
   const handler: QuiverHandler = async (context) => {
@@ -14,10 +14,7 @@ export const createResponse = (): QuiverMiddleware => {
     }
 
     if (context.path.channel !== "responses") {
-      context.throw = {
-        status: "SERVER_ERROR",
-        reason: "Path channel is not 'responses'",
-      };
+      return context;
     }
 
     const response = parseQuiverResponse(context.received);

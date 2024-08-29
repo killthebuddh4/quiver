@@ -1,5 +1,5 @@
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { getUniqueId } from "../lib/getUniqueId.js";
+import { getUniqueId } from "../quiver/getUniqueId.js";
 
 export const createFunction = (): QuiverMiddleware => {
   return {
@@ -17,7 +17,7 @@ export const createFunction = (): QuiverMiddleware => {
       const input = ctx.function.input(ctx.request?.arguments);
 
       if (!input.ok) {
-        ctx.throw = { status: "INPUT_TYPE_MISMATCH" };
+        ctx.throw = { status: "INPUT_TYPE_MISMATCH", reason: input.reason };
 
         return ctx;
       }

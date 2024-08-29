@@ -1,5 +1,5 @@
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { parseQuiverPath } from "../lib/parseQuiverPath.js";
+import { parseQuiverPath } from "../quiver/parseQuiverPath.js";
 import { QuiverHandler } from "../types/QuiverHandler.js";
 
 export const createPath = (): QuiverMiddleware => {

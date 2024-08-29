@@ -37,7 +37,7 @@ export const parseQuiverRequest = (value: unknown): Maybe<QuiverRequest> => {
     return {
       ok: false,
       code: "INVALID_FUNCTION_TYPE",
-      reason: `value function is not a string, it's ${typeof json.function}`,
+      reason: `value.function is not a string, it's ${typeof json.function}`,
     };
   }
 
@@ -46,7 +46,7 @@ export const parseQuiverRequest = (value: unknown): Maybe<QuiverRequest> => {
     return {
       ok: false,
       code: "INVALID_ARGUMENTS_TYPE",
-      reason: `value arguments is not an object, it's ${typeof json.arguments}`,
+      reason: `value.arguments is not an object, it's ${typeof json.arguments}`,
     };
   }
 

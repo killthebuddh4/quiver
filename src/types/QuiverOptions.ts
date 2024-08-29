@@ -8,4 +8,7 @@ export type QuiverOptions = {
   xmtp?: Client;
   fig?: Fig;
   env?: "production" | "dev";
+  hooks?: {
+    disabled?: string[];
+  };
 };

@@ -16,6 +16,8 @@ export const createRouter = (routes: QuiverRoute[]): QuiverMiddleware => {
       };
     }
 
+    console.log(`ROUTER CTX AT END`, context);
+
     return context;
   };
 

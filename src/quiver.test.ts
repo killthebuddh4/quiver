@@ -4,6 +4,7 @@ import {
   createClient,
   createQuiver,
   createFunction,
+  QuiverContext,
 } from "./index.js";
 import Chalk from "chalk";
 
@@ -42,6 +43,36 @@ describe("Quiver", () => {
   it.only("Can be instantiated from an interface (Fig)", async function () {
     this.timeout(15000);
 
+    const rlog = (name: string) => (ctx: QuiverContext) => {
+      console.log(Chalk.blue(`ROUTER HOOK :${name}`));
+      console.log(
+        JSON.stringify(
+          {
+            ...ctx,
+            received: ctx.received.content,
+          },
+          null,
+          2,
+        ),
+      );
+      return ctx;
+    };
+
+    const qlog = (name: string) => (ctx: QuiverContext) => {
+      console.log(Chalk.green(`QUIVER HOOK :${name}`));
+      console.log(
+        JSON.stringify(
+          {
+            ...ctx,
+            received: ctx.received.content,
+          },
+          null,
+          2,
+        ),
+      );
+      return ctx;
+    };
+
     try {
       const routerFig = await createFig();
 
@@ -49,48 +80,28 @@ describe("Quiver", () => {
         console.log(`CREATING ROUTER`);
 
         const quiver = createQuiver({ fig: routerFig });
+
+        quiver.use("message", "before", "log", qlog("message"));
+        quiver.use("path", "before", "log", qlog("path"));
+        quiver.use("json", "before", "log", qlog("json"));
+        quiver.use("request", "before", "log", qlog("request"));
+        quiver.use("response", "before", "log", qlog("response"));
+        quiver.use("router", "before", "log", qlog("router"));
+        quiver.use("router", "throw", "log", qlog("router"));
+        quiver.use("router", "exit", "log", qlog("router"));
+        quiver.use("throw", "before", "log", qlog("throw"));
+        quiver.use("exit", "before", "log", qlog("exit"));
+
         const router = createRouter("math", api);
 
+        router.use("route", "before", "log", rlog("route"));
+        router.use("dispatch", "before", "log", rlog("dispatch"));
+        router.use("function", "before", "log", rlog("function"));
+        router.use("return", "before", "log", rlog("return"));
+        router.use("throw", "before", "log", rlog("throw"));
+        router.use("exit", "before", "log", rlog("exit"));
+
         quiver.router(router);
-
-        quiver.use("message", "before", "log", (ctx) => {
-          console.log(Chalk.green(`ROUTER RECEIVED MESSAGE`));
-          console.log(`ID: ${ctx.received.id}`);
-          console.log(`FROM: ${ctx.received.senderAddress}`);
-          console.log(`CONTENT: ${ctx.received.content}`);
-          console.log("\n\n\n\n");
-
-          return ctx;
-        });
-
-        quiver.use("path", "before", "log", (ctx) => {
-          console.log(`ROUTER BEFORE PATH`);
-          console.log(`PATH: ${JSON.stringify(ctx.path)}`);
-          console.log("\n\n\n\n");
-
-          return ctx;
-        });
-
-        quiver.use("path", "after", "log", (ctx) => {
-          console.log(`ROUTER AFTER PATH`);
-          console.log(`PATH: ${JSON.stringify(ctx.path)}`);
-          console.log("\n\n\n\n");
-
-          return ctx;
-        });
-
-        quiver.use("path", "throw", "log", (ctx) => {
-          console.log(`ROUTER FAILED PARSING PATH`);
-          console.log(`PATH: ${JSON.stringify(ctx.throw)}`);
-          console.log("\n\n\n\n");
-
-          return ctx;
-        });
-
-        quiver.use("router", "after", "log", (ctx) => {
-          console.log(ctx);
-          return ctx;
-        });
 
         console.log(`STARTING ROUTER`);
 
@@ -100,8 +111,22 @@ describe("Quiver", () => {
       })();
 
       const fig = await createFig();
-      const quiver = createQuiver({ fig });
+      const quiver = createQuiver({
+        fig,
+        hooks: { disabled: ["throw", "exit"] },
+      });
+
+      quiver.use("message", "before", "log", (ctx) => {
+        console.log(Chalk.blue(`CLIENT RECEIVED MESSAGE`));
+        console.log(`ID: ${ctx.received.id}`);
+        console.log(`FROM: ${ctx.received.senderAddress}`);
+        console.log(`CONTENT: ${ctx.received.content}`);
+        console.log("\n\n\n\n");
+        return ctx;
+      });
+
       const client = createClient(routerFig.address, "math", api);
+
       quiver.client(client);
 
       CLEANUP.push(await quiver.start());
