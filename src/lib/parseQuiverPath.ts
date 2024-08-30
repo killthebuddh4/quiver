@@ -43,7 +43,11 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
     };
   }
 
-  if (channel !== "requests" && channel !== "responses") {
+  if (
+    channel !== "requests" &&
+    channel !== "responses" &&
+    channel !== "signals"
+  ) {
     return {
       ok: false,
       code: "INVALID_CHANNEL_SEGMENT",

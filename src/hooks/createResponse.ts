@@ -1,6 +1,6 @@
 import { QuiverHandler } from "../types/QuiverHandler.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { parseQuiverResponse } from "../quiver/parseQuiverResponse.js";
+import { parseQuiverResponse } from "../lib/parseQuiverResponse.js";
 
 export const createResponse = (): QuiverMiddleware => {
   const handler: QuiverHandler = async (context) => {

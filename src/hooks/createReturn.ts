@@ -1,6 +1,5 @@
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverContext } from "../types/QuiverContext.js";
-import { QuiverSuccess } from "../types/QuiverSuccess.js";
 import { QuiverController } from "../types/QuiverController.js";
 
 export const createReturn = (): QuiverMiddleware => {
@@ -9,7 +8,7 @@ export const createReturn = (): QuiverMiddleware => {
       return ctx;
     }
 
-    const ret: QuiverSuccess<unknown> = {
+    ctx.response = {
       id: ctx.received.id,
       ok: true,
       ...ctx.return,
@@ -17,9 +16,9 @@ export const createReturn = (): QuiverMiddleware => {
 
     let content;
     try {
-      content = JSON.stringify(ret);
+      content = JSON.stringify(ctx.response);
     } catch (error) {
-      throw new Error(`Failed to stringify return data`);
+      throw new Error(`Failed to stringify ctx.return`);
     }
 
     if (ctx.path === undefined) {

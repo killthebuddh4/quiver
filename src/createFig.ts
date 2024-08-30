@@ -4,7 +4,7 @@ import { Message } from "./types/Message.js";
 import { Conversation } from "./types/Conversation.js";
 import { Fig } from "./types/Fig.js";
 import { Signer } from "./types/Signer.js";
-import { getUniqueId } from "./quiver/getUniqueId.js";
+import { getUniqueId } from "./lib/getUniqueId.js";
 
 export const createFig = async (options?: {
   signer?: Signer;

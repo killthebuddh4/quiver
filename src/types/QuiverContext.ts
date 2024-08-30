@@ -5,8 +5,10 @@ import { QuiverResponse } from "./QuiverResponse.js";
 import { QuiverExit } from "./QuiverExit.js";
 import { QuiverError } from "./QuiverError.js";
 import { QuiverSuccess } from "./QuiverSuccess.js";
+import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverRoute } from "./QuiverRoute.js";
-import { QuiverFunction } from "./QuiverFunction.js";
+import { QuiverClientRouter } from "./QuiverClientRouter.js";
+import { QuiverClientRoute } from "./QuiverClientRoute.js";
 
 export type QuiverContext = {
   address: string;
@@ -15,9 +17,12 @@ export type QuiverContext = {
   json?: unknown;
   request?: QuiverRequest;
   response?: QuiverResponse<unknown>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function?: QuiverFunction<any, any>;
+  client?: QuiverClientRouter;
+  resolver?: QuiverClientRoute;
+  router?: QuiverRouter;
   route?: QuiverRoute;
+  input?: unknown;
+  output?: unknown;
   throw?: Omit<QuiverError, "id" | "ok">;
   return?: Omit<QuiverSuccess<unknown>, "id" | "ok">;
   exit?: Omit<QuiverExit, "id" | "ok">;

@@ -3,14 +3,15 @@ import { QuiverApiSpec } from "./types/QuiverApiSpec.js";
 import { QuiverController } from "./types/QuiverController.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverHandler } from "./types/QuiverHandler.js";
-import { runHook } from "./quiver/runHook.js";
-import { createResolve } from "./hooks/createResolve.js";
-import { createHook } from "./quiver/createHook.js";
-import { createRequest } from "./quiver/createRequest.js";
+import { runHook } from "./lib/runHook.js";
+import { createResolver } from "./hooks/createResolver.js";
+import { createHook } from "./lib/createHook.js";
+import { createRequest } from "./lib/createRequest.js";
 import { QuiverRoute } from "./types/QuiverRoute.js";
 import { createState } from "./client/createState.js";
 import { addMiddleware } from "./client/addMiddleware.js";
 import { QuiverUse } from "./types/QuiverUse.js";
+import { QuiverClientRouter } from "./types/QuiverClientRouter.js";
 
 export const createClient = <Api extends QuiverApiSpec>(
   address: string,
@@ -19,7 +20,7 @@ export const createClient = <Api extends QuiverApiSpec>(
 ): QuiverClient<typeof api> => {
   const init = createState();
 
-  const bind = (ctrl: QuiverController): QuiverRoute => {
+  const bind = (ctrl: QuiverController): QuiverClientRouter => {
     init.controller = ctrl;
 
     return {
@@ -32,45 +33,6 @@ export const createClient = <Api extends QuiverApiSpec>(
       },
       handler,
     };
-  };
-
-  init.hooks.push(createHook("resolve", createResolve(init.queue)));
-
-  const handler: QuiverHandler = async (
-    ctx: QuiverContext,
-    ctrl: QuiverController,
-  ) => {
-    const t = init.hooks.find((h) => h.name === "throw");
-
-    if (t === undefined) {
-      throw new Error("throw hook is required");
-    }
-
-    const r = init.hooks.find((h) => h.name === "return");
-
-    if (r === undefined) {
-      throw new Error("return hook is required");
-    }
-
-    const e = init.hooks.find((h) => h.name === "exit");
-
-    if (e === undefined) {
-      throw new Error("exit hook is required");
-    }
-
-    hooks: for (const hook of init.hooks) {
-      ctx = await runHook(hook, ctx, ctrl);
-
-      if (ctx.abort) {
-        break hooks;
-      }
-
-      if (ctx.exit || ctx.return || ctx.throw) {
-        break hooks;
-      }
-    }
-
-    return ctx;
   };
 
   const client = {} as QuiverClient<typeof api>;

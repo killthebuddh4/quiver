@@ -1,18 +1,20 @@
+import { QuiverClientRouter } from "../types/QuiverClientRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { QuiverRouter } from "../types/QuiverRouter.js";
 
-export const createRouter = (routers: QuiverRouter[]): QuiverMiddleware => {
+export const createClient = (
+  routers: QuiverClientRouter[],
+): QuiverMiddleware => {
   const handler = async (context: QuiverContext) => {
     let ctx = context;
 
     for (const router of routers) {
       if (router.match(ctx)) {
-        ctx.router = router;
+        ctx.client = router;
       }
     }
 
-    if (ctx.router === undefined) {
+    if (ctx.client === undefined) {
       ctx.throw = {
         status: "UNKNOWN_NAMESPACE",
       };
@@ -22,7 +24,7 @@ export const createRouter = (routers: QuiverRouter[]): QuiverMiddleware => {
   };
 
   return {
-    name: "dispatch",
+    name: "client",
     handler,
   };
 };

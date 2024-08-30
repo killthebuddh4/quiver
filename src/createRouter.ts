@@ -2,11 +2,11 @@ import { QuiverHandler } from "./types/QuiverHandler.js";
 import { createThrow } from "./hooks/createThrow.js";
 import { createReturn } from "./hooks/createReturn.js";
 import { createExit } from "./hooks/createExit.js";
-import { createHook } from "./quiver/createHook.js";
+import { createHook } from "./lib/createHook.js";
 import { createRoute } from "./hooks/createRoute.js";
-import { createFunction } from "./hooks/createFunction.js";
-import { createDispatch } from "./hooks/createDispatch.js";
-import { runHook } from "./quiver/runHook.js";
+import { createFunction } from "./hooks/createOutput.js";
+import { createDispatch } from "./hooks/createSelect.js";
+import { runHook } from "./lib/runHook.js";
 import { QuiverApi } from "./types/QuiverApi.js";
 import { QuiverContext } from "./types/QuiverContext.js";
 import { QuiverController } from "./types/QuiverController.js";
@@ -81,16 +81,11 @@ export const createRouter = (
       throw new Error("exit hook is required");
     }
 
-    hooks: for (const hook of hooks) {
-      console.log("RUNNING HOOK", hook.name);
+    for (const hook of hooks) {
       ctx = await runHook(hook, ctx, ctrl);
 
-      if (ctx.abort) {
-        break hooks;
-      }
-
-      if (ctx.exit || ctx.return || ctx.throw) {
-        break hooks;
+      if (ctx.abort || ctx.exit || ctx.return || ctx.throw) {
+        break;
       }
     }
 

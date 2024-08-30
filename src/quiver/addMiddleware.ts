@@ -1,6 +1,6 @@
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverHookEvent } from "../types/QuiverHookEvent.js";
-import { store } from "./store.js";
+import { store } from "../quiver/store.js";
 
 export const addMiddleware = (
   id: string,

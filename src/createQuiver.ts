@@ -1,24 +1,28 @@
 import { QuiverOptions } from "./types/QuiverOptions.js";
 import { Quiver } from "./types/Quiver.js";
 import { Message } from "./types/Message.js";
+import { createState } from "./quiver/createState.js";
+import { createContext } from "./lib/createContext.js";
+import { runHook } from "./lib/runHook.js";
+import { addRoute } from "./quiver/addRoute.js";
+import { QuiverController } from "./types/QuiverController.js";
+import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
+import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
+import { addMiddleware } from "./quiver/addMiddleware.js";
+import { createInput } from "./hooks/createInput.js";
+import { createOutput } from "./hooks/createOutput.js";
+import { createResolver } from "./hooks/createResolver.js";
+import { createClient } from "./hooks/createClient.js";
+import { createHook } from "./lib/createHook.js";
 import { createMessage } from "./hooks/createMessage.js";
 import { createPath } from "./hooks/createPath.js";
 import { createJson } from "./hooks/createJson.js";
 import { createRequest } from "./hooks/createRequest.js";
 import { createResponse } from "./hooks/createResponse.js";
 import { createRouter } from "./hooks/createRouter.js";
+import { createRoute } from "./hooks/createRoute.js";
 import { createThrow } from "./hooks/createThrow.js";
 import { createExit } from "./hooks/createExit.js";
-import { createState } from "./quiver/createState.js";
-import { createContext } from "./quiver/createContext.js";
-import { createHook } from "./quiver/createHook.js";
-import { runHook } from "./quiver/runHook.js";
-import { addRoute } from "./quiver/addRoute.js";
-import { addHook } from "./quiver/addHook.js";
-import { QuiverController } from "./types/QuiverController.js";
-import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
-import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
-import { addMiddleware } from "./quiver/addMiddleware.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
   const init = createState(options);
@@ -49,23 +53,37 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     return stop;
   };
 
-  const messageHook = createHook("message", createMessage());
-  const pathHook = createHook("path", createPath());
-  const jsonHook = createHook("json", createJson());
-  const requestHook = createHook("request", createRequest());
-  const responseHook = createHook("response", createResponse());
-  const routerHook = createHook("router", createRouter(init.routes));
-  const throwHook = createHook("throw", createThrow());
-  const exitHook = createHook("exit", createExit());
+  // const messageHook = createHook("message", createMessage());
+  // const pathHook = createHook("path", createPath());
+  // const jsonHook = createHook("json", createJson());
+  // const requestHook = createHook("request", createRequest());
+  // const responseHook = createHook("response", createResponse());
+  // const routerHook = createHook("router", createRouter(init.routes));
+  // const routeHook = createHook("route", createRoute());
+  // const inputHook = createHook("input", createInput());
+  // const outputHook = createHook("output", createOutput());
+  // const resolverHook = createHook("resolver", createResolver());
+  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // const clientHook = createHook("client", createClient({} as any));
+  // const throwHook = createHook("throw", createThrow());
+  // const exitHook = createHook("exit", createExit());
+  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // const returnHook = createHook("return", {} as any);
 
-  addHook(init.id, messageHook);
-  addHook(init.id, pathHook);
-  addHook(init.id, jsonHook);
-  addHook(init.id, requestHook);
-  addHook(init.id, responseHook);
-  addHook(init.id, routerHook);
-  addHook(init.id, throwHook);
-  addHook(init.id, exitHook);
+  // addHook(init.id, messageHook);
+  // addHook(init.id, pathHook);
+  // addHook(init.id, jsonHook);
+  // addHook(init.id, requestHook);
+  // addHook(init.id, responseHook);
+  // addHook(init.id, routerHook);
+  // addHook(init.id, routeHook);
+  // addHook(init.id, inputHook);
+  // addHook(init.id, outputHook);
+  // addHook(init.id, resolverHook);
+  // addHook(init.id, clientHook);
+  // addHook(init.id, throwHook);
+  // addHook(init.id, exitHook);
+  // addHook(init.id, returnHook);
 
   // TODO
   const ctrl: QuiverController = {
@@ -78,73 +96,225 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
       return;
     }
 
-    const hooks = [
-      messageHook,
-      pathHook,
-      jsonHook,
-      requestHook,
-      responseHook,
-      routerHook,
-    ];
+    const state = createState();
 
     let ctx = createContext(fig.address, received);
 
-    hooks: for (const hook of hooks) {
-      ctx = await runHook(hook, ctx, ctrl);
+    outer: {
+      quiver: {
+        ctx = await runHook(state.hooks.message, ctx, ctrl);
 
-      if (ctx.abort) {
-        break hooks;
+        if (ctx.abort) {
+          break outer;
+        }
+
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break quiver;
+        }
+
+        ctx = await runHook(state.hooks.path, ctx, ctrl);
+
+        if (ctx.abort) {
+          break outer;
+        }
+
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break quiver;
+        }
+
+        ctx = await runHook(state.hooks.json, ctx, ctrl);
+
+        if (ctx.abort) {
+          break outer;
+        }
+
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break quiver;
+        }
+
+        router: {
+          if (ctx.path?.channel === "requests") {
+            ctx = await runHook(state.hooks.request, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break router;
+            }
+
+            ctx = await runHook(state.hooks.router, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break router;
+            }
+
+            ctx = await runHook(state.hooks.route, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break router;
+            }
+
+            ctx = await runHook(state.hooks.input, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break router;
+            }
+
+            ctx = await runHook(state.hooks.output, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break router;
+            }
+          }
+
+          if (ctx.exit) {
+            ctx = await runHook(state.hooks.exit.router(ctx), ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+          }
+
+          if (ctx.return) {
+            ctx = await runHook(state.hooks.return.router(ctx), ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+          }
+
+          if (ctx.throw) {
+            ctx = await runHook(state.hooks.throw.router(ctx), ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+          }
+        }
+
+        client: {
+          if (ctx.path?.channel === "responses") {
+            ctx = await runHook(state.hooks.response, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break client;
+            }
+
+            ctx = await runHook(state.hooks.client, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break client;
+            }
+
+            ctx = await runHook(state.hooks.resolver, ctx, ctrl);
+
+            if (ctx.abort) {
+              break outer;
+            }
+
+            if (ctx.exit || ctx.return || ctx.throw) {
+              break client;
+            }
+
+            // TODO output validation hook
+
+            // TODO yield output hook
+          }
+        }
+
+        if (ctx.exit) {
+          ctx = await runHook(state.hooks.exit.client(ctx), ctx, ctrl);
+
+          if (ctx.abort) {
+            break outer;
+          }
+        }
+
+        if (ctx.return) {
+          ctx = await runHook(state.hooks.return.client(ctx), ctx, ctrl);
+
+          if (ctx.abort) {
+            break outer;
+          }
+        }
+
+        if (ctx.throw) {
+          ctx = await runHook(state.hooks.throw.client(ctx), ctx, ctrl);
+
+          if (ctx.abort) {
+            break outer;
+          }
+        }
       }
 
-      if (ctx.exit || ctx.throw) {
-        break hooks;
+      if (ctx.exit) {
+        ctx = await runHook(state.hooks.exit.quiver, ctx, ctrl);
+
+        if (ctx.abort) {
+          break outer;
+        }
+      }
+
+      if (ctx.return) {
+        ctx = await runHook(state.hooks.return.quiver, ctx, ctrl);
+
+        if (ctx.abort) {
+          break outer;
+        }
+      }
+
+      if (ctx.throw) {
+        ctx = await runHook(state.hooks.throw.quiver, ctx, ctrl);
+
+        if (ctx.abort) {
+          break outer;
+        }
       }
     }
-
-    // TODO, what's the most elegant way to handle this pass-down?
-
-    if (ctx.route) {
-      ctx = await ctx.route.handler(ctx, ctrl);
-    }
-
-    console.log(`CTX AT END`, ctx);
-
-    const isThrowDisabled = Boolean(
-      options?.hooks?.disabled?.includes("throw"),
-    );
-    const isExitDisabled = Boolean(options?.hooks?.disabled?.includes("exit"));
 
     if (ctx.abort) {
       if (ctx.throw) {
-        if (!isThrowDisabled) {
-          ctx = await throwHook.mw.handler(ctx, ctrl);
-        }
+        // TODO
 
         return;
       }
 
       if (ctx.exit) {
-        if (!isExitDisabled) {
-          ctx = await exitHook.mw.handler(ctx, ctrl);
-        }
+        // TODO
 
         return;
       }
 
-      return;
-    }
+      if (ctx.return) {
+        // TODO
 
-    if (ctx.exit) {
-      if (!isExitDisabled) {
-        ctx = await runHook(exitHook, ctx, ctrl);
-      }
-
-      return;
-    }
-
-    if (ctx.throw) {
-      if (!isThrowDisabled) {
-        ctx = await runHook(throwHook, ctx, ctrl);
+        return;
       }
 
       return;

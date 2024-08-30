@@ -44,7 +44,7 @@ describe("Quiver", () => {
     this.timeout(15000);
 
     const rlog = (name: string) => (ctx: QuiverContext) => {
-      console.log(Chalk.blue(`ROUTER HOOK :${name}`));
+      console.log(Chalk.blue(`ROUTER :${name}`));
       console.log(
         JSON.stringify(
           {
@@ -58,8 +58,8 @@ describe("Quiver", () => {
       return ctx;
     };
 
-    const qlog = (name: string) => (ctx: QuiverContext) => {
-      console.log(Chalk.green(`QUIVER HOOK :${name}`));
+    const clog = (name: string) => (ctx: QuiverContext) => {
+      console.log(Chalk.yellow(`CLIENT HOOK :${name}`));
       console.log(
         JSON.stringify(
           {
@@ -81,19 +81,18 @@ describe("Quiver", () => {
 
         const quiver = createQuiver({ fig: routerFig });
 
-        quiver.use("message", "before", "log", qlog("message"));
-        quiver.use("path", "before", "log", qlog("path"));
-        quiver.use("json", "before", "log", qlog("json"));
-        quiver.use("request", "before", "log", qlog("request"));
-        quiver.use("response", "before", "log", qlog("response"));
-        quiver.use("router", "before", "log", qlog("router"));
-        quiver.use("router", "throw", "log", qlog("router"));
-        quiver.use("router", "exit", "log", qlog("router"));
-        quiver.use("throw", "before", "log", qlog("throw"));
-        quiver.use("exit", "before", "log", qlog("exit"));
-
         const router = createRouter("math", api);
 
+        quiver.use("message", "before", "log", rlog("message"));
+        quiver.use("path", "before", "log", rlog("path"));
+        quiver.use("json", "before", "log", rlog("json"));
+        quiver.use("request", "before", "log", rlog("request"));
+        quiver.use("response", "before", "log", rlog("response"));
+        quiver.use("router", "before", "log", rlog("router"));
+        quiver.use("router", "throw", "log", rlog("router"));
+        quiver.use("router", "exit", "log", rlog("router"));
+        quiver.use("throw", "before", "log", rlog("throw"));
+        quiver.use("exit", "before", "log", rlog("exit"));
         router.use("route", "before", "log", rlog("route"));
         router.use("dispatch", "before", "log", rlog("dispatch"));
         router.use("function", "before", "log", rlog("function"));
@@ -116,22 +115,24 @@ describe("Quiver", () => {
         hooks: { disabled: ["throw", "exit"] },
       });
 
-      quiver.use("message", "before", "log", (ctx) => {
-        console.log(Chalk.blue(`CLIENT RECEIVED MESSAGE`));
-        console.log(`ID: ${ctx.received.id}`);
-        console.log(`FROM: ${ctx.received.senderAddress}`);
-        console.log(`CONTENT: ${ctx.received.content}`);
-        console.log("\n\n\n\n");
-        return ctx;
-      });
-
       const client = createClient(routerFig.address, "math", api);
+
+      quiver.use("message", "before", "log", clog("message"));
+      quiver.use("path", "before", "log", clog("path"));
+      quiver.use("json", "before", "log", clog("json"));
+      quiver.use("request", "before", "log", clog("request"));
+      quiver.use("response", "before", "log", clog("response"));
+      quiver.use("router", "before", "log", clog("router"));
+      quiver.use("router", "throw", "log", clog("router"));
+      quiver.use("router", "exit", "log", clog("router"));
+      quiver.use("throw", "before", "log", clog("throw"));
+      quiver.use("exit", "before", "log", clog("exit"));
+      client.use("resolve", "before", "log", clog("route"));
 
       quiver.client(client);
 
       CLEANUP.push(await quiver.start());
 
-      console.log(`CALLING CLIENT.ADD`);
       const result = await client.add({ a: 1, b: 2 });
 
       console.log(result);
