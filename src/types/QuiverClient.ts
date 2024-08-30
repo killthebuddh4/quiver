@@ -3,12 +3,12 @@ import { QuiverError } from "./QuiverError.js";
 import { QuiverApiSpec } from "./QuiverApiSpec.js";
 import { Actually } from "./Actually.js";
 import { QuiverController } from "./QuiverController.js";
-import { QuiverRoute } from "./QuiverRoute.js";
 import { QuiverUse } from "./QuiverUse.js";
+import { QuiverClientRouter } from "./QuiverClientRouter.js";
 
 export type QuiverClient<A extends QuiverApiSpec> = {
   [K in keyof A | "bind" | "use"]: K extends "bind"
-    ? (ctrl: QuiverController) => QuiverRoute
+    ? (use: QuiverUse, ctrl: QuiverController) => QuiverClientRouter
     : K extends "use"
       ? QuiverUse
       : RemoveSingleUndefinedArgument<

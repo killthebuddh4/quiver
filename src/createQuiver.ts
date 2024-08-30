@@ -4,25 +4,25 @@ import { Message } from "./types/Message.js";
 import { createState } from "./quiver/createState.js";
 import { createContext } from "./lib/createContext.js";
 import { runHook } from "./lib/runHook.js";
-import { addRoute } from "./quiver/addRoute.js";
 import { QuiverController } from "./types/QuiverController.js";
 import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
 import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
-import { addMiddleware } from "./quiver/addMiddleware.js";
-import { createInput } from "./hooks/createInput.js";
-import { createOutput } from "./hooks/createOutput.js";
-import { createResolver } from "./hooks/createResolver.js";
-import { createClient } from "./hooks/createClient.js";
-import { createHook } from "./lib/createHook.js";
-import { createMessage } from "./hooks/createMessage.js";
-import { createPath } from "./hooks/createPath.js";
-import { createJson } from "./hooks/createJson.js";
-import { createRequest } from "./hooks/createRequest.js";
-import { createResponse } from "./hooks/createResponse.js";
-import { createRouter } from "./hooks/createRouter.js";
-import { createRoute } from "./hooks/createRoute.js";
-import { createThrow } from "./hooks/createThrow.js";
-import { createExit } from "./hooks/createExit.js";
+import { addClientRouter } from "./quiver/addClientRouter.js";
+import { addRouter } from "./quiver/addRouter.js";
+// import { createInput } from "./hooks/createInput.js";
+// import { createOutput } from "./hooks/createOutput.js";
+// import { createResolver } from "./hooks/createResolver.js";
+// import { createClient } from "./hooks/createClient.js";
+// import { createHook } from "./lib/createHook.js";
+// import { createMessage } from "./hooks/createMessage.js";
+// import { createPath } from "./hooks/createPath.js";
+// import { createJson } from "./hooks/createJson.js";
+// import { createRequest } from "./hooks/createRequest.js";
+// import { createResponse } from "./hooks/createResponse.js";
+// import { createRouter } from "./hooks/createRouter.js";
+// import { createRoute } from "./hooks/createRoute.js";
+// import { createThrow } from "./hooks/createThrow.js";
+// import { createExit } from "./hooks/createExit.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
   const init = createState(options);
@@ -53,39 +53,6 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     return stop;
   };
 
-  // const messageHook = createHook("message", createMessage());
-  // const pathHook = createHook("path", createPath());
-  // const jsonHook = createHook("json", createJson());
-  // const requestHook = createHook("request", createRequest());
-  // const responseHook = createHook("response", createResponse());
-  // const routerHook = createHook("router", createRouter(init.routes));
-  // const routeHook = createHook("route", createRoute());
-  // const inputHook = createHook("input", createInput());
-  // const outputHook = createHook("output", createOutput());
-  // const resolverHook = createHook("resolver", createResolver());
-  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // const clientHook = createHook("client", createClient({} as any));
-  // const throwHook = createHook("throw", createThrow());
-  // const exitHook = createHook("exit", createExit());
-  // // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // const returnHook = createHook("return", {} as any);
-
-  // addHook(init.id, messageHook);
-  // addHook(init.id, pathHook);
-  // addHook(init.id, jsonHook);
-  // addHook(init.id, requestHook);
-  // addHook(init.id, responseHook);
-  // addHook(init.id, routerHook);
-  // addHook(init.id, routeHook);
-  // addHook(init.id, inputHook);
-  // addHook(init.id, outputHook);
-  // addHook(init.id, resolverHook);
-  // addHook(init.id, clientHook);
-  // addHook(init.id, throwHook);
-  // addHook(init.id, exitHook);
-  // addHook(init.id, returnHook);
-
-  // TODO
   const ctrl: QuiverController = {
     address: fig.address,
     send: fig.publish,
@@ -322,20 +289,18 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
   };
 
   const client: Quiver["client"] = (qc) => {
-    const bound = qc.bind(ctrl);
-    addRoute(init.id, bound);
+    const bound = qc.bind(use, ctrl);
+    addClientRouter(init.id, bound);
   };
 
   const router: Quiver["router"] = (qr) => {
-    const router = qr.bind(ctrl);
-    addRoute(init.id, router);
+    const bound = qr.bind(use);
+    addRouter(init.id, bound);
   };
 
   const use: Quiver["use"] = (hook, on, name, handler) => {
-    addMiddleware(init.id, hook, on, {
-      name,
-      handler,
-    });
+    // TODO
+    console.log("use", hook, on, name, handler);
   };
 
   return {

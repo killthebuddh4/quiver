@@ -1,12 +1,12 @@
-import { QuiverRoute } from "../types/QuiverRoute.js";
+import { QuiverRouter } from "../types/QuiverRouter.js";
 import { store } from "./store.js";
 
-export const addRoute = (id: string, route: QuiverRoute) => {
+export const addRouter = (id: string, router: QuiverRouter) => {
   const state = store.get(id);
 
   if (state === undefined) {
     throw new Error(`State with id ${id} not found`);
   }
 
-  state.routes.push(route);
+  state.routers.push(router);
 };

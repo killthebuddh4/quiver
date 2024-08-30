@@ -1,11 +1,10 @@
-import { QuiverContext } from "./QuiverContext.js";
-import { QuiverController } from "./QuiverController.js";
-import { QuiverRoute } from "./QuiverRoute.js";
+import { QuiverMatch } from "./QuiverMatch.js";
 import { QuiverUse } from "./QuiverUse.js";
+import { QuiverRoute } from "./QuiverRoute.js";
 
 export type QuiverRouter = {
-  match: (ctx: QuiverContext) => boolean;
+  match: QuiverMatch;
   use: QuiverUse;
-  bind: (ctrl: QuiverController) => QuiverRoute;
+  bind: (use: QuiverUse) => QuiverRouter;
   routes: QuiverRoute[];
 };

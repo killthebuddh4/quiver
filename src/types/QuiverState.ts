@@ -1,7 +1,8 @@
 import { QuiverOptions } from "./QuiverOptions.js";
 import { QuiverHook } from "./QuiverHook.js";
-import { QuiverRoute } from "./QuiverRoute.js";
 import { QuiverContext } from "./QuiverContext.js";
+import { QuiverRouter } from "./QuiverRouter.js";
+import { QuiverClientRouter } from "./QuiverClientRouter.js";
 
 export type QuiverState = {
   id: string;
@@ -34,7 +35,8 @@ export type QuiverState = {
       router: (ctx: QuiverContext) => QuiverHook;
     };
   };
-  routes: QuiverRoute[];
+  routers: QuiverRouter[];
+  clients: QuiverClientRouter[];
   options?: QuiverOptions;
   unsubscribe?: () => void;
 };
