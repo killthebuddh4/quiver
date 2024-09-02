@@ -27,11 +27,11 @@ export const createClient = <Api extends QuiverApiSpec>(
 
     return {
       match: (ctx: QuiverContext) => {
-        if (ctx.path?.namespace !== namespace) {
+        if (ctx.url?.namespace !== namespace) {
           return false;
         }
 
-        return ctx.path.channel === "requests";
+        return ctx.url.channel === "requests";
       },
       routes: init.routes,
     };

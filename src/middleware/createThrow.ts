@@ -1,31 +1,32 @@
+import { QuiverError } from "../types/QuiverError.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverController } from "../types/QuiverController.js";
 
-export const createReturn = (): QuiverMiddleware => {
+export const createThrow = (): QuiverMiddleware => {
   const handler = async (ctx: QuiverContext, ctrl: QuiverController) => {
-    if (ctx.return === undefined) {
+    if (ctx.throw === undefined) {
       return ctx;
     }
 
-    ctx.response = {
+    const err: QuiverError = {
       id: ctx.received.id,
-      ok: true,
-      ...ctx.return,
+      ok: false,
+      ...ctx.throw,
     };
 
     let content;
     try {
-      content = JSON.stringify(ctx.response);
+      content = JSON.stringify(err);
     } catch (error) {
-      throw new Error(`Failed to stringify ctx.return`);
+      throw new Error(`Failed to stringify throw`);
     }
 
-    if (ctx.path === undefined) {
+    if (ctx.url === undefined) {
       throw new Error(`Path not found in context`);
     }
 
-    const conversationId = `${ctx.path.quiver}/${ctx.path.version}/responses/${ctx.address}/${ctx.path.namespace}/${ctx.path.function}`;
+    const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${ctx.address}/${ctx.url.namespace}/${ctx.url.function}`;
 
     const sent = await ctrl.send({
       conversation: {
@@ -43,5 +44,5 @@ export const createReturn = (): QuiverMiddleware => {
     return ctx;
   };
 
-  return { name: "return", handler };
+  return { name: "throw", handler };
 };

@@ -4,8 +4,9 @@ export type QuiverHook = {
   name: string;
   mw: QuiverMiddleware;
   before: QuiverMiddleware[];
-  after: QuiverMiddleware[];
   return: QuiverMiddleware[];
   throw: QuiverMiddleware[];
   exit: QuiverMiddleware[];
+  after: QuiverMiddleware[];
+  error: QuiverMiddleware[];
 };

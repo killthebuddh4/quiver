@@ -9,62 +9,76 @@ export const runHook = async (
 ): Promise<QuiverContext> => {
   let ctx = context;
 
-  for (const mw of hook.before) {
+  outer: {
+    inner: {
+      for (const mw of hook.before) {
+        ctx = await mw.handler(ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break inner;
+        }
+      }
+
+      ctx = await hook.mw.handler(ctx, ctrl);
+
+      if (ctx.error) {
+        break outer;
+      }
+
+      if (ctx.exit || ctx.return || ctx.throw) {
+        break inner;
+      }
+
+      for (const mw of hook.after) {
+        ctx = await mw.handler(ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break inner;
+        }
+      }
+    }
+
+    if (ctx.exit) {
+      for (const mw of hook.exit) {
+        ctx = await mw.handler(ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+      }
+    }
+
+    if (ctx.return) {
+      for (const mw of hook.return) {
+        ctx = await mw.handler(ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+      }
+    }
+
+    if (ctx.throw) {
+      for (const mw of hook.throw) {
+        ctx = await mw.handler(ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+      }
+    }
+  }
+
+  for (const mw of hook.error) {
     ctx = await mw.handler(ctx, ctrl);
-
-    if (ctx.abort) {
-      return ctx;
-    }
-  }
-
-  ctx = await hook.mw.handler(ctx, ctrl);
-
-  if (ctx.abort) {
-    return ctx;
-  }
-
-  if (ctx.throw) {
-    for (const mw of hook.throw) {
-      ctx = await mw.handler(ctx, ctrl);
-
-      if (ctx.abort) {
-        return ctx;
-      }
-    }
-
-    return ctx;
-  }
-
-  if (ctx.return) {
-    for (const mw of hook.return) {
-      ctx = await mw.handler(ctx, ctrl);
-
-      if (ctx.abort) {
-        return ctx;
-      }
-    }
-
-    return ctx;
-  }
-
-  if (ctx.exit) {
-    for (const mw of hook.exit) {
-      ctx = await mw.handler(ctx, ctrl);
-
-      if (ctx.abort) {
-        return ctx;
-      }
-    }
-
-    return ctx;
-  }
-
-  for (const mw of hook.after) {
-    ctx = await mw.handler(ctx, ctrl);
-
-    if (ctx.abort) {
-      return ctx;
-    }
   }
 
   return ctx;

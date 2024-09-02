@@ -1,7 +1,7 @@
 import { QuiverClientRouter } from "../types/QuiverClientRouter.js";
 import { store } from "./store.js";
 
-export const addClientRouter = (id: string, router: QuiverClientRouter) => {
+export const addClient = (id: string, router: QuiverClientRouter) => {
   const state = store.get(id);
 
   if (state === undefined) {

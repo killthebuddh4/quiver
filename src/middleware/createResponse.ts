@@ -4,7 +4,7 @@ import { parseQuiverResponse } from "../lib/parseQuiverResponse.js";
 
 export const createResponse = (): QuiverMiddleware => {
   const handler: QuiverHandler = async (context) => {
-    if (context.path === undefined) {
+    if (context.url === undefined) {
       context.throw = {
         status: "SERVER_ERROR",
         reason: "Path not found in context",
@@ -13,7 +13,7 @@ export const createResponse = (): QuiverMiddleware => {
       return context;
     }
 
-    if (context.path.channel !== "responses") {
+    if (context.url.channel !== "responses") {
       return context;
     }
 

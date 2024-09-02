@@ -13,11 +13,11 @@ export const createRouter = <Api extends QuiverApi>(
   } | null = null;
 
   const match = (ctx: QuiverContext) => {
-    if (ctx.path?.channel !== "requests") {
+    if (ctx.url?.channel !== "requests") {
       return false;
     }
 
-    if (ctx.path?.namespace !== namespace) {
+    if (ctx.url?.namespace !== namespace) {
       return false;
     }
 
@@ -27,7 +27,7 @@ export const createRouter = <Api extends QuiverApi>(
   const routes: QuiverRoute[] = Object.entries(api).map(([name, fn]) => {
     return {
       match: (ctx: QuiverContext) => {
-        return ctx.path?.function === name;
+        return ctx.url?.function === name;
       },
       function: fn,
     };

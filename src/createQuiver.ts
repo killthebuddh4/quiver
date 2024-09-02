@@ -1,4 +1,5 @@
 import { QuiverOptions } from "./types/QuiverOptions.js";
+import { QuiverHook } from "./types/QuiverHook.js";
 import { Quiver } from "./types/Quiver.js";
 import { Message } from "./types/Message.js";
 import { createState } from "./quiver/createState.js";
@@ -7,8 +8,8 @@ import { runHook } from "./lib/runHook.js";
 import { QuiverController } from "./types/QuiverController.js";
 import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
 import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
-import { addClientRouter } from "./quiver/addClientRouter.js";
 import { addRouter } from "./quiver/addRouter.js";
+import { getHook } from "./quiver/getHook.js";
 // import { createInput } from "./hooks/createInput.js";
 // import { createOutput } from "./hooks/createOutput.js";
 // import { createResolver } from "./hooks/createResolver.js";
@@ -66,225 +67,109 @@ export const createQuiver = (options?: QuiverOptions): Quiver => {
     const state = createState();
 
     let ctx = createContext(fig.address, received);
+    let hook: QuiverHook;
 
     outer: {
-      quiver: {
-        ctx = await runHook(state.hooks.message, ctx, ctrl);
+      inner: {
+      hook = getHook("RECV_MESSAGE", ctx, ctrl);
 
-        if (ctx.abort) {
+      ctx = await runHook(hook, ctx, ctrl);
+
+      if (ctx.error) {
+        break outer;
+      }
+
+      if (ctx.exit || ctx.return || ctx.throw) {
+        break inner;
+      }
+
+      hook = getHook("PARSE_PATH", ctx, ctrl);
+
+      ctx = await runHook(hook, ctx, ctrl);
+
+      if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        break outer;
+      }
+
+      hook = getHook("PARSE_JSON", ctx, ctrl);
+
+      ctx = await runHook(hook, ctx, ctrl);
+
+      if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        break outer;
+      }
+
+      if (ctx.url?.channel === "requests") {
+        hook = getHook("PARSE_REQUEST", ctx, ctrl);
+
+        ctx = await runHook(hook, ctx, ctrl);
+
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
           break outer;
         }
 
-        if (ctx.exit || ctx.return || ctx.throw) {
-          break quiver;
-        }
+        hook = getHook("GET_ROUTE", ctx, ctrl);
 
-        ctx = await runHook(state.hooks.path, ctx, ctrl);
+        ctx = await runHook(hook, ctx, ctrl);
 
-        if (ctx.abort) {
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
           break outer;
         }
 
-        if (ctx.exit || ctx.return || ctx.throw) {
-          break quiver;
-        }
+        hook = getHook("VALIDATE_INPUT", ctx, ctrl);
 
-        ctx = await runHook(state.hooks.json, ctx, ctrl);
+        ctx = await runHook(hook, ctx, ctrl);
 
-        if (ctx.abort) {
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
           break outer;
         }
 
-        if (ctx.exit || ctx.return || ctx.throw) {
-          break quiver;
+        hook = getHook("CALL_FUNCTION", ctx, ctrl);
+
+        ctx = await runHook(hook, ctx, ctrl);
+
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+          break outer;
         }
 
-        router: {
-          if (ctx.path?.channel === "requests") {
-            ctx = await runHook(state.hooks.request, ctx, ctrl);
+        hook = getHook("VALIDATE_OUTPUT", ctx, ctrl);
 
-            if (ctx.abort) {
-              break outer;
-            }
+        ctx = await runHook(hook, ctx, ctrl);
+      }
 
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break router;
-            }
+      if (ctx.url?.channel === "responses") {
+        hook = getHook("PARSE_RESPONSE", ctx, ctrl);
 
-            ctx = await runHook(state.hooks.router, ctx, ctrl);
+        ctx = await runHook(hook, ctx, ctrl);
 
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break router;
-            }
-
-            ctx = await runHook(state.hooks.route, ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break router;
-            }
-
-            ctx = await runHook(state.hooks.input, ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break router;
-            }
-
-            ctx = await runHook(state.hooks.output, ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break router;
-            }
-          }
-
-          if (ctx.exit) {
-            ctx = await runHook(state.hooks.exit.router(ctx), ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-          }
-
-          if (ctx.return) {
-            ctx = await runHook(state.hooks.return.router(ctx), ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-          }
-
-          if (ctx.throw) {
-            ctx = await runHook(state.hooks.throw.router(ctx), ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-          }
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+          break outer;
         }
 
-        client: {
-          if (ctx.path?.channel === "responses") {
-            ctx = await runHook(state.hooks.response, ctx, ctrl);
+        hook = getHook("GET_REQUEST", ctx, ctrl);
 
-            if (ctx.abort) {
-              break outer;
-            }
+        ctx = await runHook(hook, ctx, ctrl);
 
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break client;
-            }
-
-            ctx = await runHook(state.hooks.client, ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break client;
-            }
-
-            ctx = await runHook(state.hooks.resolver, ctx, ctrl);
-
-            if (ctx.abort) {
-              break outer;
-            }
-
-            if (ctx.exit || ctx.return || ctx.throw) {
-              break client;
-            }
-
-            // TODO output validation hook
-
-            // TODO yield output hook
-          }
+        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+          break outer;
         }
+
+        hook = getHook("VALIDATE_OUTPUT", ctx, ctrl);
+
+        ctx = await runHook(hook, ctx, ctrl);
 
         if (ctx.exit) {
-          ctx = await runHook(state.hooks.exit.client(ctx), ctx, ctrl);
+          hook = getHook("EXIT", ctx, ctrl);
 
-          if (ctx.abort) {
-            break outer;
-          }
+          ctx = await runHook(hook, ctx, ctrl);
         }
 
         if (ctx.return) {
-          ctx = await runHook(state.hooks.return.client(ctx), ctx, ctrl);
+          hook = getHook("RETURN", ctx, ctrl);
 
-          if (ctx.abort) {
-            break outer;
-          }
-        }
-
-        if (ctx.throw) {
-          ctx = await runHook(state.hooks.throw.client(ctx), ctx, ctrl);
-
-          if (ctx.abort) {
-            break outer;
-          }
+          ctx = await runHook(hook, ctx, ctrl);
         }
       }
-
-      if (ctx.exit) {
-        ctx = await runHook(state.hooks.exit.quiver, ctx, ctrl);
-
-        if (ctx.abort) {
-          break outer;
-        }
-      }
-
-      if (ctx.return) {
-        ctx = await runHook(state.hooks.return.quiver, ctx, ctrl);
-
-        if (ctx.abort) {
-          break outer;
-        }
-      }
-
-      if (ctx.throw) {
-        ctx = await runHook(state.hooks.throw.quiver, ctx, ctrl);
-
-        if (ctx.abort) {
-          break outer;
-        }
-      }
-    }
-
-    if (ctx.abort) {
-      if (ctx.throw) {
-        // TODO
-
-        return;
-      }
-
-      if (ctx.exit) {
-        // TODO
-
-        return;
-      }
-
-      if (ctx.return) {
-        // TODO
-
-        return;
-      }
-
-      return;
     }
   };
 

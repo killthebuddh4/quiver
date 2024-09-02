@@ -2,19 +2,10 @@ import { QuiverHandler } from "../types/QuiverHandler.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
 export const createResolver = (): QuiverMiddleware => {
-  const handler: QuiverHandler = async (context) => {
+  const handler: QuiverHandler = async (context, controller) => {
     let ctx = context;
 
-    if (ctx.client === undefined) {
-      ctx.error = {
-        // TODO
-        status: "UNKNOWN_NAMESPACE",
-      };
-
-      return ctx;
-    }
-
-    for (const route of ctx.client.routes) {
+    for (const route of controller.resolvers) {
       if (route.match(ctx)) {
         ctx.resolver = route;
       }

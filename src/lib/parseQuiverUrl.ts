@@ -1,13 +1,13 @@
 import { Maybe } from "../types/Maybe.js";
-import { QuiverPath } from "../types/QuiverPath.js";
+import { QuiverUrl } from "../types/QuiverUrl.js";
 import { Message } from "../types/Message.js";
 
 const VERSION = "0.0.1";
 
-export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
-  const path = message.conversation.context?.conversationId;
+export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
+  const url = message.conversation.context?.conversationId;
 
-  if (typeof path !== "string") {
+  if (typeof url !== "string") {
     return {
       ok: false,
       code: "INVALID_PATH",
@@ -15,7 +15,7 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
     };
   }
 
-  const segments = path.split("/");
+  const segments = url.split("/");
 
   if (segments.length !== 6) {
     return {
@@ -25,7 +25,7 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
     };
   }
 
-  const [quiver, version, channel, address, namespace, fn] = segments;
+  const [quiver, version, channel, address, ...path] = segments;
 
   if (quiver !== "quiver") {
     return {
@@ -44,6 +44,7 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
   }
 
   if (
+    channel !== "router" &&
     channel !== "requests" &&
     channel !== "responses" &&
     channel !== "signals"
@@ -51,7 +52,7 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
     return {
       ok: false,
       code: "INVALID_CHANNEL_SEGMENT",
-      reason: `Expected "requests" or "responses", got "${channel}"`,
+      reason: `Expected "router" or "requests" or "responses" or "signals", got "${channel}"`,
     };
   }
 
@@ -65,19 +66,10 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
   }
 
   // TODO more validation
-  if (namespace.length === 0) {
+  if (path.length === 0) {
     return {
       ok: false,
       code: "INVALID_NAMESPACE_SEGMENT",
-      reason: "Expected non-empty string",
-    };
-  }
-
-  // TODO more validation
-  if (fn.length === 0) {
-    return {
-      ok: false,
-      code: "INVALID_FUNCTION_SEGMENT",
       reason: "Expected non-empty string",
     };
   }
@@ -89,8 +81,7 @@ export const parseQuiverPath = (message: Message): Maybe<QuiverPath> => {
       version,
       channel,
       address,
-      namespace,
-      function: fn,
+      path,
     },
   };
 };
