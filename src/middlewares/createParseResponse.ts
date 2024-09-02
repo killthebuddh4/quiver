@@ -1,9 +1,8 @@
 import { QuiverHandler } from "../types/QuiverHandler.js";
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { parseQuiverResponse } from "../lib/parseQuiverResponse.js";
 
-export const createResponse = (): QuiverMiddleware => {
-  const handler: QuiverHandler = async (context) => {
+export const createParseResponse = (): QuiverHandler => {
+  return async (context) => {
     if (context.url === undefined) {
       context.throw = {
         status: "SERVER_ERROR",
@@ -32,6 +31,4 @@ export const createResponse = (): QuiverMiddleware => {
 
     return context;
   };
-
-  return { name: "response", handler };
 };

@@ -1,12 +1,10 @@
-import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { QuiverHookName } from "./QuiverHookName.js";
+import { QuiverHandler } from "./QuiverHandler.js";
+import { QuiverHookEvent } from "./QuiverHookEvent.js";
 
 export type QuiverHook = {
-  name: string;
-  mw: QuiverMiddleware;
-  before: QuiverMiddleware[];
-  return: QuiverMiddleware[];
-  throw: QuiverMiddleware[];
-  exit: QuiverMiddleware[];
-  after: QuiverMiddleware[];
-  error: QuiverMiddleware[];
+  name: QuiverHookName;
+  event: QuiverHookEvent;
+  path: string[];
+  handler: QuiverHandler;
 };

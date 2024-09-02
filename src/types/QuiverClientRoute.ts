@@ -1,7 +1,7 @@
 import { QuiverClientResolve } from "./QuiverClientResolve.js";
-import { QuiverContext } from "./QuiverContext.js";
 
 export type QuiverClientRoute = {
-  match: (context: QuiverContext) => boolean;
+  id: string;
+  path: string[];
   resolve: QuiverClientResolve;
 };

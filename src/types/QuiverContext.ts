@@ -7,9 +7,11 @@ import { QuiverError } from "./QuiverError.js";
 import { QuiverSuccess } from "./QuiverSuccess.js";
 import { QuiverRoute } from "./QuiverRoute.js";
 import { QuiverClientRoute } from "./QuiverClientRoute.js";
+import { QuiverState } from "./QuiverState.js";
 
 export type QuiverContext = {
   received: Message;
+  state: QuiverState;
   url?: QuiverUrl;
   json?: unknown;
   request?: QuiverRequest;

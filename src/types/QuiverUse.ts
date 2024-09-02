@@ -1,9 +1,10 @@
 import { QuiverHookEvent } from "./QuiverHookEvent.js";
 import { QuiverHandler } from "./QuiverHandler.js";
+import { QuiverHookName } from "./QuiverHookName.js";
 
 export type QuiverUse = (
-  hook: string,
+  name: QuiverHookName,
   event: QuiverHookEvent,
-  name: string,
+  path: string[],
   handler: QuiverHandler,
 ) => void;

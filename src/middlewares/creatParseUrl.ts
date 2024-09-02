@@ -1,9 +1,8 @@
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { parseQuiverUrl } from "../lib/parseQuiverUrl.js";
 import { QuiverHandler } from "../types/QuiverHandler.js";
 
-export const createPath = (): QuiverMiddleware => {
-  const handler: QuiverHandler = async (context) => {
+export const createParseUrl = (): QuiverHandler => {
+  return async (context) => {
     const path = parseQuiverUrl(context.received);
 
     if (!path.ok) {
@@ -17,6 +16,4 @@ export const createPath = (): QuiverMiddleware => {
 
     return context;
   };
-
-  return { name: "path", handler };
 };

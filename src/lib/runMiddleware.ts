@@ -1,9 +1,9 @@
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverController } from "../types/QuiverController.js";
-import { QuiverHook } from "../types/QuiverHook.js";
+import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
-export const runHook = async (
-  hook: QuiverHook,
+export const runMiddleware = async (
+  mw: QuiverMiddleware,
   context: QuiverContext,
   ctrl: QuiverController,
 ): Promise<QuiverContext> => {
@@ -11,8 +11,8 @@ export const runHook = async (
 
   outer: {
     inner: {
-      for (const mw of hook.before) {
-        ctx = await mw.handler(ctx, ctrl);
+      for (const h of mw.before) {
+        ctx = await h(ctx, ctrl);
 
         if (ctx.error) {
           break outer;
@@ -23,7 +23,7 @@ export const runHook = async (
         }
       }
 
-      ctx = await hook.mw.handler(ctx, ctrl);
+      ctx = await mw.handler(ctx, ctrl);
 
       if (ctx.error) {
         break outer;
@@ -33,8 +33,8 @@ export const runHook = async (
         break inner;
       }
 
-      for (const mw of hook.after) {
-        ctx = await mw.handler(ctx, ctrl);
+      for (const h of mw.after) {
+        ctx = await h(ctx, ctrl);
 
         if (ctx.error) {
           break outer;
@@ -47,8 +47,8 @@ export const runHook = async (
     }
 
     if (ctx.exit) {
-      for (const mw of hook.exit) {
-        ctx = await mw.handler(ctx, ctrl);
+      for (const h of mw.exit) {
+        ctx = await h(ctx, ctrl);
 
         if (ctx.error) {
           break outer;
@@ -57,8 +57,8 @@ export const runHook = async (
     }
 
     if (ctx.return) {
-      for (const mw of hook.return) {
-        ctx = await mw.handler(ctx, ctrl);
+      for (const h of mw.return) {
+        ctx = await h(ctx, ctrl);
 
         if (ctx.error) {
           break outer;
@@ -67,8 +67,8 @@ export const runHook = async (
     }
 
     if (ctx.throw) {
-      for (const mw of hook.throw) {
-        ctx = await mw.handler(ctx, ctrl);
+      for (const h of mw.throw) {
+        ctx = await h(ctx, ctrl);
 
         if (ctx.error) {
           break outer;
@@ -77,8 +77,8 @@ export const runHook = async (
     }
   }
 
-  for (const mw of hook.error) {
-    ctx = await mw.handler(ctx, ctrl);
+  for (const h of mw.error) {
+    ctx = await h(ctx, ctrl);
   }
 
   return ctx;

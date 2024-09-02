@@ -1,191 +1,349 @@
 import { QuiverOptions } from "./types/QuiverOptions.js";
-import { QuiverHook } from "./types/QuiverHook.js";
+import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { Quiver } from "./types/Quiver.js";
 import { Message } from "./types/Message.js";
-import { createState } from "./quiver/createState.js";
-import { createContext } from "./lib/createContext.js";
-import { runHook } from "./lib/runHook.js";
-import { QuiverController } from "./types/QuiverController.js";
-import { addUnsubscribe } from "./quiver/addUnsubscribe.js";
-import { getUnsubscribe } from "./quiver/getUnsubscribe.js";
-import { addRouter } from "./quiver/addRouter.js";
-import { getHook } from "./quiver/getHook.js";
-// import { createInput } from "./hooks/createInput.js";
-// import { createOutput } from "./hooks/createOutput.js";
-// import { createResolver } from "./hooks/createResolver.js";
-// import { createClient } from "./hooks/createClient.js";
-// import { createHook } from "./lib/createHook.js";
-// import { createMessage } from "./hooks/createMessage.js";
-// import { createPath } from "./hooks/createPath.js";
-// import { createJson } from "./hooks/createJson.js";
-// import { createRequest } from "./hooks/createRequest.js";
-// import { createResponse } from "./hooks/createResponse.js";
-// import { createRouter } from "./hooks/createRouter.js";
-// import { createRoute } from "./hooks/createRoute.js";
-// import { createThrow } from "./hooks/createThrow.js";
-// import { createExit } from "./hooks/createExit.js";
+import { runMiddleware } from "./lib/runMiddleware.js";
+import { QuiverContext } from "./types/QuiverContext.js";
+import { createMiddleware } from "./lib/createMiddleware.js";
+import { store } from "./lib/store.js";
+import { Fig } from "./types/Fig.js";
+import { Wallet } from "@ethersproject/wallet";
+import { createMessage } from "./middlewares/createMessage.js";
+import { createParseUrl } from "./middlewares/creatParseUrl.js";
+import { createParseJson } from "./middlewares/createParseJson.js";
+import { createParseRequest } from "./middlewares/createParseRequest.js";
+import { createGetRoute } from "./middlewares/createGetRoute.js";
+import { createValidateInput } from "./middlewares/createValidateInput.js";
+import { createCallFunction } from "./middlewares/createCallFunction.js";
+import { createParseResponse } from "./middlewares/createParseResponse.js";
+import { createGetClient } from "./middlewares/createResolver.js";
+import { createValidateOutput } from "./middlewares/createValidateOutput.js";
+import { createExit } from "./middlewares/createExit.js";
+import { createReturn } from "./middlewares/createReturn.js";
+import { createThrow } from "./middlewares/createThrow.js";
 
 export const createQuiver = (options?: QuiverOptions): Quiver => {
-  const init = createState(options);
+  const wallet = Wallet.createRandom();
 
-  const fig = init.options?.fig;
-
-  if (fig === undefined) {
-    throw new Error("fig is required, others aren't implemented yet");
-  }
+  store.set(wallet.address, {
+    fig: {} as unknown as Fig,
+    hooks: [],
+    routes: [],
+    clients: [],
+    options,
+  });
 
   const stop: Quiver["stop"] = () => {
-    fig.stop();
+    const state = store.get(wallet.address);
 
-    const unsubscribe = getUnsubscribe(init.id);
-
-    if (unsubscribe) {
-      unsubscribe();
+    if (state === undefined) {
+      return;
     }
+
+    if (state.fig === undefined) {
+      return;
+    }
+
+    state.fig.stop();
+
+    state.subscriber?.unsubscribe();
   };
 
   const start: Quiver["start"] = async () => {
-    await fig.start();
+    const state = store.get(wallet.address);
 
-    const { unsubscribe } = await fig.subscribe(handler);
+    if (state === undefined) {
+      throw new Error(
+        `Quiver state with address "${wallet.address}" not found`,
+      );
+    }
 
-    addUnsubscribe(init.id, unsubscribe);
+    if (state.fig === undefined) {
+      throw new Error(
+        `Fig not found in Quiver state with address "${wallet.address}"`,
+      );
+    }
+
+    if (state.subscriber !== undefined) {
+      throw new Error(
+        `Subscriber already exists in Quiver state with address "${wallet.address}"`,
+      );
+    }
+
+    await state.fig.start();
+
+    const subscriber = await state.fig.subscribe(handler);
+
+    store.set(wallet.address, { ...state, subscriber });
 
     return stop;
   };
 
-  const ctrl: QuiverController = {
-    address: fig.address,
-    send: fig.publish,
-  };
-
   const handler = async (received: Message) => {
-    if (received.senderAddress === ctrl.address) {
+    const state = store.get(wallet.address);
+
+    if (state === undefined) {
+      throw new Error(
+        `Quiver state with address "${wallet.address}" not found`,
+      );
+    }
+
+    if (state.fig === undefined) {
+      throw new Error(
+        `Fig not found in Quiver state with address "${wallet.address}"`,
+      );
+    }
+
+    if (received.senderAddress === state.fig.address) {
       return;
     }
 
-    const state = createState();
+    const ctrl = null;
 
-    let ctx = createContext(fig.address, received);
-    let hook: QuiverHook;
+    let ctx: QuiverContext = {
+      received,
+      state,
+    };
+
+    let mw: QuiverMiddleware;
 
     outer: {
       inner: {
-      hook = getHook("RECV_MESSAGE", ctx, ctrl);
+        mw = createMiddleware(
+          wallet.address,
+          "RECV_MESSAGE",
+          [],
+          createMessage(),
+        );
 
-      ctx = await runHook(hook, ctx, ctrl);
+        ctx = await runMiddleware(mw, ctx, ctrl);
 
-      if (ctx.error) {
-        break outer;
-      }
-
-      if (ctx.exit || ctx.return || ctx.throw) {
-        break inner;
-      }
-
-      hook = getHook("PARSE_PATH", ctx, ctrl);
-
-      ctx = await runHook(hook, ctx, ctrl);
-
-      if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
-        break outer;
-      }
-
-      hook = getHook("PARSE_JSON", ctx, ctrl);
-
-      ctx = await runHook(hook, ctx, ctrl);
-
-      if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
-        break outer;
-      }
-
-      if (ctx.url?.channel === "requests") {
-        hook = getHook("PARSE_REQUEST", ctx, ctrl);
-
-        ctx = await runHook(hook, ctx, ctrl);
-
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        if (ctx.error) {
           break outer;
         }
 
-        hook = getHook("GET_ROUTE", ctx, ctrl);
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break inner;
+        }
 
-        ctx = await runHook(hook, ctx, ctrl);
+        mw = createMiddleware(
+          wallet.address,
+          "PARSE_JSON",
+          [],
+          createParseJson(),
+        );
 
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        ctx = await runMiddleware(mw, ctx, ctrl);
+
+        if (ctx.error) {
           break outer;
         }
 
-        hook = getHook("VALIDATE_INPUT", ctx, ctrl);
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break inner;
+        }
 
-        ctx = await runHook(hook, ctx, ctrl);
+        mw = createMiddleware(
+          wallet.address,
+          "PARSE_URL",
+          [],
+          createParseUrl(),
+        );
 
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        if (ctx.error) {
           break outer;
         }
 
-        hook = getHook("CALL_FUNCTION", ctx, ctrl);
-
-        ctx = await runHook(hook, ctx, ctrl);
-
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
-          break outer;
+        if (ctx.exit || ctx.return || ctx.throw) {
+          break inner;
         }
 
-        hook = getHook("VALIDATE_OUTPUT", ctx, ctrl);
+        if (ctx.url?.channel === "requests") {
+          mw = createMiddleware(
+            wallet.address,
+            "PARSE_REQUEST",
+            [],
+            createParseRequest(),
+          );
 
-        ctx = await runHook(hook, ctx, ctrl);
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+
+          mw = createMiddleware(
+            wallet.address,
+            "GET_ROUTE",
+            [],
+            createGetRoute(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+
+          mw = createMiddleware(
+            wallet.address,
+            "VALIDATE_INPUT",
+            [],
+            createValidateInput(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+
+          mw = createMiddleware(
+            wallet.address,
+            "CALL_FUNCTION",
+            [],
+            createCallFunction(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+        }
+
+        if (ctx.url?.channel === "responses") {
+          mw = createMiddleware(
+            wallet.address,
+            "PARSE_RESPONSE",
+            [],
+            createParseResponse(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+
+          mw = createMiddleware(
+            wallet.address,
+            "GET_REQUEST",
+            [],
+            createGetClient(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+
+          mw = createMiddleware(
+            wallet.address,
+            "VALIDATE_OUTPUT",
+            [],
+            createValidateOutput(),
+          );
+
+          ctx = await runMiddleware(mw, ctx, ctrl);
+
+          if (ctx.error) {
+            break outer;
+          }
+
+          if (ctx.exit || ctx.return || ctx.throw) {
+            break inner;
+          }
+        }
       }
 
-      if (ctx.url?.channel === "responses") {
-        hook = getHook("PARSE_RESPONSE", ctx, ctrl);
+      /* BREAK INNER JUMPS HERE */
 
-        ctx = await runHook(hook, ctx, ctrl);
+      if (ctx.exit) {
+        mw = createMiddleware(wallet.address, "EXIT", [], createExit());
 
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
+        ctx = await runMiddleware(mw, ctx, ctrl);
+
+        if (ctx.error) {
           break outer;
-        }
-
-        hook = getHook("GET_REQUEST", ctx, ctrl);
-
-        ctx = await runHook(hook, ctx, ctrl);
-
-        if (ctx.error || ctx.exit || ctx.return || ctx.throw) {
-          break outer;
-        }
-
-        hook = getHook("VALIDATE_OUTPUT", ctx, ctrl);
-
-        ctx = await runHook(hook, ctx, ctrl);
-
-        if (ctx.exit) {
-          hook = getHook("EXIT", ctx, ctrl);
-
-          ctx = await runHook(hook, ctx, ctrl);
-        }
-
-        if (ctx.return) {
-          hook = getHook("RETURN", ctx, ctrl);
-
-          ctx = await runHook(hook, ctx, ctrl);
         }
       }
+
+      if (ctx.return) {
+        mw = createMiddleware(wallet.address, "RETURN", [], createReturn());
+
+        ctx = await runMiddleware(mw, ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+      }
+
+      if (ctx.throw) {
+        mw = createMiddleware(wallet.address, "THROW", [], createThrow());
+
+        ctx = await runMiddleware(mw, ctx, ctrl);
+
+        if (ctx.error) {
+          break outer;
+        }
+      }
+    }
+
+    /* BREAK OUTER JUMPS HERE */
+
+    if (ctx.error) {
+      // TODO
     }
   };
 
   const client: Quiver["client"] = (qc) => {
-    const bound = qc.bind(use, ctrl);
-    addClientRouter(init.id, bound);
+    qc.bind(use, null);
+
+    // TODO
   };
 
   const router: Quiver["router"] = (qr) => {
-    const bound = qr.bind(use);
-    addRouter(init.id, bound);
+    qr.bind(use);
+
+    // TODO
   };
 
-  const use: Quiver["use"] = (hook, on, name, handler) => {
-    // TODO
-    console.log("use", hook, on, name, handler);
+  const use: Quiver["use"] = (name, event, path, handler) => {
+    const state = store.get(wallet.address);
+
+    if (state === undefined) {
+      throw new Error(
+        `Quiver state with address "${wallet.address}" not found`,
+      );
+    }
+
+    state.hooks.push({ name, event, path, handler });
   };
 
   return {

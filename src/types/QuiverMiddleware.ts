@@ -1,6 +1,11 @@
 import { QuiverHandler } from "./QuiverHandler.js";
 
 export type QuiverMiddleware = {
-  name: string;
   handler: QuiverHandler;
+  before: QuiverHandler[];
+  return: QuiverHandler[];
+  throw: QuiverHandler[];
+  exit: QuiverHandler[];
+  after: QuiverHandler[];
+  error: QuiverHandler[];
 };

@@ -1,6 +1,6 @@
-export type QuiverHooks =
+export type QuiverHookName =
   | "RECV_MESSAGE"
-  | "PARSE_PATH"
+  | "PARSE_URL"
   | "PARSE_JSON"
   | "PARSE_REQUEST"
   | "PARSE_RESPONSE"

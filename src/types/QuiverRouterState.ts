@@ -1,6 +1,6 @@
-import { QuiverHook } from "./QuiverHook.js";
+import { QuiverMiddleware } from "./QuiverMiddleware.js";
 
 export type QuiverRouterState = {
   id: string;
-  hooks: QuiverHook[];
+  hooks: QuiverMiddleware[];
 };

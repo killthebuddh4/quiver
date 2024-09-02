@@ -1,7 +1,7 @@
 import { QuiverHandler } from "../types/QuiverHandler.js";
 
-export const createJson = () => {
-  const handler: QuiverHandler = async (context) => {
+export const createParseJson = (): QuiverHandler => {
+  return async (context) => {
     try {
       const json = JSON.parse(String(context.received.content));
 
@@ -14,9 +14,5 @@ export const createJson = () => {
     }
 
     return context;
-  };
-  return {
-    name: "json",
-    handler,
   };
 };

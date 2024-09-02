@@ -1,9 +1,8 @@
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverContext } from "../types/QuiverContext.js";
-import { QuiverController } from "../types/QuiverController.js";
+import { QuiverHandler } from "../types/QuiverHandler.js";
 
-export const createReturn = (): QuiverMiddleware => {
-  const handler = async (ctx: QuiverContext, ctrl: QuiverController) => {
+export const createReturn = (): QuiverHandler => {
+  return async (ctx: QuiverContext) => {
     if (ctx.return === undefined) {
       return ctx;
     }
@@ -25,9 +24,9 @@ export const createReturn = (): QuiverMiddleware => {
       throw new Error(`Path not found in context`);
     }
 
-    const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${ctrl.address}/${ctx.url.path.join("/")}`;
+    const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${ctx.state.fig.address}/${ctx.url.path.join("/")}`;
 
-    const sent = await ctrl.send({
+    const sent = await ctx.state.fig.publish({
       conversation: {
         peerAddress: ctx.received.conversation.peerAddress,
         context: {
@@ -42,6 +41,4 @@ export const createReturn = (): QuiverMiddleware => {
 
     return ctx;
   };
-
-  return { name: "return", handler };
 };
