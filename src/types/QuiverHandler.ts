@@ -1,7 +1,1 @@
-import { QuiverContext } from "./QuiverContext.js";
-import { QuiverController } from "./QuiverController.js";
-
-export type QuiverHandler = (
-  context: QuiverContext,
-  controller: QuiverController,
-) => Promise<QuiverContext> | QuiverContext;
+export type QuiverHandler<I, O> = (context: I) => Promise<O> | O;

@@ -19,7 +19,7 @@ export * from "./types/QuiverContext.js";
 export * from "./types/QuiverRouter.js";
 export * from "./types/QuiverUse.js";
 export * from "./createQuiver.js";
-export * from "./createRouter.js";
+export * from "./createNamespace.js";
 export * from "./createClient.js";
 export * from "./createFunction.js";
 export * from "./createFig.js";

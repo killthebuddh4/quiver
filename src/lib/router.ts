@@ -18,7 +18,7 @@ type Router<I, M, R> = {
   };
 };
 
-const createRouter = <I, M, R extends Record<string, any>>(
+export const createRouter = <I, M, R extends Record<string, any>>(
   root: Middleware<I, M>,
   routes: {
     [K in keyof R]: Middleware<M, R[K]>;
@@ -30,7 +30,7 @@ const createRouter = <I, M, R extends Record<string, any>>(
   };
 };
 
-const addRoute = <
+export const addRoute = <
   I,
   M,
   R extends Record<string, any>,
@@ -50,7 +50,13 @@ const addRoute = <
   };
 };
 
-const wrapRoute = <I, M, R extends Record<string, any>, K extends keyof R, V>(
+export const wrapRoute = <
+  I,
+  M,
+  R extends Record<string, any>,
+  K extends keyof R,
+  V,
+>(
   path: K,
   mw: Middleware<R[K], V>,
   router: Router<I, M, R>,
@@ -71,7 +77,7 @@ const wrapRoute = <I, M, R extends Record<string, any>, K extends keyof R, V>(
   };
 };
 
-const useRoutes = <
+export const useRoutes = <
   I,
   M,
   R,

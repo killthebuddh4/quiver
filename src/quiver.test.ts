@@ -1,6 +1,6 @@
 import {
   createFig,
-  createRouter,
+  createNamespace,
   createClient,
   createQuiver,
   createFunction,
@@ -49,7 +49,7 @@ describe("Quiver", () => {
 
         const quiver = createQuiver({ fig: routerFig });
 
-        const router = createRouter("math", api);
+        const router = createNamespace("math", api);
 
         quiver.router(router);
 
