@@ -71,26 +71,14 @@ const wrapRoute = <I, M, R extends Record<string, any>, K extends keyof R, V>(
   };
 };
 
-const router = createRouter((input: string) => input.length, {
-  a: (input: number) => input + 1,
-  b: (input: number) => input > 10,
-});
-
-const extended = addRoute("c", (input: number) => String(input), router);
-
-extended.routes.c(1);
-
-function useRoutes<I, M, R>(
+const useRoutes = <
+  I,
+  M,
+  R,
+  H extends { [K in keyof R]: (output: R[K]) => void },
+>(
   router: Router<I, M, R>,
-  handlers: { [K in keyof R]: (output: R[K]) => void },
-): typeof handlers {
+  handlers: H,
+): typeof handlers => {
   return handlers;
-}
-
-const handlers = {
-  a: (output: number) => console.log(output),
-  b: (output: number) => console.log(output),
-  c: (output: string) => console.log(output),
 };
-
-const usedHandlers = useRoutes(router, handlers);
