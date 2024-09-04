@@ -66,11 +66,12 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
   }
 
   // TODO more validation
-  if (path.length === 0) {
+  if (path.length !== 2) {
     return {
       ok: false,
-      code: "INVALID_NAMESPACE_SEGMENT",
-      reason: "Expected non-empty string",
+      code: "INVALID_PATH_SEGMENT",
+      reason:
+        "In this version of quiver, path must be of length 2 (namespace/function)",
     };
   }
 
@@ -81,7 +82,8 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
       version,
       channel,
       address,
-      path,
+      namespace: path[0],
+      function: path[1],
     },
   };
 };

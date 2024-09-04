@@ -1,6 +1,6 @@
 import { QuiverHandler } from "./QuiverHandler.js";
 
 export type QuiverMiddleware<I, O> = {
-  use: <M>(handler: QuiverHandler<O, M>) => QuiverMiddleware<I, M>;
+  use: <N>(handler: QuiverHandler<O, N>) => QuiverMiddleware<I, N>;
   run: QuiverHandler<I, O>;
 };

@@ -1,7 +1,7 @@
 import { QuiverHandler } from "../types/QuiverHandler.js";
 
 export const createCallFunction = (): QuiverHandler => {
-  return async (ctx, ctrl) => {
+  return async (ctx) => {
     if (ctx.route === undefined) {
       ctx.error = {
         status: "UNKNOWN_FUNCTION",
@@ -20,7 +20,7 @@ export const createCallFunction = (): QuiverHandler => {
       return ctx;
     }
 
-    const output = await ctx.route.function.handler(ctx.input, ctx, ctrl);
+    const output = await ctx.route.function.handler(ctx.input, ctx);
 
     ctx.return = {
       status: "SUCCESS",

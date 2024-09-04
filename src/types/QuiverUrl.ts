@@ -3,5 +3,6 @@ export type QuiverUrl = {
   version: string;
   channel: "router" | "requests" | "responses" | "signals";
   address: string;
-  path: string[];
+  namespace: string;
+  function: string;
 };

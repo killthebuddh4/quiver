@@ -1,1 +1,1 @@
-export type QuiverHandler<I, O> = (context: I) => Promise<O> | O;
+export type QuiverHandler<I = any, O = any> = (context: I) => Promise<O> | O;

@@ -1,12 +1,8 @@
-import { QuiverController } from "./QuiverController.js";
-import { QuiverFunctionOptions } from "./QuiverFunctionOptions.js";
-import { QuiverParser } from "./QuiverParser.js";
-import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { QuiverHandler } from "./QuiverHandler.js";
 
-export type QuiverFunction<I, C, O> = {
-  middleware: QuiverMiddleware;
-  input: QuiverParser<I>;
-  output: QuiverParser<O>;
-  function: (i: I, context: C, controller: QuiverController) => Promise<O>;
-  options?: QuiverFunctionOptions<I, O>;
+export type QuiverFunction<I, O> = {
+  before: <N>(handler: QuiverHandler<I, N>) => QuiverFunction<N, O>;
+  after: <N>(handler: QuiverHandler<O, N>) => QuiverFunction<I, N>;
+  bind: (handler: QuiverHandler<I, O>) => QuiverFunction<I, O>;
+  run: QuiverHandler<I, O>;
 };

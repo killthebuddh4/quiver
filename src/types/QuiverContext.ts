@@ -5,11 +5,10 @@ import { QuiverResponse } from "./QuiverResponse.js";
 import { QuiverExit } from "./QuiverExit.js";
 import { QuiverError } from "./QuiverError.js";
 import { QuiverSuccess } from "./QuiverSuccess.js";
-import { QuiverRoute } from "./QuiverRoute.js";
 import { QuiverClientRoute } from "./QuiverClientRoute.js";
 import { QuiverState } from "./QuiverState.js";
 
-export type QuiverContext = {
+export type QuiverContext<I, O> = {
   received: Message;
   state: QuiverState;
   url?: QuiverUrl;
@@ -17,9 +16,8 @@ export type QuiverContext = {
   request?: QuiverRequest;
   response?: QuiverResponse<unknown>;
   resolver?: QuiverClientRoute;
-  route?: QuiverRoute;
-  input?: unknown;
-  output?: unknown;
+  input?: I;
+  output?: O;
   throw?: Omit<QuiverError, "id" | "ok">;
   return?: Omit<QuiverSuccess<unknown>, "id" | "ok">;
   exit?: Omit<QuiverExit, "id" | "ok">;

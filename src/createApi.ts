@@ -1,9 +1,9 @@
 import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { QuiverRoute } from "./types/QuiverRoute.js";
 import { QuiverRouter } from "./types/QuiverRouter.js";
-import { createIdentity } from "./middlewares/createIdentity.js";
+import { createIdentity } from "./hooks/createIdentity.js";
 
-export const createRouter = <I, O>(
+export const createApi = <I, O>(
   middleware?: QuiverMiddleware<I, O> | null,
   routes?: {
     [key: string]: QuiverRoute<O, any>;

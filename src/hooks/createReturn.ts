@@ -1,8 +1,7 @@
-import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverHandler } from "../types/QuiverHandler.js";
 
 export const createReturn = (): QuiverHandler => {
-  return async (ctx: QuiverContext) => {
+  return async (ctx) => {
     if (ctx.return === undefined) {
       return ctx;
     }
