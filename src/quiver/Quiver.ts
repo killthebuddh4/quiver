@@ -1,7 +1,6 @@
 import { QuiverOptions } from "../types/QuiverOptions.js";
 import { Message } from "../types/Message.js";
 import { runHook } from "../lib/runMiddleware.js";
-import { QuiverContext } from "../types/QuiverContext.js";
 import { Fig } from "../types/Fig.js";
 import { Wallet } from "@ethersproject/wallet";
 import { createMessage } from "../hooks/createMessage.js";
@@ -18,6 +17,7 @@ import { createThrow } from "../hooks/createThrow.js";
 import { QuiverHandler } from "../types/QuiverHandler.js";
 import { createFig } from "./createFig.js";
 import { QuiverRouter } from "./QuiverRouter.js";
+import { QuiverClient } from "./QuiverClient.js";
 
 export class Quiver<I, O> {
   private fig: Fig;
@@ -25,7 +25,7 @@ export class Quiver<I, O> {
   private subscription?: { unsubscribe: () => void };
   private options?: QuiverOptions;
   private routers: { [key: string]: QuiverRouter<any, any, any> };
-  private clients: { [key: string]: QuiverRouter<any, any, any> };
+  private clients: { [key: string]: QuiverClient<any> };
 
   public constructor(fig: Fig, options?: QuiverOptions) {
     this.fig = fig;
@@ -67,8 +67,8 @@ export class Quiver<I, O> {
     return this as unknown as Quiver<I, M>;
   }
 
-  public client() {
-    // TODO
+  public client(client: QuiverClient<any>) {
+    this.clients[client.router.namespace] = client;
   }
 
   public router(path: string, router: QuiverRouter<any, any, any>) {
@@ -107,11 +107,6 @@ export class Quiver<I, O> {
         ctx = await createParseUrl()(ctx);
 
         if (ctx.url?.channel === "requests") {
-          ctx = await createParseRequest()(ctx);
-
-          if (ctx.error) break outer;
-          if (ctx.exit || ctx.return || ctx.throw) break inner;
-
           ctx.router = this.routers[ctx.url.path.namespace];
 
           if (ctx.router === undefined) {
@@ -136,6 +131,11 @@ export class Quiver<I, O> {
           if (ctx.error) break outer;
           if (ctx.exit || ctx.return || ctx.throw) break inner;
 
+          ctx = await createParseRequest()(ctx);
+
+          if (ctx.error) break outer;
+          if (ctx.exit || ctx.return || ctx.throw) break inner;
+
           ctx = await createValidateInput()(ctx);
 
           if (ctx.error) break outer;
@@ -146,11 +146,6 @@ export class Quiver<I, O> {
 
         if (ctx.url?.channel === "responses") {
           ctx = await createParseResponse()(ctx);
-
-          if (ctx.error) break outer;
-          if (ctx.exit || ctx.return || ctx.throw) break inner;
-
-          ctx = await createGetClient()(ctx);
 
           if (ctx.error) break outer;
           if (ctx.exit || ctx.return || ctx.throw) break inner;

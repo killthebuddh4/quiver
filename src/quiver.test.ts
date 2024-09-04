@@ -1,33 +1,53 @@
-import {
-  createFig,
-  createNamespace,
-  createClient,
-  createQuiver,
-  createFunction,
-} from "./index.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+
+import q from "./index.js";
 
 const CLEANUP: Array<() => void> = [];
-
-const api = {
-  add: createFunction(async ({ a, b }: { a: number; b: number }) => {
-    return a + b;
-  }),
-  sub: createFunction(async ({ a, b }: { a: number; b: number }) => {
-    return a - b;
-  }),
-  mul: createFunction(async ({ a, b }: { a: number; b: number }) => {
-    return a * b;
-  }),
-  div: createFunction(async ({ a, b }: { a: number; b: number }) => {
-    return a / b;
-  }),
-};
 
 describe("Quiver", () => {
   afterEach(() => {
     for (const cleanup of CLEANUP) {
       cleanup();
     }
+  });
+  it("Works with middleware", async function () {
+    this.timeout(15000);
+
+    const double = q
+      .function()
+      .use(() => console.log("Called double"))
+      .bind();
+
+    await (async () => {
+      const router = q
+        .router()
+        .use(() => console.log("Got a request"))
+        .bind({ double });
+
+      const quiver = q
+        .quiver()
+        .use(() => console.log("Got a message"))
+        .router(router);
+
+      CLEANUP.push(await quiver.start());
+    })();
+
+    const client = q
+      .client()
+      .use(() => console.log("Got a response"))
+      .bind({ double });
+
+    const quiver = q
+      .context()
+      .use(() => console.log("Got a response"))
+      .client(client);
+
+    CLEANUP.push(await quiver.start());
+
+    const result = await client.double(2);
+
+    console.log(result);
   });
 
   it("Can be instantiated from a private key", async function () {});
