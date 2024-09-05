@@ -1,9 +1,9 @@
-import { QuiverHook } from "./QuiverHook.js";
+import { QuiverRegistry } from "./QuiverHook.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
 
 export type QuiverTree = {
-  hooks: QuiverHook[];
+  hooks: QuiverRegistry[];
   middleware: QuiverMiddleware;
   children: {
     [key: string]: QuiverTree;

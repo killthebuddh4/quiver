@@ -7,23 +7,9 @@ export class QuiverMiddleware<I, O> {
     this.handlers.push(handler);
   }
 
-  public use<M>(handler: QuiverHandler<O, M>) {
+  public use<Nxt>(handler: QuiverHandler<O, Nxt>) {
     this.handlers.push(handler);
 
-    return this as unknown as QuiverMiddleware<I, M>;
-  }
-
-  public run: QuiverHandler<I, O> = async (context) => {
-    let ctx = context as any;
-
-    for (const h of this.handlers) {
-      ctx = await h(ctx);
-    }
-
-    return ctx as O;
-  };
-
-  public bind() {
-    return this.run;
+    return this as unknown as QuiverMiddleware<I, Nxt>;
   }
 }

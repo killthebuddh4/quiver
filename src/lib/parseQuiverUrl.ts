@@ -65,16 +65,6 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
     };
   }
 
-  // TODO more validation
-  if (path.length !== 2) {
-    return {
-      ok: false,
-      code: "INVALID_PATH_SEGMENT",
-      reason:
-        "In this version of quiver, path must be of length 2 (namespace/function)",
-    };
-  }
-
   return {
     ok: true,
     value: {
@@ -82,8 +72,7 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
       version,
       channel,
       address,
-      namespace: path[0],
-      function: path[1],
+      path,
     },
   };
 };

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { QuiverRegistry } from "../types/QuiverHook.js";
+
 // if you have routes, then your "use" function can only maintain the same type.
 // if you don't have routes, then your "use" function can change the type.
 // if you have handlers, then your "route" function can only maintain the same type.
@@ -13,6 +15,7 @@ type Middleware<I, O> = (input: I) => O;
 
 type Router<I, M, R> = {
   root: Middleware<I, M>;
+  registry: QuiverRegistry;
   routes: {
     [K in keyof R]: Middleware<M, R[K]>;
   };

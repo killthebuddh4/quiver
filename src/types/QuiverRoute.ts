@@ -1,4 +1,6 @@
-import { QuiverRouter } from "./QuiverRouter.js";
-import { QuiverFunction } from "./QuiverFunction.js";
+import { QuiverFunction } from "../quiver/QuiverFunction.js";
+import { QuiverRouter } from "../quiver/QuiverRouter.js";
 
-export type QuiverRoute<I, O> = QuiverRouter<I> | QuiverFunction<any, I, O>;
+export type QuiverRoute =
+  | QuiverRouter<any, any, any>
+  | QuiverFunction<any, any, any>;
