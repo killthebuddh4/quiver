@@ -1,61 +1,65 @@
+import { create } from "domain";
+
 export type QuiverFunction<I, O> = (i: I) => O;
 
-export const createFunction = <I, O>(f: (i: I) => O): QuiverFunction<I, O> => {
+export type QuiverRouter<I> = {
+  middleware?: QuiverFunction<I, any>;
+  routes: {
+    [key: string]: QuiverRouter<any> | QuiverRoute<any>;
+  };
+};
+
+export type QuiverRoute<I> = {
+  middleware?: QuiverFunction<I, any>;
+  route: QuiverFunction<any, any>;
+};
+
+export const createFunction = <F extends QuiverFunction<any, any>>(f: F): F => {
   return f;
 };
 
-export type QuiverRouter = {
-  [key: string]: QuiverRoute;
-};
-
-export const createRouter = <O extends QuiverRouter>(r: O) => {
-  return r;
-};
-
-export type QuiverRoute = QuiverRouter | QuiverFunction<any, any>;
-
-export const createRoute = <O extends QuiverRoute>(n: O) => {
-  return n;
-};
-
-export const router = createRoute({
-  math: createRouter({
-    add: createFunction((args: { a: number; b: number }) => args.a + args.b),
-    sub: createFunction((args: { a: number; b: number }) => args.a - args.b),
-    mul: createFunction((args: { a: number; b: number }) => args.a * args.b),
-    div: createFunction((args: { a: number; b: number }) => args.a / args.b),
-  }),
-  string: createRouter({
-    concat: createFunction((args: { a: string; b: string }) => args.a + args.b),
-  }),
-  log: createFunction((args: any) => console.log(args)),
-});
-
-export const auth = createRoute(() => {
-  return false;
-});
-
-export const app = createRouter({
-  public: router,
-  auth,
-});
-
-export const addRoute = <
-  Router extends QuiverRouter,
-  Path extends string,
-  Route extends QuiverRoute,
+const createRoute = <
+  R extends QuiverFunction<ReturnType<M>, any>,
+  M extends QuiverFunction<any, any> = QuiverFunction<unknown, unknown>,
 >(
-  to: Router,
-  path: Path,
-  route: Route,
-): Router & { [key in Path]: Route } => {
-  return { ...to, [path]: route } as any;
+  route: R,
+  middleware: M,
+) => {
+  return {
+    middleware,
+    route,
+  };
 };
 
-const withHello = addRoute(
-  app,
-  "hello",
-  createFunction((name: string) => `Hello, ${name}!`),
+const createRouter = <
+  R extends {
+    [key: string]: QuiverRouter<ReturnType<M>> | QuiverRoute<ReturnType<M>>;
+  },
+  M extends QuiverFunction<any, any> = QuiverFunction<unknown, unknown>,
+>(
+  routes: R,
+  middleware: M,
+) => {
+  return {
+    middleware,
+    routes,
+  };
+};
+
+// Why does createRouter inside createRouter break the type inference?
+
+const math = createRouter(
+  {
+    add: createRoute(
+      (args: { a: number; b: number }) => {
+        return args.a + args.b;
+      },
+      (m: string) => ({ a: m.length, b: 10 }),
+    ),
+  },
+  (s: string) => s,
 );
 
-withHello.hello("world");
+const d = createRouter({ math }, () => 10);
+
+d.routes.math;
