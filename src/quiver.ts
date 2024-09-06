@@ -1,51 +1,57 @@
-export type QuiverMiddleware<CtxIn, CtxOut> = CtxIn extends undefined
-  ? () => CtxOut
-  : (ctx: CtxIn) => CtxOut;
+export type QuiverMiddleware<CtxIn, CtxOut> = (ctx: CtxIn) => CtxOut;
 
-export type QuiverFunction<I, CtxIn, O> = CtxIn extends undefined
-  ? (i: I) => O
-  : (i: I, ctx: CtxIn) => O;
+export type QuiverFunction<I, CtxIn, O> = (i: I, ctx: CtxIn) => O;
 
-export type QuiverRouter<CtxIn> = {
-  middleware?: QuiverMiddleware<CtxIn, any>;
+export type QuiverRouter<CtxIn, CtxOut> = {
+  middleware: QuiverMiddleware<CtxIn, CtxOut>;
   routes: {
-    [key: string]: QuiverRouter<any> | QuiverRoute<any>;
+    [key: string]: QuiverRouter<CtxOut, any> | QuiverRoute<CtxOut, any>;
   };
 };
 
-export type QuiverRoute<CtxIn> = {
-  middleware?: QuiverMiddleware<CtxIn, any>;
-  route: QuiverFunction<any, CtxIn, any>;
+export type QuiverRoute<CtxIn, CtxOut> = {
+  middleware: QuiverMiddleware<CtxIn, CtxOut>;
+  fn: QuiverFunction<any, CtxOut, any>;
 };
 
-export const createMiddleware = <F extends QuiverMiddleware<any, any>>(
+export const createMiddleware = <
+  F extends QuiverMiddleware<any, any> = QuiverMiddleware<unknown, unknown>,
+>(
   f: F,
 ): F => {
   return f;
 };
 
 const createRoute = <
+  I,
+  O,
+  CtxIn,
   CtxOut,
-  F extends QuiverFunction<any, CtxOut, any> = QuiverFunction<any, CtxOut, any>,
-  M extends QuiverMiddleware<any, CtxOut> = QuiverMiddleware<unknown, CtxOut>,
 >(
-  route: F,
-  middleware: M,
+  fn: QuiverFunction<I, CtxIn, O>,
+  middleware: QuiverMiddleware<CtxIn, CtxOut>,
 ) => {
   return {
     middleware,
-    route,
+    fn,
   };
 };
 
+const squ = createRoute(
+  (_, ctx) => ctx * ctx,
+  (x: number) => x,
+);
+
+squ.fn(null, 10);
+
 const createRouter = <
-  R extends {
-    [key: string]: QuiverRouter<ReturnType<M>> | QuiverRoute<ReturnType<M>>;
-  },
-  M extends QuiverMiddleware<any, any> = QuiverMiddleware<unknown, unknown>,
+  CtxIn,
+  CtxOut,
 >(
-  routes: R,
-  middleware: M,
+  routes: {
+    [key: string]: QuiverRouter<CtxOut, any> | QuiverRoute<CtxOut, any>;
+  },
+  middleware: QuiverMiddleware<CtxIn, CtxOut>,
 ) => {
   return {
     middleware,
@@ -55,41 +61,10 @@ const createRouter = <
 
 // Why does createRouter inside createRouter break the type inference?
 
-const math = createRouter(
-  {
-    add: createRoute(
-      (i: string) => i,
-      (args: { a: number; b: number }) => args,
-    ),
-    sub: createRoute<{ a: number; b: number }>(
-      (i, args: { a: number; b: number }) => args.a - args.b,
-      (args: { a: number; b: number }) => args,
-    ),
-  },
-  (args: { a: number; b: number }) => args,
-);
-const hello = createRoute<{ name: string }>(
-  (i: any, args: { name: string }) => `Hello, ${args.name}, ${i}!`,
-  (args) => args,
+const r = createRoute(
+  (x: { x: number }) => x,
+  (i, ctx: { x: number }) => ctx.x,
 );
 
-const m = hello.middleware({ name: "world" });
-const v = hello.route(null, m);
-
-const pub = createRouter(
-  {
-    hello: createRoute(
-      (i, args: { name: number }) => `Hello, ${args.name}!`,
-      (args: { name: number } | { x: null }) => args,
-    ),
-  },
-  (args: { name: number }) => args,
-);
-
-const app = createRouter(
-  {
-    math,
-    pub,
-  },
-  (args: { name: string }) => args,
-);
+const auth = createRouter(
+  

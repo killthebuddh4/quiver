@@ -328,3 +328,7 @@ its routes.
 
 So there's kind of 2 trees, there's the "router/call" tree thing and then there's also the middleware tree. The middleware tree is where the built-up
 type safety needs to happen.
+
+NEXT:
+
+Dig into the createRoute function and get it to work the way you want it to.
