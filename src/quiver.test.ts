@@ -25,12 +25,14 @@ it("app, function, server works", async function () {
     sub,
   });
 
-  const app = q.app((ctx) => ctx, {
+  const app = q.app((ctx: object) => ({ ...ctx, secret: "ACHILLES" }), {
     public: math,
     private: q.function(
-      (ctx) => ctx,
-      () => {
-        return "big secret";
+      (ctx: { secret: string }) => ctx,
+      (input: { value: string }, ctx) => {
+        console.log("Calling private function with secret", ctx.secret);
+        console.log("Input is", input);
+        return `The big secret is ${ctx.secret.length > input.value.length}`;
       },
     ),
   });
@@ -43,10 +45,7 @@ it("app, function, server works", async function () {
     conversation: {
       peerAddress: "test-peer-address-1",
       context: {
-        conversationId: getRequestUrl("test-client-address-1", [
-          "public",
-          "add",
-        ]),
+        conversationId: getRequestUrl("test-client-address-1", ["private"]),
         metadata: {},
       },
     },
@@ -54,11 +53,8 @@ it("app, function, server works", async function () {
     content: JSON.stringify({
       // TODO, this doesn't actually do anything, the URL is being use for the
       // function lookup.
-      function: "die",
-      arguments: {
-        a: 1,
-        b: 2,
-      },
+      function: "private",
+      arguments: { value: "ACHILLES AND SOME" },
     }),
   };
 
