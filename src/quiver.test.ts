@@ -25,7 +25,17 @@ it("app, function, server works", async function () {
     sub,
   });
 
-  const server = q.server(math);
+  const app = q.app((ctx) => ctx, {
+    public: math,
+    private: q.function(
+      (ctx) => ctx,
+      () => {
+        return "big secret";
+      },
+    ),
+  });
+
+  const server = q.server(app);
 
   const message: Message = {
     id: "test-message-1",
@@ -33,13 +43,18 @@ it("app, function, server works", async function () {
     conversation: {
       peerAddress: "test-peer-address-1",
       context: {
-        conversationId: getRequestUrl("test-client-address-1", ["add"]),
+        conversationId: getRequestUrl("test-client-address-1", [
+          "public",
+          "add",
+        ]),
         metadata: {},
       },
     },
     sent: new Date(),
     content: JSON.stringify({
-      function: "add",
+      // TODO, this doesn't actually do anything, the URL is being use for the
+      // function lookup.
+      function: "die",
       arguments: {
         a: 1,
         b: 2,
