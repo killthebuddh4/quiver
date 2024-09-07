@@ -9,10 +9,9 @@ export type QuiverContext = {
   message: Message;
   url?: QuiverUrl;
   json?: unknown;
-  function?: QuiverFunction<any>;
   request?: QuiverRequest;
+  function?: QuiverFunction<any>;
   input?: any;
-  data?: any;
   output?: any;
   throw?: Omit<QuiverError, "id" | "ok">;
   return?: Omit<QuiverSuccess<unknown>, "id" | "ok">;
