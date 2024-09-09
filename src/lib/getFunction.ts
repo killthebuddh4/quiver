@@ -1,16 +1,16 @@
-import { QuiverApp } from "../types/QuiverApp.js";
+import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { Maybe } from "../types/Maybe.js";
 
 export const getFunction = (
   path: string[],
-  app: QuiverApp<any, any>,
-): Maybe<QuiverFunction<any>> => {
+  app: QuiverRouter<any, any>,
+): Maybe<QuiverFunction<any, any>> => {
   if (path.length === 0) {
     throw new Error("Path cannot be empty");
   }
 
-  let next: QuiverApp<any, any> | QuiverFunction<any> = app;
+  let next: QuiverRouter<any, any> | QuiverFunction<any, any> = app;
 
   for (const segment of path) {
     if (!("routes" in next)) {

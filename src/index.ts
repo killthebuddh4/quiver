@@ -1,13 +1,15 @@
-import { createApp } from "./quiver/createApp.js";
+import { createRouter } from "./quiver/createRouter.js";
 import { createFunction } from "./quiver/createFunction.js";
-import { createServer } from "./quiver/createServer.js";
 import { createClient } from "./quiver/createClient.js";
+import { createApp } from "./quiver/createApp.js";
+import { createProvider } from "./quiver/createProvider.js";
 
 export const q = {
-  app: createApp,
   function: createFunction,
-  server: createServer,
+  router: createRouter,
+  app: createApp,
   client: createClient,
+  provider: createProvider,
 };
 
 export default q;

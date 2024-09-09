@@ -1,9 +1,9 @@
-import { QuiverApp } from "../types/QuiverApp.js";
+import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 
 export const getMiddleware = (
   path: string[],
-  app: QuiverApp<any, any>,
+  router: QuiverRouter<any, any>,
 ): Array<(ctx: any) => any> => {
   if (path.length === 0) {
     throw new Error("Path cannot be empty");
@@ -11,10 +11,10 @@ export const getMiddleware = (
 
   const middleware: Array<(ctx: any) => any> = [];
 
-  let next: QuiverApp<any, any> | QuiverFunction<any> = app;
+  let next: QuiverRouter<any, any> | QuiverFunction<any, any> = router;
 
   for (const segment of path) {
-    middleware.push(next.middleware);
+    middleware.push(next.use);
 
     if (!("routes" in next)) {
       throw new Error("Path is too long");
