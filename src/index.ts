@@ -7,8 +7,8 @@ import { createProvider } from "./quiver/createProvider.js";
 export const q = {
   function: createFunction,
   router: createRouter,
-  app: createApp,
   client: createClient,
+  app: createApp,
   provider: createProvider,
 };
 

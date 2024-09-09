@@ -1,19 +1,23 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
 
 import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
+import { QuiverContext } from "./types/QuiverContext.js";
 
 describe("Quiver", () => {});
 it("mvp works", async function () {
   this.timeout(15000);
 
-  const app = q.app()(
-    q.router()({ hello: q.function()(() => "Hello, World!") }),
-  );
+  const func = q.function((ctx: QuiverContext) => ctx)(() => "Hello, World!");
 
-  const client = q.client<typeof app>();
+  const router = q.router((ctx: QuiverContext) => ctx)({
+    hello: func,
+  });
+
+  const app = q.app()(router);
+
+  const client = q.client<typeof app>()();
 
   const message: Message = {
     id: "test-message-1",

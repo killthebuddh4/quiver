@@ -1,5 +1,6 @@
+import { QuiverMiddleware } from "./QuiverMiddleware.js";
+
 export type QuiverFunction<CtxIn, CtxExitOut> = {
-  use: (ctx: CtxIn) => any;
-  exit: (ctx: any) => CtxExitOut;
+  middleware: QuiverMiddleware<CtxIn, CtxExitOut>;
   fn: (i: any, ctx: any) => any;
 };

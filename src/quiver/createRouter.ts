@@ -12,7 +12,13 @@ export const createRouter =
     },
   >(routes: {
     [key in keyof R]: R[key];
-  }) => {
+  }): {
+    use: (ctx: CtxIn) => CtxOut;
+    exit: (ctx: CtxExitIn) => CtxExitOut;
+    routes: {
+      [key in keyof R]: R[key];
+    };
+  } => {
     return {
       use: use || ((x: unknown) => x),
       exit: exit || ((x: unknown) => x),

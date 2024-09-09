@@ -6,123 +6,131 @@ import { getFunction } from "../lib/getFunction.js";
 import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
 import { getMiddleware } from "../lib/getMiddleware.js";
 
-export const createApp = (router: QuiverRouter<any, any>) => {
-  return (message: Message) => {
-    // RECV_MESSAGE
+export const createApp =
+  <CtxOut extends QuiverContext>(
+    use?: (ctx: QuiverContext) => CtxOut,
+    exit?: (ctx: QuiverContext) => QuiverContext,
+  ) =>
+  (router: QuiverRouter<CtxOut, any>) => {
+    return (message: Message) => {
+      // RECV_MESSAGE
 
-    let ctx: QuiverContext = { message };
-
-    // PARSE_URL
-
-    const url = parseQuiverUrl(ctx.message);
-
-    if (!url.ok) {
-      ctx.exit = {
-        code: "INVALID_URL",
-        reason: `Failed to parse message because ${url.reason}`,
+      let ctx: QuiverContext = {
+        message,
       };
-    }
 
-    ctx.url = url.value;
+      // USE
 
-    // GET_FUNCTION
+      if (use) {
+        ctx = {
+          ...ctx,
+          ...use(ctx),
+        };
+      }
 
-    if (ctx.url === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
+      // PARSE_URL
 
-    const fn = getFunction(ctx.url.path, router);
+      const url = parseQuiverUrl(ctx.message);
 
-    if (!fn.ok) {
-      ctx.throw = {
-        code: "UNKNOWN_FUNCTION",
-      };
-    }
+      if (!url.ok) {
+        ctx.exit = {
+          code: "INVALID_URL",
+          reason: `Failed to parse message because ${url.reason}`,
+        };
 
-    ctx.function = fn.value;
+        throw new Error(JSON.stringify(ctx, null, 2));
+      }
 
-    // PARSE_JSON
+      ctx.url = url.value;
 
-    try {
-      ctx.json = JSON.parse(String(ctx.message.content));
-    } catch (error) {
-      ctx.throw = {
-        code: "JSON_PARSE_FAILED",
-      };
-    }
+      // GET_FUNCTION
 
-    // PARSE_REQUEST
+      if (ctx.url === undefined) {
+        throw new Error(JSON.stringify(ctx, null, 2));
+      }
 
-    if (ctx.json === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
+      const fn = getFunction(ctx.url.path, router);
 
-    const request = parseQuiverRequest(ctx.json);
+      if (!fn.ok) {
+        ctx.throw = {
+          code: "UNKNOWN_FUNCTION",
+        };
+      }
 
-    if (!request.ok) {
-      ctx.throw = {
-        code: "REQUEST_PARSE_FAILED",
-      };
-    }
+      ctx.function = fn.value;
 
-    ctx.request = request.value;
+      // PARSE_JSON
 
-    // VALIDATE_INPUT
+      try {
+        ctx.json = JSON.parse(String(ctx.message.content));
+      } catch (error) {
+        ctx.throw = {
+          code: "JSON_PARSE_FAILED",
+        };
+      }
 
-    if (ctx.request === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
+      // PARSE_REQUEST
 
-    ctx.input = ctx.request.arguments;
+      if (ctx.json === undefined) {
+        throw new Error(JSON.stringify(ctx, null, 2));
+      }
 
-    // CALL_FUNCTION
+      const request = parseQuiverRequest(ctx.json);
 
-    const middleware = getMiddleware(ctx.url.path, router);
+      if (!request.ok) {
+        ctx.throw = {
+          code: "REQUEST_PARSE_FAILED",
+        };
+      }
 
-    for (const mw of middleware) {
-      ctx = mw(ctx);
-    }
+      ctx.request = request.value;
 
-    if (ctx.function === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
+      // VALIDATE_INPUT
 
-    try {
-      ctx.output = ctx.function.fn(ctx.input, ctx);
-    } catch (error) {
-      ctx.throw = {
-        code: "SERVER_ERROR",
-      };
-    }
+      if (ctx.request === undefined) {
+        throw new Error(JSON.stringify(ctx, null, 2));
+      }
 
-    // EXIT
+      ctx.input = ctx.request.arguments;
 
-    if (ctx.exit !== undefined) {
+      // CALL_FUNCTION
+
+      const middleware = getMiddleware(ctx.url.path, router);
+
+      for (const mw of middleware) {
+        ctx = mw(ctx);
+      }
+
+      if (ctx.function === undefined) {
+        throw new Error(JSON.stringify(ctx, null, 2));
+      }
+
+      try {
+        ctx.output = ctx.function.fn(ctx.input, ctx);
+      } catch (error) {
+        ctx.throw = {
+          code: "SERVER_ERROR",
+        };
+      }
+
+      // EXIT
+
+      ctx = exit ? exit(ctx) : ctx;
+
+      // SEND
+
+      if (ctx.throw !== undefined) {
+        // send the error
+      }
+
+      if (ctx.return !== undefined) {
+        // send the return value
+      }
+
+      // FINALLY
+
       // do some stuff
-    }
 
-    if (ctx.throw !== undefined) {
-      // do some stuff
-    }
-
-    if (ctx.return !== undefined) {
-      // do some stuff
-    }
-
-    // SEND
-
-    if (ctx.throw !== undefined) {
-      // send the error
-    }
-
-    if (ctx.return !== undefined) {
-      // send the return value
-    }
-
-    // FINALLY
-
-    // do some stuff
-
-    return ctx;
+      return ctx;
+    };
   };
-};
