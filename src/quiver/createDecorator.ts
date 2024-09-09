@@ -1,3 +1,13 @@
+/*
+ * It feels like either one of two things is true here. Either
+
+ * 1. I'm not holding TypeScript correctly
+ * 2. The thing I'm trying to do is pushing TypeScript's boundaries.
+ *
+ * My intuition is that (1) is true, so I should probably experiment
+ * and/or toy around with the idea in a separate project.
+ */
+
 type QuiverDecorator<CtxIn, CtxOut, CtxExitIn, CtxExitOut> = {
   use: <I extends CtxOut, O>(
     fn: (i: I) => O,
