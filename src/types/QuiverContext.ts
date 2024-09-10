@@ -10,7 +10,7 @@ export type QuiverContext = {
   url?: QuiverUrl;
   json?: unknown;
   request?: QuiverRequest;
-  function?: QuiverFunction<any, any>;
+  function?: QuiverFunction<any, any, any, any>;
   input?: any;
   output?: any;
   throw?: Omit<QuiverError, "id" | "ok">;

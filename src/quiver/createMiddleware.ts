@@ -1,17 +1,33 @@
 import { QuiverContext } from "../types/QuiverContext.js";
+import { getUniqueId } from "../lib/getUniqueId.js";
 
-class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
+  use?: (ctx: CtxIn) => CtxOut,
+  exit?: (ctx: CtxExitIn) => CtxExitOut,
+  name?: string,
+) => {
+  return new QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>({
+    use,
+    exit,
+    name,
+  });
+};
+
+export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+  public name: string;
   private handlers: {
     use: Array<(ctx: any) => any>;
     exit: Array<(ctx: any) => any>;
   } = { use: [], exit: [] };
 
-  public constructor() {
-    return this;
-  }
-
-  public static create<CtxIn = undefined, CtxExitIn = undefined>() {
-    return new Middleware<CtxIn, undefined, CtxExitIn, undefined>();
+  public constructor(options?: {
+    use?: (ctx: any) => any;
+    exit?: (ctx: any) => any;
+    name?: string;
+  }) {
+    this.name = options?.name || getUniqueId();
+    if (options?.use) this.handlers.use.push(options.use);
+    if (options?.exit) this.handlers.exit.push(options.exit);
   }
 
   public use<
@@ -28,8 +44,8 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
       : CtxOut extends undefined
         ? CtxIn // just in defined
         : CtxOut, // both defined
-    O,
-  >(fn: (ctx: QuiverContext & I) => O) {
+    O extends I,
+  >(fn: (ctx: I) => O) {
     this.handlers.use.push(fn);
 
     /* If neither types are defined, we initialize the types using the handler.
@@ -41,11 +57,11 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
 
     return this as unknown as CtxIn extends undefined
       ? CtxOut extends undefined
-        ? Middleware<I, O, CtxExitIn, CtxExitOut> // both undefined
+        ? QuiverMiddleware<I, O, CtxExitIn, CtxExitOut> // both undefined
         : never // just out defined
       : CtxOut extends undefined //
-        ? Middleware<CtxIn, CtxIn & O, CtxExitIn, CtxExitOut> // just in defined
-        : Middleware<CtxIn, CtxOut & O, CtxExitIn, CtxExitOut>; // both defined
+        ? QuiverMiddleware<CtxIn, O, CtxExitIn, CtxExitOut> // just in defined
+        : QuiverMiddleware<CtxIn, O, CtxExitIn, CtxExitOut>; // both defined
   }
 
   /* The logic here is identical to the use method. The difference between the
@@ -64,40 +80,10 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
 
     return this as unknown as CtxExitIn extends undefined
       ? CtxExitOut extends undefined
-        ? Middleware<CtxIn, CtxOut, I, O> // both undefined
+        ? QuiverMiddleware<CtxIn, CtxOut, I, O> // both undefined
         : never // just out defined
       : CtxExitOut extends undefined //
-        ? Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitIn & O> // just in defined
-        : Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut & O>; // both defined
+        ? QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitIn & O> // just in defined
+        : QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut & O>; // both defined
   }
 }
-
-const mw = Middleware.create<{ user: string }, { handler: string }>()
-  .use(() => {
-    return {
-      a: 100,
-    };
-  })
-  .use((ctx) => {
-    return {
-      b: 200,
-      d: ctx.user.length,
-    };
-  })
-  .use((ctx) => {
-    return {
-      c: 200,
-      sum: ctx.a + ctx.b,
-    };
-  })
-  .exit((ctx) => {
-    return {
-      handlerLength: ctx.handler.length,
-      elapsed: 100,
-    };
-  })
-  .exit(() => {
-    return {
-      what: "hello",
-    };
-  });

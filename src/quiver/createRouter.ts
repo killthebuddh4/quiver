@@ -1,27 +1,15 @@
-import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
+import { QuiverMiddleware } from "./createMiddleware.js";
 
-export const createRouter =
-  <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
-    use?: (ctx: CtxIn) => CtxOut,
-    exit?: (ctx: CtxExitIn) => CtxExitOut,
-  ) =>
-  <
-    R extends {
-      [key: string]: QuiverFunction<CtxOut, any> | QuiverRouter<CtxOut, any>;
-    },
-  >(routes: {
-    [key in keyof R]: R[key];
-  }): {
-    use: (ctx: CtxIn) => CtxOut;
-    exit: (ctx: CtxExitIn) => CtxExitOut;
-    routes: {
-      [key in keyof R]: R[key];
-    };
-  } => {
+export const createRouter = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
+  middleware?: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>,
+) => {
+  return <R extends QuiverRouter<CtxIn, CtxOut, CtxExitIn, CtxExitOut>>(
+    routes: R["routes"],
+  ) => {
     return {
-      use: use || ((x: unknown) => x),
-      exit: exit || ((x: unknown) => x),
+      middleware,
       routes,
     };
   };
+};

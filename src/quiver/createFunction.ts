@@ -1,18 +1,13 @@
-export const createFunction =
-  <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
-    use?: (ctx: CtxIn) => CtxOut,
-    exit?: (ctx: CtxExitIn) => CtxExitOut,
-  ) =>
-  <I, O>(
-    fn: (i: I, ctx: CtxOut) => O,
-  ): {
-    use: (ctx: CtxIn) => CtxOut;
-    exit: (ctx: CtxExitIn) => CtxExitOut;
-    fn: (i: I, ctx: CtxOut) => O;
-  } => {
+import { QuiverMiddleware } from "./createMiddleware.js";
+import { QuiverContext } from "../types/QuiverContext.js";
+
+export const createFunction = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
+  middleware?: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>,
+) => {
+  return <I, O>(fn: (i: I, ctx: QuiverContext & CtxOut) => O) => {
     return {
-      use: use || ((x: any) => x),
-      exit: exit || ((x: any) => x),
+      middleware,
       fn,
     };
   };
+};
