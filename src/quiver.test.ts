@@ -1,23 +1,45 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 
 import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
-import { QuiverContext } from "./types/QuiverContext.js";
 
 describe("Quiver", () => {});
 it("mvp works", async function () {
   this.timeout(15000);
 
-  const func = q.function((ctx: QuiverContext) => ctx)(() => "Hello, World!");
+  const auth = q
+    .middleware("auth")
+    .exit((x) => x)
+    .before((x) => x)
+    .after((x) => x);
 
-  const router = q.router((ctx: QuiverContext) => ctx)({
-    hello: func,
-  });
+  const logger = q
+    .middleware("logger")
+    .use((x) => x)
+    .throw((x) => x)
+    .exit((x) => x)
+    .before((x) => x)
+    .after((x) => x);
 
-  const app = q.app()(router);
+  const errors = q.middleware("errors").exit((x) => x);
 
-  const client = q.client<typeof app>()();
+  const middleware = q
+    .middleware(auth)
+    .push(logger)
+    .push(errors)
+    .push(logger)
+    .push(auth)
+    .unshift(logger);
+
+  const hello = q.function(middleware)(() => "Hello, World!");
+
+  const app = q.app(middleware)({ hello });
+
+  q.run()(app);
+
+  CLEANUP.push(await quiver.start());
 
   const message: Message = {
     id: "test-message-1",
