@@ -1,30 +1,35 @@
 import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
+import { QuiverContext } from "./types/QuiverContext.js";
 
 describe("Quiver", () => {});
 it("mvp works", async function () {
   this.timeout(15000);
 
-  const mw = q
+  const withX = q
     .middleware()
-    .use(() => {
+    .use((ctx: { y: string }) => {
+      console.log(ctx.y);
       return {
-        user: "achlles",
+        ...ctx,
+        x: "X",
       };
     })
-    .use((ctx) => {
+    .narrow(() => {
       return {
-        ...ctx,
-        other: "hey",
-        user: "achilles",
-      } as const;
+        y: "hello",
+      };
     })
-    .use((ctx) => {
+    .narrow((y) => y)
+    .narrow((ctx: { h: string }) => {
+      return ctx;
+    })
+    .narrow((ctx: { superman: boolean }) => {
+      console.log({ h: "he" });
       return {
         ...ctx,
-        other: "hey",
-        user: "achilles",
+        h: "he",
       };
     });
 
