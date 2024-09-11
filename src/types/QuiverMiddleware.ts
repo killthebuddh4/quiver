@@ -1,4 +1,4 @@
-export type QuiverMiddleware<CtxIn, CtxExitOut> = {
-  use: (ctx: CtxIn) => any;
-  exit: (ctx: any) => CtxExitOut;
+export type QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> = {
+  use: (ctx: CtxIn) => CtxOut;
+  exit: (ctx: CtxExitIn) => CtxExitOut;
 };

@@ -1,37 +1,49 @@
 import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
-import { QuiverContext } from "./types/QuiverContext.js";
 
 describe("Quiver", () => {});
 it("mvp works", async function () {
   this.timeout(15000);
 
-  const withX = q
-    .middleware()
-    .use((ctx: { y: string }) => {
-      console.log(ctx.y);
-      return {
-        ...ctx,
-        x: "X",
-      };
-    })
-    .narrow(() => {
-      return {
-        y: "hello",
-      };
-    })
-    .narrow((y) => y)
-    .narrow((ctx: { h: string }) => {
-      return ctx;
-    })
-    .narrow((ctx: { superman: boolean }) => {
-      console.log({ h: "he" });
-      return {
-        ...ctx,
-        h: "he",
-      };
-    });
+  const withUser = q.middleware().use(() => {
+    return {
+      user: "test-user-1",
+    };
+  });
+
+  const needsUser = q.middleware().use((ctx: { user: string }) => {
+    return ctx;
+  });
+
+  const needsPass = q.middleware().use((ctx: { pass: string }) => {
+    return ctx;
+  });
+
+  const goodbye = q.router(needsPass)({
+    to: (from: string, ctx) => {
+      return `Goodbye, ${ctx.pass} from ${from}`;
+    },
+  });
+
+  const withPass = q.middleware().use((ctx: { user: string }) => {
+    return {
+      ...ctx,
+      pass: "test-pass-1",
+    };
+  });
+
+  const router = q.router(withUser)({
+    hello: (from: string, ctx) => {
+      return `Hello, ${ctx.user} from ${from}`;
+    },
+    authed: q.router(withPass)({
+      goodbye,
+      other: (i, ctx) => {
+        return `Other, ${ctx.pass}`;
+      },
+    }),
+  });
 
   const message: Message = {
     id: "test-message-1",

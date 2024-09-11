@@ -1,6 +1,6 @@
-import { QuiverMiddleware } from "../quiver/createMiddleware.js";
+import { QuiverMiddleware } from "./QuiverMiddleware.js";
 
 export type QuiverFunction<CtxIn, CtxOut, CtxExitIn, CtxExitOut> = {
-  middleware?: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>;
+  middleware: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>;
   fn: (i: any, ctx: CtxOut) => any;
 };
