@@ -1,93 +1,112 @@
-import { QuiverRouter } from "../types/QuiverRouter.js";
-import { createFunction } from "./createFunction.js";
+type QuiverFunction<Ctx, I, O> = (i: I, ctx: Ctx) => O;
 
-export class Quiver<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
-  private handlers: {
-    use: Array<(ctx: any) => any>;
-    exit: Array<(ctx: any) => any>;
-  } = { use: [], exit: [] };
+type QuiverMiddleware<CtxIn, CtxOut> = {
+  use: (ctx: CtxIn) => CtxOut;
+};
 
-  public constructor() {}
+type QuiverRoute<CtxIn, CtxOut> = {
+  middleware: QuiverMiddleware<CtxIn, CtxOut>;
+  fn: QuiverFunction<any, CtxOut, any>;
+};
 
-  public use<
-    I extends CtxIn extends undefined
-      ? unknown
-      : CtxOut extends undefined
-        ? CtxIn // just in defined
-        : CtxOut, // both defined
-    O extends I,
-  >(fn: (ctx: I) => O) {
-    this.handlers.use.push(fn);
+type QuiverRouter<CtxIn, CtxOut> = {
+  middleware: QuiverMiddleware<CtxIn, CtxOut>;
+  routes: {
+    [key: string]:
+      | QuiverRouter<CtxOut, any>
+      | QuiverRoute<CtxOut, any>
+      | QuiverFunction<CtxOut, any, any>;
+  };
+};
 
-    return this as unknown as Quiver<
-      CtxIn extends undefined ? I : CtxIn,
-      O,
-      CtxExitIn,
-      CtxExitOut
-    >;
-  }
+/*
 
-  public exit<
-    I extends CtxExitIn extends undefined
-      ? unknown
-      : CtxExitOut extends undefined
-        ? CtxExitIn // just in defined
-        : CtxExitOut, // both defined
-    O extends I,
-  >(fn: (ctx: I) => O) {
-    this.handlers.exit.push(fn);
+This is like my spec.
 
-    return this as unknown as Quiver<
-      CtxIn,
-      CtxOut,
-      CtxExitIn extends undefined ? I : CtxExitIn,
-      O
-    >;
-  }
+logged
 
-  public middleware() {
-    return {
-      use: (context: CtxIn) => {
-        let ctx = context;
-
-        for (const fn of this.handlers.use) {
-          ctx = fn(ctx);
-        }
-
-        return ctx as unknown as CtxOut;
-      },
-      exit: (context: CtxExitIn) => {
-        let ctx = context;
-
-        for (const fn of this.handlers.exit) {
-          ctx = fn(ctx);
-        }
-
-        return ctx as unknown as CtxExitOut;
-      },
-    };
-  } 
-
-  public router<R extends QuiverRouter<CtxOut, any, any, any>["routes"]>(
-    routes: R,
-  ): QuiverRouter<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
-
-    return {
-      middleware: this.middleware(),
-      routes,
-    };
-  }
+{
+  public: {
+    describe: //
+    join: //
 }
 
-const quiver = () => new Quiver();
+admin: {
+  destroy: //
+}
 
-const nothing = quiver().middleware();
+members: {
+  post: //
+}
 
-const authenticated = quiver().use(() => ({ user: 'test-user-1' })).middleware();
+*/
 
-const app = quiver()
-  .use((ctx: { user: string }) => ctx)
-  .use((ctx) => ({ ...ctx, hello: "world" }));
-  .router({
-    greet: 
+const middleware = <CtxIn extends Record<string, any>, CtxOut extends CtxIn>(
+  use: (ctx: CtxIn) => CtxOut,
+) => {
+  const p = <Next extends CtxOut>(next: QuiverMiddleware<CtxOut, Next>) => {
+    return middleware((ctx: CtxIn) => {
+      return next.use(use(ctx));
+    });
+  };
 
+  return {
+    use,
+    pipe: p,
+  };
+};
+
+const pipe = <
+  CtxIn extends Record<string, any>,
+  CtxOut extends CtxIn,
+  Next extends CtxOut,
+>(
+  mw: QuiverMiddleware<CtxIn, CtxOut>,
+  next: QuiverMiddleware<CtxOut, Next>,
+) => {
+  return middleware((ctx: CtxIn) => {
+    return next.use(mw.use(ctx));
+  });
+};
+
+const join = (i: undefined, ctx: { user: string }) => {
+  console.log(`${ctx.user} joined`);
+};
+
+const describe = (i: { id: string }) => {
+  console.log(`describing ${i.id}`);
+};
+
+const destroy = (i: { id: string }, ctx: { user: string }) => {
+  console.log(`${ctx.user} destroying ${i.id}`);
+};
+
+const post = (i: { id: string; message: string }, ctx: { user: string }) => {
+  console.log(`${ctx.user} posting ${i.message} to ${i.id}`);
+};
+
+const user = middleware((ctx) => {
+  return {
+    ...ctx,
+    user: "test-user-1",
+    x: false,
+  };
+});
+
+const pass = middleware((ctx: { x: number }) => {
+  return {
+    ...ctx,
+    pass: true,
+    user: "test-user-2",
+  };
+});
+
+// const p = user.pipe;
+const u = user.use;
+const p = pass.use;
+
+pipe(user, pass);
+
+user.pipe(pass);
+
+const app = router(user);

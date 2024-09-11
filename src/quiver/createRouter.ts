@@ -2,7 +2,7 @@ import { QuiverMiddleware } from "./createMiddleware.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 
 export const createRouter = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
-  middleware: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>,
+  handler: QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>,
 ) => {
   return <
     R extends {
@@ -14,7 +14,7 @@ export const createRouter = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     routes: R,
   ) => {
     return {
-      middleware,
+      handler,
       routes,
     };
   };
