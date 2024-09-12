@@ -30,6 +30,14 @@ type SafeExtension<X, Y> =
       ? Y
       : never;
 
+type SafeExtender<X, Y, F> = F extends (ctx: infer I) => infer O
+  ? SafeExtension<X, I> extends never
+    ? never
+    : SafeExtension<Y, O> extends never
+      ? never
+      : F
+  : never;
+
 /*
 
 This is like my spec.
@@ -50,13 +58,18 @@ members: {
   post: //
 }
 
+  ): SafeExtension<CtxIn, I> extends never
+    ? never
+    : SafeExtension<CtxOut, O> extends never
+      ? never
+      : () => Middleware<I & CtxIn, O & CtxOut, CtxExitIn, CtxExitOut> {
 */
 
 type H = {
-  use: Array<(ctx: any) => any>;
-  exit: Array<(ctx: any) => any>;
-  extend: Array<(ctx: any) => any>;
-  next: Array<Middleware<any, any, any, any>>;
+  use: any[];
+  exit: any[];
+  extend: any[];
+  next: any[];
 };
 
 class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
@@ -67,7 +80,7 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   }
 
   public static create<I, O>(fn: (ctx: I) => O) {
-    return new Middleware<I, O, undefined, undefined>({
+    return new Middleware<I, O, never, never>({
       use: [fn],
       exit: [],
       extend: [],
@@ -75,17 +88,18 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     });
   }
 
-  public extend<I, O>(
-    fn: (ctx: SafeExtension<CtxIn, I>) => SafeExtension<CtxOut, O>,
-  ) {
-    this.handlers.extend.push(fn);
-
-    return this as unknown as Middleware<
-      CtxIn extends undefined ? I : I & CtxIn,
-      CtxOut extends undefined ? O : O & CtxOut,
+  public extend<F>(fn: SafeExtender<CtxIn, CtxOut, F>) {
+    return new Middleware<
+      F extends (ctx: infer I) => any ? I & CtxIn : never,
+      F extends (ctx: any) => infer O ? O & CtxOut : never,
       CtxExitIn,
       CtxExitOut
-    >;
+    >({
+      use: [],
+      exit: [],
+      extend: [fn],
+      next: [],
+    });
   }
 
   public test<T extends CtxOut>(v: T) {
@@ -105,18 +119,64 @@ class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   }
 }
 
-const mwa = Middleware.create((ctx: { a: number }) => {
-  return { b: ctx.a };
-}).extend(() => {
+const mwa = Middleware.create((ctx: { a: null }) => {
   return {
-    c: "hey",
+    ...ctx,
+    b: "heyllo",
   };
 });
 
-const mwb = Middleware.create((ctx: { b: number; c: "hey" }) => {
+mwa.extend((ctx: { b: string }) => {
   return {
-    d: ctx.b,
+    ...ctx,
+    a: "hello",
+    b: "hey",
   };
 });
 
-const mwc = mwa.pipe(mwb);
+// const mwa = Middleware.create((ctx: { a: number }) => {
+//   return { b: ctx.a };
+// }).extend
+
+// // .extend((ctx: { a: string }) => {
+// //   return { ...ctx };
+// // });
+
+// const mwb = Middleware.create((ctx: { b: number; c: "hey" }) => {
+//   return {
+//     d: ctx.b,
+//   };
+// });
+
+/* When is type I compatible with type CtxIn?
+
+- when they don't share any keys
+- when they share some keys, but the values are compatible
+
+
+
+*/
+
+// Utility type to check if two types share any keys
+type NoSharedKeys<T, U> = keyof T & keyof U extends never ? T : never;
+
+// Define a function with the constraint that T and U do not share any keys
+function someFunction<T extends object, U extends object>(
+  t: NoSharedKeys<T, U>,
+  u: U,
+): typeof t {
+  return t;
+}
+
+// Example usage:
+
+type A = { foo: string; bar: number };
+type B = { baz: boolean };
+
+// Works because A and B share no keys
+
+const x = someFunction({ foo: "hello", bar: 42 }, { baz: true });
+
+// Error because A and C share the 'foo' key
+type C = { foo: number };
+someFunction({ foo: "hello", bar: 42 }, { foo: 100 }); // TypeScript error
