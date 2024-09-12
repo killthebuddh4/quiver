@@ -19,6 +19,17 @@ type QuiverRouter<CtxIn, CtxOut> = {
   };
 };
 
+type Left<X, Y> = { [K in keyof X & keyof Y]: X[K] };
+
+type Right<X, Y> = { [K in keyof X & keyof Y]: Y[K] };
+
+type SafeExtension<X, Y> =
+  Extract<keyof X, keyof Y> extends never
+    ? Y
+    : Right<X, Y> extends Left<X, Y>
+      ? Y
+      : never;
+
 /*
 
 This is like my spec.
@@ -41,72 +52,71 @@ members: {
 
 */
 
-const middleware = <CtxIn extends Record<string, any>, CtxOut extends CtxIn>(
-  use: (ctx: CtxIn) => CtxOut,
-) => {
-  const p = <Next extends CtxOut>(next: QuiverMiddleware<CtxOut, Next>) => {
-    return middleware((ctx: CtxIn) => {
-      return next.use(use(ctx));
+type H = {
+  use: Array<(ctx: any) => any>;
+  exit: Array<(ctx: any) => any>;
+  extend: Array<(ctx: any) => any>;
+  next: Array<Middleware<any, any, any, any>>;
+};
+
+class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+  private handlers: H = { extend: [], use: [], exit: [], next: [] };
+
+  public constructor(handlers: H) {
+    this.handlers = handlers;
+  }
+
+  public static create<I, O>(fn: (ctx: I) => O) {
+    return new Middleware<I, O, undefined, undefined>({
+      use: [fn],
+      exit: [],
+      extend: [],
+      next: [],
     });
-  };
+  }
 
+  public extend<I, O>(
+    fn: (ctx: SafeExtension<CtxIn, I>) => SafeExtension<CtxOut, O>,
+  ) {
+    this.handlers.extend.push(fn);
+
+    return this as unknown as Middleware<
+      CtxIn extends undefined ? I : I & CtxIn,
+      CtxOut extends undefined ? O : O & CtxOut,
+      CtxExitIn,
+      CtxExitOut
+    >;
+  }
+
+  public test<T extends CtxOut>(v: T) {
+    console.log(v);
+  }
+
+  public pipe<Next>(
+    next: Next extends Middleware<infer I, any, any, any>
+      ? SafeExtension<CtxOut, I> extends never
+        ? never
+        : Next
+      : never,
+  ) {
+    this.handlers.next.push(next);
+
+    return this as Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>;
+  }
+}
+
+const mwa = Middleware.create((ctx: { a: number }) => {
+  return { b: ctx.a };
+}).extend(() => {
   return {
-    use,
-    pipe: p,
-  };
-};
-
-const pipe = <
-  CtxIn extends Record<string, any>,
-  CtxOut extends CtxIn,
-  Next extends CtxOut,
->(
-  mw: QuiverMiddleware<CtxIn, CtxOut>,
-  next: QuiverMiddleware<CtxOut, Next>,
-) => {
-  return middleware((ctx: CtxIn) => {
-    return next.use(mw.use(ctx));
-  });
-};
-
-const join = (i: undefined, ctx: { user: string }) => {
-  console.log(`${ctx.user} joined`);
-};
-
-const describe = (i: { id: string }) => {
-  console.log(`describing ${i.id}`);
-};
-
-const destroy = (i: { id: string }, ctx: { user: string }) => {
-  console.log(`${ctx.user} destroying ${i.id}`);
-};
-
-const post = (i: { id: string; message: string }, ctx: { user: string }) => {
-  console.log(`${ctx.user} posting ${i.message} to ${i.id}`);
-};
-
-const user = middleware((ctx) => {
-  return {
-    ...ctx,
-    user: "test-user-1",
-    x: false,
+    c: "hey",
   };
 });
 
-const pass = middleware((ctx: { x: number }) => {
+const mwb = Middleware.create((ctx: { b: number; c: "hey" }) => {
   return {
-    ...ctx,
-    pass: true,
-    user: "test-user-2",
+    d: ctx.b,
   };
 });
 
-// const p = user.pipe;
-const u = user.use;
-const p = pass.use;
-
-pipe(user, pass);
-
-user.pipe(pass);
-
-const app = router(user);
+const mwc = mwa.pipe(mwb);
