@@ -1,14 +1,28 @@
 import { Middleware } from "./createMiddleware.js";
 
 export const createRouter = <
-  CtxOut,
-  R extends { [key: string]: (ctx: CtxOut) => any },
+  R extends {
+    [key: string]: {
+      exec: (ctx: unknown) => unknown;
+    };
+  },
 >(
-  mw: Middleware<any, CtxOut, any, any>,
   routes: R,
 ) => {
-  return {
-    middleware: mw,
-    routes,
-  };
+  const middleware = new Middleware<unknown, unknown, any, any>((ctx) => ctx);
+
+  return new QuiverRouter<unknown, unknown, R>(middleware, routes);
 };
+
+export class QuiverRouter<CtxIn, CtxOut, R> {
+  private middleware: Middleware<CtxIn, CtxOut, any, any>;
+  private routes: R;
+
+  public constructor(
+    middleware: Middleware<CtxIn, CtxOut, any, any>,
+    routes: R,
+  ) {
+    this.middleware = middleware;
+    this.routes = routes;
+  }
+}

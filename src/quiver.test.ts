@@ -2,39 +2,45 @@ import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
 
-/*
-
-logged
-
-{
-  public: {
-    describe: //
-    join: //
-}
-
-admin: {
-  destroy: //
-. }
-
-members: {
-  post: //
-}
-
-*/
-
 describe("Quiver", () => {
   it("mvp works", async function () {
     this.timeout(15000);
 
-    const logger = q.middleware().use((ctx) => {
-      console.log(ctx);
+    const auth = q
+      .middleware((ctx: { user: string }) => {
+        return {
+          ...ctx,
+          authed: (ctx.user = "authed-user-1"),
+        };
+      })
+      .parallel((ctx: { pass: string }) => {
+        return {
+          ...ctx,
+        };
+      })
+      .serial(() => {
+        return {
+          x: 100,
+        };
+      });
+
+    const secret = q.function((ctx: { user: string }) => {
+      console.log("SECRET", ctx);
+
+      return {
+        ...ctx,
+        secret: 42,
+      };
     });
 
-    const join = (_, ctx) => {
-      console.log(`Ctx.message.sender joined`);
-    };
-
-    const app = q.router();
+    const router = auth.router({
+      secret,
+      other: q.function(() => {
+        return {
+          other: 42,
+        };
+      }),
+    });
 
     const message: Message = {
       id: "test-message-1",
