@@ -1,12 +1,19 @@
 import q from "./index.js";
 import { Message } from "./types/Message.js";
 import { getRequestUrl } from "./lib/getRequestUrl.js";
+import { QuiverContext } from "./types/QuiverContext.js";
+import { Maybe } from "./types/util/Maybe.js";
+
+type Root = {
+  compile: (path?: string[]) => Array<(ctx: QuiverContext) => QuiverContext>;
+  exec: (path?: string[]) => Maybe<(i: any, ctx: any) => any>;
+};
 
 describe("Quiver", () => {
   it("mvp works", async function () {
     this.timeout(15000);
 
-    const auth = q
+    const router = q
       .middleware((ctx: { user: string }) => {
         return {
           ...ctx,
@@ -22,25 +29,23 @@ describe("Quiver", () => {
         return {
           x: 100,
         };
+      })
+      .router({
+        secret: q
+          .middleware((ctx: { user: string }) => {
+            return {
+              ...ctx,
+              secret: 42,
+            };
+          })
+          .function((ctx) => {
+            console.log("SECRET", ctx);
+          }),
       });
 
-    const secret = q.function((ctx: { user: string }) => {
-      console.log("SECRET", ctx);
+    const root: Root = router;
 
-      return {
-        ...ctx,
-        secret: 42,
-      };
-    });
-
-    const router = auth.router({
-      secret,
-      other: q.function(() => {
-        return {
-          other: 42,
-        };
-      }),
-    });
+    const app = q.app(root);
 
     const message: Message = {
       id: "test-message-1",
@@ -60,9 +65,5 @@ describe("Quiver", () => {
         arguments: { value: "ACHILLES AND SOME" },
       }),
     };
-
-    const result = await server(message);
-
-    console.log(result);
   });
 });

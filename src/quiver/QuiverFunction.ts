@@ -1,4 +1,5 @@
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { Maybe } from "../types/util/Maybe.js";
 
 export class QuiverFunction<CtxIn, CtxOut, I, O> {
   private middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
@@ -12,7 +13,11 @@ export class QuiverFunction<CtxIn, CtxOut, I, O> {
     this.fn = fn;
   }
 
-  public exec(ctx: CtxIn) {
-    return this.middleware.exec(ctx);
+  public compile() {
+    return [this.middleware.compile()];
+  }
+
+  public exec(): Maybe<typeof this.fn> {
+    return { ok: true, value: this.fn };
   }
 }

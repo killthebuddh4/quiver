@@ -3,6 +3,7 @@ import { SerialExtension } from "../types/util/SerialExtension.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
+import { Maybe } from "../types/util/Maybe.js";
 
 export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   private handler: (ctx: CtxIn) => CtxOut;
@@ -40,7 +41,13 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     const handler = (
       ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
     ): F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never => {
-      const hctx = this.handler(ctx);
+      // NOTE:
+      // We know that CtxIn > CtxOut
+      // We know that F is a SerialExtension of CtxOut.
+      // (*) This means that any CtxOut ~> I.
+      // The keys in I that aren't covered by (*) are also not in CtxIn because CtxIn > CtxOut.
+      // Therefore, I & CtxOut adds keys that will be ignored by this.handler.
+      const hctx = this.handler(ctx as any);
       const sctx = fn(hctx);
 
       return {
@@ -74,7 +81,8 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   public router<
     R extends {
       [key: string]: {
-        exec: (ctx: CtxOut) => any;
+        compile: (path?: string[]) => Array<(ctx: any) => any>;
+        exec: (path?: string[]) => Maybe<(i: any, ctx: any) => any>;
       };
     },
   >(routes: R) {
