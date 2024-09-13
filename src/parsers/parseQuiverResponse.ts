@@ -1,4 +1,4 @@
-import { Maybe } from "../types/Maybe.js";
+import { Maybe } from "../types/util/Maybe.js";
 import { QuiverResponse } from "../types/QuiverResponse.js";
 import { parseQuiverError } from "./parseQuiverError.js";
 import { parseQuiverSuccess } from "./parseQuiverSuccess.js";

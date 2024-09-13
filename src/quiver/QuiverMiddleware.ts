@@ -1,14 +1,10 @@
-import { MiddlewareParallelExtension } from "../types/MiddlewareParallelExtension.js";
-import { MiddlewareSerialExtension } from "../types/MiddlewareSerialExtension.js";
-import { Resolve } from "../types/Resolve.js";
-import { QuiverFunction } from "./createFunction.js";
-import { QuiverRouter } from "./createRouter.js";
+import { ParallelExtension } from "../types/util/ParallelExtension.js";
+import { SerialExtension } from "../types/util/SerialExtension.js";
+import { Resolve } from "../types/util/Resolve.js";
+import { QuiverFunction } from "./QuiverFunction.js";
+import { QuiverRouter } from "./QuiverRouter.js";
 
-export const createMiddleware = <CtxIn, CtxOut>(fn: (ctx: CtxIn) => CtxOut) => {
-  return new Middleware<CtxIn, CtxOut, never, never>(fn);
-};
-
-export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   private handler: (ctx: CtxIn) => CtxOut;
 
   public constructor(handler: (ctx: CtxIn) => CtxOut) {
@@ -16,9 +12,7 @@ export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   }
 
   public parallel<F>(
-    fn: CtxIn extends never
-      ? never
-      : MiddlewareParallelExtension<CtxIn, CtxOut, F>,
+    fn: CtxIn extends never ? never : ParallelExtension<CtxIn, CtxOut, F>,
   ) {
     const handler = (
       ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
@@ -32,7 +26,7 @@ export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
       } as F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never;
     };
 
-    return new Middleware<
+    return new QuiverMiddleware<
       Resolve<F extends (ctx: infer I) => any ? I & CtxIn : never>,
       Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
@@ -41,7 +35,7 @@ export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   }
 
   public serial<F>(
-    fn: CtxIn extends never ? never : MiddlewareSerialExtension<CtxOut, F>,
+    fn: CtxIn extends never ? never : SerialExtension<CtxOut, F>,
   ) {
     const handler = (
       ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
@@ -55,7 +49,7 @@ export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
       } as F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never;
     };
 
-    return new Middleware<
+    return new QuiverMiddleware<
       Resolve<
         F extends (ctx: infer I) => any ? Omit<I, keyof CtxIn> & CtxIn : never
       >,

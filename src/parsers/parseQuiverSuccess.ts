@@ -1,4 +1,4 @@
-import { Maybe } from "../types/Maybe.js";
+import { Maybe } from "../types/util/Maybe.js";
 import { QuiverSuccess } from "../types/QuiverSuccess.js";
 
 export const parseQuiverSuccess = (

@@ -1,5 +1,5 @@
-import { MiddlewareParallelInput } from "./MiddlewareParallelInput.js";
-import { MiddlewareParallelOutput } from "./MiddlewareParallelOutput.js";
+import { ParallelInput } from "./ParallelInput.js";
+import { ParallelOutput } from "./ParallelOutput.js";
 
 // Parallel functions with overlapping input keys must have compatible types for
 // the overlapping keys. The overlapping keys are compatible if one side's type
@@ -9,13 +9,13 @@ import { MiddlewareParallelOutput } from "./MiddlewareParallelOutput.js";
 //
 // See the imported types for implementations of the above rules.
 
-export type MiddlewareParallelExtension<CtxInMw, CtxOutMw, F> = F extends (
+export type ParallelExtension<CtxInMw, CtxOutMw, F> = F extends (
   ctx: infer I,
 ) => infer O
   ? O extends I
-    ? MiddlewareParallelInput<CtxInMw, I> extends never
+    ? ParallelInput<CtxInMw, I> extends never
       ? never
-      : MiddlewareParallelOutput<CtxOutMw, O> extends never
+      : ParallelOutput<CtxOutMw, O> extends never
         ? never
         : F
     : never

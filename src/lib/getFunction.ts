@@ -1,6 +1,6 @@
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
-import { Maybe } from "../types/Maybe.js";
+import { Maybe } from "../types/util/Maybe.js";
 
 export const getFunction = (
   path: string[],

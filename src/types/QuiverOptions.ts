@@ -1,4 +1,4 @@
-import { Signer } from "./Signer.js";
+import { Signer } from "./util/Signer.js";
 import type { Client } from "@xmtp/xmtp-js";
 
 export type QuiverOptions = {

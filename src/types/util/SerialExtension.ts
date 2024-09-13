@@ -1,4 +1,4 @@
-import { MiddlewareSerialInput } from "./MiddlewareSerialInput.js";
+import { SerialInput } from "./SerialInput.js";
 
 // Serial functions with overlapping output -> input keys must have compatible
 // types for the overlapping keys. The overlapping keys are compatible according
@@ -9,11 +9,9 @@ import { MiddlewareSerialInput } from "./MiddlewareSerialInput.js";
 // output of the previous function. We allow this by extending the input type.
 // Upstream middleware will then need to provide the values for these keys.
 
-export type MiddlewareSerialExtension<CtxOutMw, F> = F extends (
-  ctx: infer I,
-) => infer O
+export type SerialExtension<CtxOutMw, F> = F extends (ctx: infer I) => infer O
   ? O extends I
-    ? MiddlewareSerialInput<CtxOutMw, I> extends never
+    ? SerialInput<CtxOutMw, I> extends never
       ? never
       : F
     : never
