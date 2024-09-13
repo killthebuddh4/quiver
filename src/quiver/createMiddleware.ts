@@ -1,69 +1,65 @@
-import { getUniqueId } from "../lib/getUniqueId.js";
+import { MiddlewareParallelExtension } from "../types/MiddlewareParallelExtension.js";
+import { MiddlewareSerialExtension } from "../types/MiddlewareSerialExtension.js";
+import { Resolve } from "../types/Resolve.js";
 
-export const createMiddleware = (name?: string) => {
-  return new QuiverMiddleware<undefined, undefined, undefined, undefined>({
-    name,
+export const createMiddleware = () => {
+  return new Middleware<never, never, never, never>({
+    use: [],
+    parallel: [],
+    serial: [],
   });
 };
 
-export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
-  public name: string;
+type H = {
+  use: any[];
+  parallel: any[];
+  serial: any[];
+};
 
-  private handlers: {
-    use: Array<(ctx: any) => any>;
-    exit: Array<(ctx: any) => any>;
-  } = { use: [], exit: [] };
+export class Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+  private handlers: H = { use: [], parallel: [], serial: [] };
 
-  public constructor(options?: { name?: string }) {
-    this.name = options?.name || getUniqueId();
+  public constructor(handlers: H) {
+    this.handlers = handlers;
   }
 
-  public narrow<I, O extends CtxIn extends undefined ? I : CtxIn>(
-    fn: (ctx: I) => O,
+  public use<I, O>(fn: (ctx: I) => O) {
+    return new Middleware<I, O, never, never>({
+      use: [fn],
+      parallel: [],
+      serial: [],
+    });
+  }
+
+  public parallel<F>(
+    fn: CtxIn extends never
+      ? never
+      : MiddlewareParallelExtension<CtxIn, CtxOut, F>,
   ) {
-    this.handlers.use.unshift(fn);
-
-    return this as unknown as QuiverMiddleware<
-      I,
-      CtxOut extends undefined ? O : CtxOut,
+    return new Middleware<
+      Resolve<F extends (ctx: infer I) => any ? I & CtxIn : never>,
+      Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
-    >;
+    >({
+      ...this.handlers,
+      parallel: [...this.handlers.parallel, fn],
+    });
   }
 
-  public use<
-    I extends CtxIn extends undefined
-      ? unknown
-      : CtxOut extends undefined
-        ? CtxIn // just in defined
-        : CtxOut, // both defined
-    O extends I,
-  >(fn: (ctx: I) => O) {
-    this.handlers.use.push(fn);
-
-    return this as unknown as QuiverMiddleware<
-      CtxIn extends undefined ? I : CtxIn,
-      O,
+  public serial<F>(
+    fn: CtxIn extends never ? never : MiddlewareSerialExtension<CtxOut, F>,
+  ) {
+    return new Middleware<
+      Resolve<
+        F extends (ctx: infer I) => any ? Omit<I, keyof CtxIn> & CtxIn : never
+      >,
+      Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
-    >;
-  }
-
-  public exit<
-    I extends CtxExitIn extends undefined
-      ? unknown
-      : CtxExitOut extends undefined
-        ? CtxExitIn // just in defined
-        : CtxExitOut, // both defined
-    O extends I,
-  >(fn: (ctx: I) => O) {
-    this.handlers.exit.push(fn);
-
-    return this as unknown as QuiverMiddleware<
-      CtxIn,
-      CtxOut,
-      CtxExitIn extends undefined ? I : CtxExitIn,
-      O
-    >;
+    >({
+      ...this.handlers,
+      serial: [...this.handlers.serial, fn],
+    });
   }
 }
