@@ -24,6 +24,11 @@ describe("Quiver", () => {
       };
     });
 
+    // I think we neeed another layer for the middleware.
+
+    // The current middleware class is just a function factory. We need a way to inject
+    // middleware into the request handlers.
+
     const mw = q
       .middleware((ctx) => ctx)
       .extend(user.compile())
