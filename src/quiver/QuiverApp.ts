@@ -2,19 +2,14 @@ import { Message } from "../types/Message.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { parseQuiverUrl } from "../parsers/parseQuiverUrl.js";
 import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
-import { Maybe } from "../types/util/Maybe.js";
 import { QuiverProvider } from "./QuiverProvider.js";
-
-type Root = {
-  compile: (path?: string[]) => Array<(ctx: QuiverContext) => QuiverContext>;
-  exec: (path?: string[]) => Maybe<(i: any, ctx: any) => any>;
-};
+import { QuiverNode } from "../types/QuiverNode.js";
 
 export class QuiverApp {
   provider?: QuiverProvider;
-  root: Root;
+  root: QuiverNode<any>;
 
-  public constructor(root: Root) {
+  public constructor(root: QuiverNode<any>) {
     this.root = root;
   }
 

@@ -3,7 +3,7 @@ import { SerialExtension } from "../types/util/SerialExtension.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { Maybe } from "../types/util/Maybe.js";
+import { QuiverNode } from "../types/QuiverNode.js";
 
 export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   private handler: (ctx: CtxIn) => CtxOut;
@@ -18,7 +18,8 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     const handler = (
       ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
     ): F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never => {
-      const hctx = this.handler(ctx);
+      // TODO check this any
+      const hctx = this.handler(ctx as any);
       const pctx = fn(hctx);
 
       return {
@@ -80,12 +81,12 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
 
   public router<
     R extends {
-      [key: string]: {
-        compile: (path?: string[]) => Array<(ctx: any) => any>;
-        exec: (path?: string[]) => Maybe<(i: any, ctx: any) => any>;
-      };
+      [key: string]: QuiverNode<CtxOut>;
     },
   >(routes: R) {
-    return new QuiverRouter(this, routes);
+    return new QuiverRouter({
+      middleware: this,
+      routes,
+    });
   }
 }

@@ -13,7 +13,11 @@ export class QuiverFunction<CtxIn, CtxOut, I, O> {
     this.fn = fn;
   }
 
-  public compile() {
+  public typeguard(ctx: CtxIn): never {
+    throw new Error(`This function should never be called ${ctx}`);
+  }
+
+  public compile(): Array<(ctx: CtxIn) => CtxOut> {
     return [this.middleware.compile()];
   }
 

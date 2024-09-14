@@ -1,1 +1,1 @@
-export class QuiverProvider {}
+export class QuiverProvider<CtxOut> {}
