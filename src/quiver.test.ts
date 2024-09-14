@@ -1,62 +1,121 @@
-import q from "./index.js";
-import { QuiverContext } from "./types/QuiverContext.js";
-import { Maybe } from "./types/util/Maybe.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 
-type Root = {
-  compile: (path?: string[]) => Array<(ctx: QuiverContext) => QuiverContext>;
-  exec: (path?: string[]) => Maybe<(i: any, ctx: any) => any>;
-};
+import q from "./index.js";
+
+const CLEANUP = Array<() => void>();
 
 describe("Quiver", () => {
-  it("mvp works", async function () {
+  it("minimal function example", async function () {
     this.timeout(15000);
 
-    const user = q.middleware(() => ({ user: "user-1" }));
+    const app = q.function(() => "Hello, World!");
 
-    const pass = q.middleware(() => ({ pass: "pass-1" }));
+    CLEANUP.push(await app.start());
 
-    const request = q.middleware((ctx: { request: string }) => ctx);
+    const hello = q.client<typeof app>({ address: app.address });
 
-    const auth = q.middleware((ctx: { user: string; pass: string }) => {
+    CLEANUP.push(() => hello.stop());
+
+    const result = await hello.exec();
+
+    if (result.data !== "Hello, World!") {
+      throw new Error(`Expected "Hello, World!" but got ${result}`);
+    }
+  });
+
+  it("minimal router example", async function () {
+    this.timeout(15000);
+
+    const app = q.router({
+      hello: q.function(() => "Hello, World!"),
+      goodbye: q.function(() => "Goodbye, World!"),
+    });
+
+    CLEANUP.push(await app.start());
+
+    const client = q.client<typeof app>({ address: app.address });
+
+    CLEANUP.push(() => hello.stop());
+
+    const hello = await client.hello().exec();
+
+    if (hello.data !== "Hello, World!") {
+      throw new Error(`Expected "Hello, World!" but got ${result}`);
+    }
+
+    const goodbye = await client.goodbye().exec();
+
+    if (goodbye.data !== "Goodbye, World!") {
+      throw new Error(`Expected "Goodbye, World!" but got ${result}`);
+    }
+  });
+
+  it("minimal middleware (no inputs) example", async function () {
+    this.timeout(15000);
+
+    const app = q
+      .middleware(() => {
+        return { receivedAt: new Date() };
+      })
+      .function((i, ctx) => {
+        return ctx;
+      });
+
+    CLEANUP.push(await app.start());
+
+    const client = q.client<typeof app>({ address: app.address });
+
+    CLEANUP.push(() => client.stop());
+
+    const now = new Date().getTime();
+
+    const result = await client.exec();
+
+    if (result.data.receivedAt - now > 1000) {
+      throw new Error(`It took more than a second to get the result`);
+    }
+  });
+
+  it("middleware with input constraints", async function () {
+    this.timeout(15000);
+
+    // This middleware has a type constraint on its CtxIn. So, how do we
+    // guarantee that everything is wired up in a type-safe way? Where do we
+    // provide initial context?
+
+    const auth = q.middleware((ctx: { ens: { name: string } }) => {
       return {
-        ...ctx,
-        auth: ctx.user === "user-1" && ctx.pass === "pass-1",
+        authed: ctx.ens.name.endsWith("my.name.eth"),
       };
     });
 
-    // I think we neeed another layer for the middleware.
+    CLEANUP.push(await app.start());
 
-    // The current middleware class is just a function factory. We need a way to inject
-    // middleware into the request handlers.
+    const client = q.client<typeof app>({ address: app.address });
 
-    const mw = q
-      .middleware((ctx) => ctx)
-      .extend(user.compile())
-      .extend(pass.compile())
-      .extend(request.compile())
-      .pipe(auth.compile());
+    CLEANUP.push(() => client.stop());
 
-    const c = q
-      .middleware((ctx: { user: string }) => ctx)
-      .router({
-        d: q
-          .middleware((ctx: { user: string }) => ctx)
-          .function((i: { d: string }) => {
-            return i;
-          }),
-      });
+    const now = new Date().getTime();
 
-    const app = user.router({}).route({
-      user: q.function((i: { user: string }) => {
-        return i;
-      }),
-      a: q.function((i: { a: string }) => {
-        return i;
-      }),
-      b: q.function((i: { b: string }) => {
-        return i;
-      }),
-      c,
+    const result = await client.exec();
+
+    if (result.data.receivedAt - now > 1000) {
+      throw new Error(`It took more than a second to get the result`);
+    }
+  });
+
+  it("client side context", async function () {
+    this.timeout(15000);
+
+    // TODO This is actually a case where we want to allow client-side context generation
+
+    q.middleware((ctx: { domain: string }) => {
+      return {
+        authed: ctx.domain === "my.special.fancy.domain",
+      };
     });
+
+    // TODO
   });
 });
