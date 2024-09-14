@@ -16,13 +16,9 @@ interface QuiverRouterApi<CtxIn, CtxOut, R> {
   typeguard(ctx: CtxIn): never;
   compile(path?: string[]): Array<(ctx: CtxIn) => CtxOut>;
   exec(path?: string[]): any;
-  app: <N extends { [key in NewKey<R, string>]: QuiverNode<CtxOut> }>(
+  route: <N extends { [key in NewKey<R, string>]: QuiverNode<CtxOut> }>(
     n: N,
   ) => QuiverRouterApi<CtxIn, CtxOut, Resolve<R & N>>;
-  function: <P extends string, N extends QuiverNode<CtxOut>>(
-    path: NewKey<R, P>,
-    node: N,
-  ) => QuiverRouterApi<CtxIn, CtxOut, Resolve<R & { [key in P]: N }>>;
 }
 
 export class QuiverRouter<
@@ -73,7 +69,7 @@ export class QuiverRouter<
     return route.exec(path.slice(1));
   }
 
-  public app<N extends { [key in NewKey<R, string>]: QuiverNode<CtxOut> }>(
+  public route<N extends { [key in NewKey<R, string>]: QuiverNode<CtxOut> }>(
     n: N,
   ) {
     return new QuiverRouter<CtxIn, CtxOut, Resolve<R & N>>({
@@ -83,27 +79,6 @@ export class QuiverRouter<
         ...this.state.routes,
         ...n,
       } as Resolve<R & N>,
-    });
-  }
-
-  public function<P extends string, N extends QuiverNode<CtxOut>>(
-    path: NewKey<R, P>,
-    node: N,
-  ) {
-    return new QuiverRouter<
-      CtxIn,
-      CtxOut,
-      Resolve<
-        R & {
-          [key in P]: N;
-        }
-      >
-    >({
-      ...this.state,
-      routes: {
-        ...this.state.routes,
-        [path]: node,
-      } as Resolve<R & { [key in P]: N }>,
     });
   }
 }

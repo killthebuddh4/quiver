@@ -17,7 +17,7 @@ export const quiver = {
   >(
     routes: R,
   ) => {
-    const middleware = new QuiverMiddleware((ctx: any) => ctx);
+    const middleware = new QuiverMiddleware((ctx) => ctx);
 
     return new QuiverRouter({
       middleware,

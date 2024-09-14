@@ -11,25 +11,47 @@ describe("Quiver", () => {
   it("mvp works", async function () {
     this.timeout(15000);
 
-    const app = q
-      .router({})
-      .function(
-        "user",
-        q.function((i: { user: string }) => {
-          return i;
-        }),
-      )
-      .function(
-        "a",
-        q.function((i: { a: string }) => i),
-      )
-      .function(
-        "b",
-        q.function((i: { b: string }) => i),
-      )
-      .app({
-        c: q.function((i: { c: string }) => i),
-        d: q.function((i: { d: string }) => i),
+    const user = q.middleware(() => ({ user: "user-1" }));
+
+    const pass = q.middleware(() => ({ pass: "pass-1" }));
+
+    const request = q.middleware((ctx: { request: string }) => ctx);
+
+    const auth = q.middleware((ctx: { user: string; pass: string }) => {
+      return {
+        ...ctx,
+        auth: ctx.user === "user-1" && ctx.pass === "pass-1",
+      };
+    });
+
+    const mw = q
+      .middleware((ctx) => ctx)
+      .extend(user.compile())
+      .extend(pass.compile())
+      .extend(request.compile())
+      .pipe(auth.compile());
+
+    const c = q
+      .middleware((ctx: { user: string }) => ctx)
+      .router({
+        d: q
+          .middleware((ctx: { user: string }) => ctx)
+          .function((i: { d: string }) => {
+            return i;
+          }),
       });
+
+    const app = user.router({}).route({
+      user: q.function((i: { user: string }) => {
+        return i;
+      }),
+      a: q.function((i: { a: string }) => {
+        return i;
+      }),
+      b: q.function((i: { b: string }) => {
+        return i;
+      }),
+      c,
+    });
   });
 });

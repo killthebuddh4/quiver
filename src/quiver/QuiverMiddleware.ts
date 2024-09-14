@@ -12,7 +12,7 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     this.handler = handler;
   }
 
-  public parallel<F>(
+  public extend<F>(
     fn: CtxIn extends never ? never : ParallelExtension<CtxIn, CtxOut, F>,
   ) {
     const handler = (
@@ -36,9 +36,7 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     >(handler as any);
   }
 
-  public serial<F>(
-    fn: CtxIn extends never ? never : SerialExtension<CtxOut, F>,
-  ) {
+  public pipe<F>(fn: CtxIn extends never ? never : SerialExtension<CtxOut, F>) {
     const handler = (
       ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
     ): F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never => {
