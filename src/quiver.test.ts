@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-
 import q from "./index.js";
 
 const CLEANUP = Array<() => void>();
@@ -9,15 +6,15 @@ describe("Quiver", () => {
   it("minimal function example", async function () {
     this.timeout(15000);
 
-    const app = q.function(() => "Hello, World!");
+    const app = q
+      .function((first: string, last: string) => `Hello, ${first} ${last}`)
+      .app();
 
     CLEANUP.push(await app.start());
 
-    const hello = q.client<typeof app>({ address: app.address });
+    const hello = q.client<typeof app>();
 
-    CLEANUP.push(() => hello.stop());
-
-    const result = await hello.exec();
+    const result = await hello()("World", "!");
 
     if (result.data !== "Hello, World!") {
       throw new Error(`Expected "Hello, World!" but got ${result}`);
@@ -27,18 +24,18 @@ describe("Quiver", () => {
   it("minimal router example", async function () {
     this.timeout(15000);
 
-    const app = q.router({
-      hello: q.function(() => "Hello, World!"),
-      goodbye: q.function(() => "Goodbye, World!"),
-    });
+    const app = q
+      .router({
+        hello: q.function(() => "Hello, World!"),
+        goodbye: q.function(() => "Goodbye, World!"),
+      })
+      .app();
 
     CLEANUP.push(await app.start());
 
-    const client = q.client<typeof app>({ address: app.address });
+    const client = q.client<typeof app>();
 
-    CLEANUP.push(() => hello.stop());
-
-    const hello = await client.hello().exec();
+    const hello = client.hello()();
 
     if (hello.data !== "Hello, World!") {
       throw new Error(`Expected "Hello, World!" but got ${result}`);

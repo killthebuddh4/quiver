@@ -3,57 +3,42 @@ import { SerialExtension } from "../types/util/SerialExtension.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { QuiverNode } from "../types/QuiverNode.js";
+import * as Quiver from "../types/quiver/quiver.js";
 
-export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
-  private handler: (ctx: CtxIn) => CtxOut;
+export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>
+  implements Quiver.Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut>
+{
+  private handlers: Array<Array<(ctx: any) => any>> = [];
 
-  public constructor(handler: (ctx: CtxIn) => CtxOut) {
-    this.handler = handler;
+  public constructor(handlers: Array<Array<(ctx: any) => any>>) {
+    this.handlers = handlers;
   }
 
-  public extend<F>(
-    fn: CtxIn extends never ? never : ParallelExtension<CtxIn, CtxOut, F>,
-  ) {
-    const handler = (
-      ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
-    ): F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never => {
-      // TODO check this any
-      const hctx = this.handler(ctx as any);
-      const pctx = fn(hctx);
+  public extend<F>(fn: ParallelExtension<CtxIn, CtxOut, F>) {
+    if (this.handlers.length === 0) {
+      throw new Error("Middleware instance should never have empty handlers");
+    }
 
-      return {
-        ...hctx,
-        ...(pctx as any),
-      } as F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never;
-    };
+    const next = this.handlers.map((stage) => stage.map((handler) => handler));
+
+    next[next.length - 1].push(fn);
 
     return new QuiverMiddleware<
       Resolve<F extends (ctx: infer I) => any ? I & CtxIn : never>,
       Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
-    >(handler as any);
+    >(next);
   }
 
-  public pipe<F>(fn: CtxIn extends never ? never : SerialExtension<CtxOut, F>) {
-    const handler = (
-      ctx: F extends (ctx: infer I) => any ? Resolve<I & CtxIn> : never,
-    ): F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never => {
-      // NOTE:
-      // We know that CtxIn > CtxOut
-      // We know that F is a SerialExtension of CtxOut.
-      // (*) This means that any CtxOut ~> I.
-      // The keys in I that aren't covered by (*) are also not in CtxIn because CtxIn > CtxOut.
-      // Therefore, I & CtxOut adds keys that will be ignored by this.handler.
-      const hctx = this.handler(ctx as any);
-      const sctx = fn(hctx);
+  public pipe<F>(fn: SerialExtension<CtxOut, F>) {
+    if (this.handlers.length === 0) {
+      throw new Error("Middleware instance should never have empty handlers");
+    }
 
-      return {
-        ...hctx,
-        ...(sctx as any),
-      } as F extends (ctx: any) => infer O ? Resolve<O & CtxOut> : never;
-    };
+    const next = this.handlers.map((stage) => stage.map((handler) => handler));
+
+    next.push([fn]);
 
     return new QuiverMiddleware<
       Resolve<
@@ -62,29 +47,42 @@ export class QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
       Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
-    >(handler as any);
+    >(next);
   }
 
   public compile() {
-    return this.handler;
+    return this.handlers;
   }
 
-  public exec(ctx: CtxIn) {
-    return this.handler(ctx);
+  public exec(ctx: CtxIn): CtxOut {
+    let final: any = ctx;
+
+    for (const stage of this.handlers) {
+      let intermediate: any = final;
+
+      for (const handler of stage) {
+        intermediate = handler(final);
+      }
+
+      final = intermediate;
+    }
+
+    return final;
   }
 
-  public function<I, O>(fn: (i: I) => O) {
-    return new QuiverFunction<CtxIn, CtxOut, I, O>(this, fn);
+  public function<Exec extends (...args: any[]) => any>(
+    fn: Exec,
+  ): Quiver.Function<CtxIn, CtxOut, Exec> {
+    return new QuiverFunction<CtxIn, CtxOut, Exec>(this, fn);
   }
 
   public router<
-    R extends {
-      [key: string]: QuiverNode<CtxOut>;
+    Routes extends {
+      [key: string]:
+        | Quiver.Function<CtxOut, any, any>
+        | Quiver.Router<CtxOut, any, any>;
     },
-  >(routes: R) {
-    return new QuiverRouter({
-      middleware: this,
-      routes,
-    });
+  >(routes: Routes): Quiver.Router<CtxIn, CtxOut, Routes> {
+    return new QuiverRouter(this, routes);
   }
 }
