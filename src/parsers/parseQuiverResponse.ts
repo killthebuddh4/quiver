@@ -21,6 +21,6 @@ export const parseQuiverResponse = (
   return {
     ok: false,
     code: "INVALID_RESPONSE",
-    reason: `Response is not a QuiverError or QuiverSuccess`,
+    reason: `Response is not a QuiverError or QuiverSuccess: error parse: ${JSON.stringify(error, null, 2)}, success parse: ${JSON.stringify(success, null, 2)}`,
   };
 };

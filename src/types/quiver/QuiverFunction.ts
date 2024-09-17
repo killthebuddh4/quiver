@@ -19,6 +19,7 @@ export interface QuiverFunction<
   exec: Exec;
 
   start: (
+    namespace: string,
     provider?: CtxIn extends QuiverContext<any, any, any>
       ? QuiverProvider | undefined
       : never,

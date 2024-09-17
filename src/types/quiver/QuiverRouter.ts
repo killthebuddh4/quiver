@@ -25,6 +25,7 @@ export interface QuiverRouter<
   compile: (path?: string[]) => QuiverPipeline[];
 
   start: (
+    namespace: string,
     provider?: CtxIn extends QuiverContext<any, any, any>
       ? QuiverProvider | undefined
       : never,

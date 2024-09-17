@@ -23,6 +23,8 @@ export class QuiverRouter<
 
   private provider?: Quiver.Provider;
 
+  private namespace?: string;
+
   public constructor(
     middleware: Quiver.Middleware<CtxIn, CtxOut, any, any>,
     routes: Routes,
@@ -42,12 +44,17 @@ export class QuiverRouter<
 
     const route = this.routes[path[0]];
 
+    if (route === undefined) {
+      throw new Error(`Route not found ${path[0]}`);
+    }
+
     const next = route.compile(path.slice(1));
 
     return [this.middleware.compile(), ...next];
   }
 
   public async start(
+    namespace: string,
     provider?: CtxIn extends Quiver.Context<any, any, any>
       ? Quiver.Provider | undefined
       : never,
@@ -57,6 +64,8 @@ export class QuiverRouter<
     }
 
     this.provider = provider;
+
+    this.namespace = namespace;
 
     console.log(`ROUTER CALLING SUBSCRIBE`);
 
@@ -108,6 +117,10 @@ export class QuiverRouter<
       `${message.content}`,
     );
 
+    if (this.namespace === undefined) {
+      throw new Error("Namespace is undefined");
+    }
+
     if (this.provider === undefined) {
       throw new Error("Provider is undefined");
     }
@@ -151,6 +164,18 @@ export class QuiverRouter<
     }
 
     console.log(`ROUTER @${this.provider.signer.address} PARSED URL`);
+
+    /* ************************************************************************
+     *
+     * NAMESPACE
+     *
+     * ***********************************************************************/
+
+    if (received.url.path[0] !== this.namespace) {
+      throw new Error(`Namespace mismatch`);
+    }
+
+    console.log(`ROUTER @${this.provider.signer.address} MATCHED NAMESPACE`);
 
     /* ************************************************************************
      *
@@ -200,7 +225,9 @@ export class QuiverRouter<
      *
      * ***********************************************************************/
 
-    const fn = this.route(received.url.path);
+    // TODO We really need to make this less of a hack, make the namespace stuff
+    // more formalized.
+    const fn = this.route(received.url.path.slice(1));
 
     if (!fn.ok) {
       received.throw = {
@@ -209,7 +236,27 @@ export class QuiverRouter<
     }
 
     if (fn.value === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
 
     let ctx: Quiver.Context<
@@ -223,6 +270,8 @@ export class QuiverRouter<
       request: received.request,
       function: fn.value,
     };
+
+    console.log(`ROUTER @${this.provider.signer.address} GOT FUNCTION`);
 
     /* ************************************************************************
      *
@@ -238,7 +287,7 @@ export class QuiverRouter<
      *
      * ***********************************************************************/
 
-    const middlewares = this.compile(ctx.url.path);
+    const middlewares = this.compile(ctx.url.path.slice(1));
 
     for (const middleware of middlewares) {
       for (const stage of middleware) {
@@ -253,6 +302,8 @@ export class QuiverRouter<
       }
     }
 
+    console.log(`ROUTER @${this.provider.signer.address} APPLIED MIDDLEWARE`);
+
     /* ************************************************************************
      *
      * CALL_FUNCTION
@@ -265,11 +316,17 @@ export class QuiverRouter<
 
     try {
       ctx.output = ctx.function(ctx.input, ctx);
+      ctx.return = {
+        status: "SUCCESS",
+        data: ctx.output,
+      };
     } catch (error) {
       ctx.throw = {
         code: "SERVER_ERROR",
       };
     }
+
+    console.log(`ROUTER @${this.provider.signer.address} CALLED FUNCTION`);
 
     /* ************************************************************************
      *
@@ -320,6 +377,8 @@ export class QuiverRouter<
       });
 
       ctx.sent = sent;
+
+      console.log(`ROUTER @${this.provider.signer.address} THREW QUIVER THROW`);
     }
 
     /* ************************************************************************
@@ -329,17 +388,13 @@ export class QuiverRouter<
      * ***********************************************************************/
 
     if (ctx.return !== undefined) {
-      // send the return value
-
-      const response = {
-        id: ctx.received.id,
-        ok: true,
-        ...ctx.return,
-      };
-
       let content;
       try {
-        content = JSON.stringify(response);
+        content = JSON.stringify({
+          id: ctx.received.id,
+          ok: true,
+          ...ctx.return,
+        });
       } catch (error) {
         throw new Error(`Failed to stringify ctx.return`);
       }
@@ -362,6 +417,10 @@ export class QuiverRouter<
       });
 
       ctx.sent = sent;
+
+      console.log(
+        `ROUTER @${this.provider.signer.address} RETURNED QUIVER RETURN`,
+      );
     }
 
     /* ************************************************************************

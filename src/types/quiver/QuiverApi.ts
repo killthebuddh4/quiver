@@ -12,6 +12,7 @@ export interface QuiverApi {
   client: <
     Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
   >(server: {
+    namespace: string;
     address: string;
   }) => QuiverClient<Server>;
 

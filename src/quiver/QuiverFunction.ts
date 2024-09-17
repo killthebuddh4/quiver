@@ -16,6 +16,8 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
 
   private provider?: Quiver.Provider;
 
+  private namespace?: string;
+
   public constructor(
     middleware: Quiver.Middleware<CtxIn, CtxOut, any, any>,
     exec: Exec,
@@ -33,6 +35,7 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
   }
 
   public async start(
+    namespace: string,
     provider?: CtxIn extends Quiver.Context<any, any, any>
       ? Quiver.Provider | undefined
       : never,
@@ -40,6 +43,8 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
     if (provider === undefined) {
       throw new Error("Default provider not yet implemented");
     }
+
+    this.namespace = namespace;
 
     this.provider = provider;
 
@@ -60,6 +65,10 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
   private async handler(message: Message) {
     if (this.provider === undefined) {
       throw new Error("Provider is undefined");
+    }
+
+    if (this.namespace === undefined) {
+      throw new Error("Namespace is undefined");
     }
 
     console.log(
@@ -97,6 +106,18 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
     if (received.url === undefined) {
       throw new Error(JSON.stringify(received, null, 2));
     }
+
+    /* ************************************************************************
+     *
+     * NAMESPACE
+     *
+     * ***********************************************************************/
+
+    if (received.url.path[0] !== this.namespace) {
+      throw new Error(`Namespace mismatch`);
+    }
+
+    console.log(`ROUTER @${this.provider.signer.address} MATCHED NAMESPACE`);
 
     /* ************************************************************************
      *

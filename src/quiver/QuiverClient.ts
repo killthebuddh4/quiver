@@ -14,9 +14,9 @@ export class QuiverClient<
 
   private pending = new Map<string, (response: any) => any>();
 
-  private server: { address: string };
+  private server: { address: string; namespace: string };
 
-  public constructor(server: { address: string }) {
+  public constructor(server: { address: string; namespace: string }) {
     this.server = server;
   }
 
@@ -27,7 +27,7 @@ export class QuiverClient<
 
     this.provider = provider;
 
-    const unsub = await provider.subscribe(this.handler);
+    const unsub = await provider.subscribe(this.handler.bind(this));
 
     return {
       stop: unsub.unsubscribe,
@@ -51,6 +51,8 @@ export class QuiverClient<
 
         const request = {
           id: getUniqueId(),
+          // TODO, this kind of doesn't make sense. The functions are addressed
+          // using multiple segments.
           function: path[path.length - 1],
           arguments: args,
         };
@@ -66,7 +68,7 @@ export class QuiverClient<
           };
         }
 
-        const conversationId = `quiver/0.0.1/requests/${this.provider.signer.address}/${path.join("/")}`;
+        const conversationId = `quiver/0.0.1/requests/${this.provider.signer.address}/${this.server.namespace}/${path.join("/")}`;
 
         console.log(
           `CLIENT ${this.provider.signer.address} SENDING MESSAGE to ${this.server.address}\n`,
@@ -108,7 +110,7 @@ export class QuiverClient<
         },
 
         apply: (_1, _2, args) => {
-          callProxy(path, args);
+          return callProxy(path, args);
         },
       });
     };
@@ -145,14 +147,80 @@ export class QuiverClient<
     const url = parseQuiverUrl(received.message);
 
     if (!url.ok) {
-      throw new Error(JSON.stringify(received, null, 2));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
 
     received.url = url.value;
 
-    if (received.url === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
+    if (received.url.path[0] !== this.server.namespace) {
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
+
+    if (received.url === undefined) {
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
+    }
+
+    console.log(`CLIENT PARSED URL ${url.value.path.join("/")}`);
 
     /* ************************************************************************
      *
@@ -163,12 +231,54 @@ export class QuiverClient<
     try {
       received.json = JSON.parse(String(received.message.content));
     } catch (error) {
-      throw new Error(JSON.stringify(received, null, 2));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
 
     if (received.json === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
+
+    console.log(`CLIENT PARSED JSON`);
 
     /* ************************************************************************
      *
@@ -179,14 +289,57 @@ export class QuiverClient<
     const response = parseQuiverResponse(received.json);
 
     if (!response.ok) {
-      throw new Error(JSON.stringify(received, null, 2));
+      console.log(JSON.stringify(response));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
 
     received.response = response.value;
 
     if (received.response === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
+
+    console.log(`CLIENT PARSED RESPONSE`);
 
     /* ************************************************************************
      *
@@ -197,8 +350,30 @@ export class QuiverClient<
     const request = this.pending.get(received.response.id);
 
     if (request === undefined) {
-      throw new Error(`Request not found`);
+      throw new Error(
+        JSON.stringify(
+          {
+            ...received,
+            message: {
+              id: received.message.id,
+              senderAddress: received.message.senderAddress,
+              content: received.message.content,
+              conversation: {
+                peerAddress: received.message.conversation.peerAddress,
+                context: {
+                  conversationId:
+                    received.message.conversation.context?.conversationId,
+                },
+              },
+            },
+          },
+          null,
+          2,
+        ),
+      );
     }
+
+    console.log(`CLIENT FOUND PENDING REQUEST`);
 
     /* ************************************************************************
      *
@@ -217,6 +392,10 @@ export class QuiverClient<
     if (received.response === undefined) {
       throw new Error(`Response not found`);
     }
+
+    console.log(
+      `CLIENT RESOLVING REQUEST, response: ${JSON.stringify(received.response, null, 2)}`,
+    );
 
     request(received.response);
 

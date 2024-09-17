@@ -13,11 +13,14 @@ describe("Quiver", () => {
         c: q.function(() => "c"),
       });
 
-      const client = q.client<typeof app>({ address: provider.signer.address });
+      const client = q.client<typeof app>({
+        namespace: "quiver-test-min",
+        address: provider.signer.address,
+      });
 
       await client.start(await q.provider().start());
 
-      await app.start(provider);
+      await app.start("quiver-test-min", provider);
 
       const response = await client.client().a();
 

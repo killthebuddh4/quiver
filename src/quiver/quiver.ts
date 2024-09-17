@@ -33,6 +33,7 @@ export const quiver: Quiver.Quiver = {
       | Quiver.Router<any, any, any>
       | Quiver.Function<any, any, any>,
   >(server: {
+    namespace: string;
     address: string;
   }) => {
     return new QuiverClient(server) as unknown as Quiver.Client<Server>;
