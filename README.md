@@ -300,36 +300,17 @@ If you have a feature (or bugfix) request, don't hesitate to [open an issue](TOD
 
 #### TODO
 
-- middleware
-  - lifecycle
-  - return/throw + middleware
-  - override/extend
-- parser plugins (just middleware)
-- function and nested router apis
+Ok so we're at a nice v0. The middleware API is type-safe (haven't worked out the buges yet though), the routing works, and the client proxy works. The next steps are (in roughly chronological order)
 
+- exit/throw/return control flow
+- basic options, logging, errors
+- debug the middleware system
+- iron out the namespace + path stuff
+- write tests for each of the basic cases (function/router/function w/ middleware, etc)
+- write a couple useful middlewares
+  - proxy
+  - ens
+- clean up the relationship between types/quiver/classes
+- update the README
 
-So the very next thing I want to do is...
-
-
-So...
-
-I want to be able to constrain the "addRoute" function to some input type.
-That is, I should only be able to add routes whose inputs...
-
-Actually you know what. I just realized the constraint is a little bit different than I was thinking. The inputs don't all "flow down" from the root.
-
-The idea is that 
-
-"if i have some function which needs an X"
-"then I can only bind that function to a thing which provides an X"
-
-So each router should have a "context" type which is the thing it provides to
-its routes.
-
-So there's kind of 2 trees, there's the "router/call" tree thing and then there's also the middleware tree. The middleware tree is where the built-up
-type safety needs to happen.
-
-NEXT:
-
-Dig into the createRoute function and get it to work the way you want it to.
-
+I really really really want this to be done by EOD tomorrow.
