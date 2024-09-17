@@ -4,16 +4,15 @@ import { QuiverRequest } from "../QuiverRequest.js";
 import { QuiverError } from "../QuiverError.js";
 import { QuiverSuccess } from "../QuiverSuccess.js";
 
-export type QuiverContext<CtxIn, I, O> = {
-  received: Message;
-  url: QuiverUrl;
-  json: unknown;
-  request: QuiverRequest;
-  function?: (i: I, ctx: CtxIn) => O;
-  input?: I;
-  output?: O;
+export type QuiverContext = {
+  message: Message;
+  url?: QuiverUrl;
+  json?: unknown;
+  request?: QuiverRequest;
+  function?: (i: any, ctx: any) => any;
+  input?: any;
   throw?: Omit<QuiverError, "id" | "ok">;
-  return?: Omit<QuiverSuccess<O>, "id" | "ok">;
+  return?: Omit<QuiverSuccess<any>, "id" | "ok">;
   exit?: unknown;
   sent?: Message;
 };

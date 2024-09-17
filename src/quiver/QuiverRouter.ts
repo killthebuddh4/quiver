@@ -4,6 +4,7 @@ import { parseQuiverUrl } from "../parsers/parseQuiverUrl.js";
 import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
 import { Maybe } from "../types/util/Maybe.js";
 import { QuiverError } from "../types/QuiverError.js";
+import { QuiverServerOptions } from "../types/QuiverServerOptions.js";
 
 export class QuiverRouter<
   CtxIn,
@@ -25,12 +26,16 @@ export class QuiverRouter<
 
   private namespace?: string;
 
+  private options?: QuiverServerOptions;
+
   public constructor(
     middleware: Quiver.Middleware<CtxIn, CtxOut, any, any>,
     routes: Routes,
+    options?: QuiverServerOptions,
   ) {
     this.middleware = middleware;
     this.routes = routes;
+    this.options = options;
   }
 
   public compile(path?: string[]) {
@@ -55,7 +60,7 @@ export class QuiverRouter<
 
   public async start(
     namespace: string,
-    provider?: CtxIn extends Quiver.Context<any, any, any>
+    provider?: CtxIn extends Quiver.Context
       ? Quiver.Provider | undefined
       : never,
   ) {
@@ -110,323 +115,362 @@ export class QuiverRouter<
     }
   }
 
+  /* 
+    Ok, let's clarify the flow control here.
+
+    We use ctx.exit whenever we CANNOT REPLY WITH ANYTHING.
+    We use ctx.throw whenever we CANNOT REPLY WITH TYPE-SAFE DATA.
+    We use ctx.reeturn whenever we CAN REPLY WITH TYPE-SAFE DATA.
+
+    TODO We should have a fallback block for when throw/return serialization
+    fails.
+  */
   private async handler(message: Message) {
-    console.log(`Handler called`);
-    console.log(
-      `ROUTER @${this.provider?.signer.address} RECEIVED MESSAGE from ${message.senderAddress}\n`,
-      `${message.content}`,
-    );
+    let ctx: Quiver.Context = { message };
 
-    if (this.namespace === undefined) {
-      throw new Error("Namespace is undefined");
-    }
+    outer: {
+      inner: {
+        if (this.namespace === undefined) {
+          ctx.exit = {
+            code: "NAMESPACE_UNDEFINED",
+          };
 
-    if (this.provider === undefined) {
-      throw new Error("Provider is undefined");
-    }
-
-    console.log(
-      `ROUTER @${this.provider.signer.address} RECEIVED MESSAGE from ${message.senderAddress}\n`,
-      `${message.content}`,
-    );
-
-    /* ************************************************************************
-     *
-     * RECV_MESSAGE
-     *
-     * ***********************************************************************/
-
-    let received: Quiver.Request = {
-      message,
-    };
-
-    console.log(`ROUTER @${this.provider.signer.address} RECEIVED MESSAGE`);
-
-    /* ************************************************************************
-     *
-     * PARSE_URL
-     *
-     * ***********************************************************************/
-
-    const url = parseQuiverUrl(received.message);
-
-    if (!url.ok) {
-      received.exit = {
-        code: "INVALID_URL",
-        reason: `Failed to parse message because ${url.reason}`,
-      };
-    }
-
-    received.url = url.value;
-
-    if (received.url === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} PARSED URL`);
-
-    /* ************************************************************************
-     *
-     * NAMESPACE
-     *
-     * ***********************************************************************/
-
-    if (received.url.path[0] !== this.namespace) {
-      throw new Error(`Namespace mismatch`);
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} MATCHED NAMESPACE`);
-
-    /* ************************************************************************
-     *
-     * PARSE_JSON
-     *
-     * ***********************************************************************/
-
-    try {
-      received.json = JSON.parse(String(received.message.content));
-    } catch (error) {
-      received.throw = {
-        code: "JSON_PARSE_FAILED",
-      };
-    }
-
-    if (received.json === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} PARSED JSON`);
-
-    /* ************************************************************************
-     *
-     * PARSE_REQUEST
-     *
-     * ************************************************************************/
-
-    const request = parseQuiverRequest(received.json);
-
-    if (!request.ok) {
-      received.throw = {
-        code: "REQUEST_PARSE_FAILED",
-      };
-    }
-
-    received.request = request.value;
-
-    if (received.request === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} PARSED REQUEST`);
-
-    /* ************************************************************************
-     *
-     * GET_FUNCTION
-     *
-     * ***********************************************************************/
-
-    // TODO We really need to make this less of a hack, make the namespace stuff
-    // more formalized.
-    const fn = this.route(received.url.path.slice(1));
-
-    if (!fn.ok) {
-      received.throw = {
-        code: "UNKNOWN_FUNCTION",
-      };
-    }
-
-    if (fn.value === undefined) {
-      throw new Error(
-        JSON.stringify(
-          {
-            ...received,
-            message: {
-              id: received.message.id,
-              senderAddress: received.message.senderAddress,
-              content: received.message.content,
-              conversation: {
-                peerAddress: received.message.conversation.peerAddress,
-                context: {
-                  conversationId:
-                    received.message.conversation.context?.conversationId,
-                },
-              },
-            },
-          },
-          null,
-          2,
-        ),
-      );
-    }
-
-    let ctx: Quiver.Context<
-      any,
-      Parameters<typeof fn.value>[0],
-      ReturnType<typeof fn.value>
-    > = {
-      received: received.message,
-      url: received.url,
-      json: received.json,
-      request: received.request,
-      function: fn.value,
-    };
-
-    console.log(`ROUTER @${this.provider.signer.address} GOT FUNCTION`);
-
-    /* ************************************************************************
-     *
-     * VALIDATE INPUT
-     *
-     * ***********************************************************************/
-
-    ctx.input = ctx.request.arguments;
-
-    /* ************************************************************************
-     *
-     * MIDDLEWARE
-     *
-     * ***********************************************************************/
-
-    const middlewares = this.compile(ctx.url.path.slice(1));
-
-    for (const middleware of middlewares) {
-      for (const stage of middleware) {
-        let stageCtxIn: any = ctx;
-        let stageCtxOut: any = ctx;
-
-        for (const handler of stage) {
-          stageCtxOut = handler(stageCtxIn);
+          break outer;
         }
 
-        ctx = stageCtxOut;
+        if (this.provider === undefined) {
+          ctx.exit = {
+            code: "PROVIDER_UNDEFINED",
+          };
+
+          break outer;
+        }
+
+        /* ************************************************************************
+         *
+         * RECV_MESSAGE
+         *
+         * ***********************************************************************/
+
+        this.options?.logs?.onRecvMessage?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_URL
+         *
+         * ***********************************************************************/
+
+        const url = parseQuiverUrl(ctx.message);
+
+        if (!url.ok) {
+          ctx.exit = {
+            code: "INVALID_URL",
+            reason: `Failed to parse message because ${url.reason}`,
+          };
+
+          break outer;
+        }
+
+        ctx.url = url.value;
+
+        this.options?.logs?.onParsedUrl?.(ctx);
+
+        /* ************************************************************************
+         *
+         * NAMESPACE
+         *
+         * ***********************************************************************/
+
+        if (ctx.url.path[0] !== this.namespace) {
+          ctx.exit = {
+            code: "NAMESPACE_MISMATCH",
+          };
+
+          break outer;
+        }
+
+        this.options?.logs?.onMatchedNamespace?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_JSON
+         *
+         * ***********************************************************************/
+
+        try {
+          ctx.json = JSON.parse(String(ctx.message.content));
+        } catch (error) {
+          // NOTE We're now THROWing instead of EXITing because we have a URL.
+          ctx.throw = {
+            code: "JSON_PARSE_FAILED",
+          };
+
+          break inner;
+        }
+
+        this.options?.logs?.onParsedJson?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_REQUEST
+         *
+         * ************************************************************************/
+
+        const request = parseQuiverRequest(ctx.json);
+
+        if (!request.ok) {
+          ctx.throw = {
+            code: "REQUEST_PARSE_FAILED",
+          };
+
+          break inner;
+        }
+
+        ctx.request = request.value;
+
+        this.options?.logs?.onParsedRequest?.(ctx);
+
+        /* ************************************************************************
+         *
+         * GET_FUNCTION
+         *
+         * ***********************************************************************/
+
+        // TODO We really need to make this less of a hack, make the namespace stuff
+        // more formalized.
+        const fn = this.route(ctx.url.path.slice(1));
+
+        if (!fn.ok) {
+          ctx.throw = {
+            code: "UNKNOWN_FUNCTION",
+          };
+
+          break inner;
+        }
+
+        ctx.function = fn.value;
+
+        this.options?.logs?.onMatchedFunction?.(ctx);
+
+        /* ************************************************************************
+         *
+         * VALIDATE INPUT
+         *
+         * ***********************************************************************/
+
+        // TODO Will come with the hooks API.
+
+        ctx.input = ctx.request.arguments;
+
+        /* ************************************************************************
+         *
+         * APPLY MIDDLEWARE
+         *
+         * ***********************************************************************/
+
+        const middlewares = this.compile(ctx.url.path.slice(1));
+
+        for (const middleware of middlewares) {
+          for (const stage of middleware) {
+            let stageCtxIn: any = ctx;
+            let stageCtxOut: any = ctx;
+
+            for (const handler of stage) {
+              try {
+                // TODO This should be an async function.
+                stageCtxOut = handler(stageCtxIn);
+              } catch {
+                ctx.throw = {
+                  code: "MIDDLEWARE_ERROR",
+                };
+
+                break inner;
+              }
+
+              if (ctx.exit || ctx.throw || ctx.return) {
+                break inner;
+              }
+            }
+
+            ctx = stageCtxOut;
+          }
+        }
+
+        this.options?.logs?.onAppliedMiddleware?.(ctx);
+
+        /* ************************************************************************
+         *
+         * APPLY FUNCTION
+         *
+         * ***********************************************************************/
+
+        if (ctx.function === undefined) {
+          ctx.throw = {
+            code: "SERVER_ERROR",
+            message: "Function is undefined after matching",
+          };
+
+          break inner;
+        }
+
+        try {
+          ctx.return = {
+            status: "SUCCESS",
+            // TODO This should be an async function.
+            data: ctx.function(ctx.input, ctx),
+          };
+        } catch (error) {
+          ctx.throw = {
+            code: "SERVER_ERROR",
+            message: "Function threw an error",
+          };
+        }
+
+        this.options?.logs?.onAppliedFunction?.(ctx);
+      }
+
+      /* ************************************************************************
+       *
+       * BREAK INNER JUMPS HERE
+       *
+       * ***********************************************************************/
+
+      reply: {
+        /* ************************************************************************
+         *
+         * THROW
+         *
+         * ***********************************************************************/
+
+        if (ctx.throw !== undefined) {
+          this.options?.logs?.onThrowing?.(ctx);
+
+          const err: QuiverError = {
+            id: ctx.message.id,
+            ok: false,
+            ...ctx.throw,
+          };
+
+          let content;
+          try {
+            content = JSON.stringify(err);
+          } catch {
+            ctx.exit = {
+              code: "OUTPUT_SERIALIZATION_FAILED",
+              message: "Failed to serialize ctx.throw",
+            };
+
+            break reply;
+          }
+
+          if (ctx.url === undefined) {
+            ctx.exit = {
+              code: "URL_UNDEFINED",
+              reason:
+                "URL is undefined even though we're in the BREAK_INNER block",
+            };
+
+            break reply;
+          }
+
+          // TODO, how do we handle root (no path) urls?
+          const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
+
+          try {
+            const sent = await this.provider.publish({
+              conversation: {
+                peerAddress: ctx.message.conversation.peerAddress,
+                context: {
+                  conversationId,
+                  metadata: {},
+                },
+              },
+              content,
+            });
+
+            ctx.sent = sent;
+
+            this.options?.logs?.onSentThrow?.(ctx);
+          } catch {
+            ctx.exit = {
+              code: "XMTP_NETWORK_ERROR",
+              reason: `Failed to publish throw message`,
+            };
+
+            break reply;
+          }
+        }
+
+        /* ************************************************************************
+         *
+         * RETURN
+         *
+         * ***********************************************************************/
+
+        if (ctx.return !== undefined) {
+          this.options?.logs?.onReturning?.(ctx);
+
+          let content;
+          try {
+            content = JSON.stringify({
+              id: ctx.message.id,
+              ok: true,
+              ...ctx.return,
+            });
+          } catch (error) {
+            ctx.exit = {
+              code: "OUTPUT_SERIALIZATION_FAILED",
+              reason: "Failed to serialize ctx.return",
+            };
+
+            break reply;
+          }
+
+          if (ctx.url === undefined) {
+            ctx.exit = {
+              code: "URL_UNDEFINED",
+              reason:
+                "URL is undefined even though we're in the BREAK_INNER block",
+            };
+
+            break reply;
+          }
+
+          const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
+
+          try {
+            const sent = await this.provider.publish({
+              conversation: {
+                peerAddress: ctx.message.conversation.peerAddress,
+                context: {
+                  conversationId,
+                  metadata: {},
+                },
+              },
+              content,
+            });
+
+            ctx.sent = sent;
+
+            this.options?.logs?.onSentReturn?.(ctx);
+          } catch {
+            ctx.exit = {
+              code: "XMTP_NETWORK_ERROR",
+              reason: `Failed to publish return message`,
+            };
+
+            break reply;
+          }
+        }
       }
     }
 
-    console.log(`ROUTER @${this.provider.signer.address} APPLIED MIDDLEWARE`);
-
     /* ************************************************************************
      *
-     * CALL_FUNCTION
+     * BREAK OUTER JUMPS HERE
      *
      * ***********************************************************************/
 
-    if (ctx.function === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
-
-    try {
-      ctx.output = ctx.function(ctx.input, ctx);
-      ctx.return = {
-        status: "SUCCESS",
-        data: ctx.output,
-      };
-    } catch (error) {
-      ctx.throw = {
-        code: "SERVER_ERROR",
-      };
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} CALLED FUNCTION`);
-
-    /* ************************************************************************
-     *
-     * EXIT
-     *
-     * ***********************************************************************/
-
-    if (ctx.exit !== undefined) {
-      // do some stuff
-    }
-
-    /* ************************************************************************
-     *
-     * THROW
-     *
-     * ***********************************************************************/
-
-    if (ctx.throw !== undefined) {
-      const err: QuiverError = {
-        id: ctx.received.id,
-        ok: false,
-        ...ctx.throw,
-      };
-
-      let content;
-      try {
-        content = JSON.stringify(err);
-      } catch (error) {
-        throw new Error(`Failed to stringify throw`);
-      }
-
-      if (ctx.url === undefined) {
-        throw new Error(`Path not found in context`);
-      }
-
-      // TODO, how do we handle root (no path) urls?
-      const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
-
-      const sent = await this.provider.publish({
-        conversation: {
-          peerAddress: ctx.received.conversation.peerAddress,
-          context: {
-            conversationId,
-            metadata: {},
-          },
-        },
-        content,
-      });
-
-      ctx.sent = sent;
-
-      console.log(`ROUTER @${this.provider.signer.address} THREW QUIVER THROW`);
-    }
-
-    /* ************************************************************************
-     *
-     * RETURN
-     *
-     * ***********************************************************************/
-
-    if (ctx.return !== undefined) {
-      let content;
-      try {
-        content = JSON.stringify({
-          id: ctx.received.id,
-          ok: true,
-          ...ctx.return,
-        });
-      } catch (error) {
-        throw new Error(`Failed to stringify ctx.return`);
-      }
-
-      if (ctx.url === undefined) {
-        throw new Error(`Path not found in context`);
-      }
-
-      const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
-
-      const sent = await this.provider.publish({
-        conversation: {
-          peerAddress: ctx.received.conversation.peerAddress,
-          context: {
-            conversationId,
-            metadata: {},
-          },
-        },
-        content,
-      });
-
-      ctx.sent = sent;
-
-      console.log(
-        `ROUTER @${this.provider.signer.address} RETURNED QUIVER RETURN`,
-      );
-    }
-
-    /* ************************************************************************
-     *
-     * FINALLY
-     *
-     * ***********************************************************************/
+    this.options?.logs?.onExit?.(ctx);
   }
 }

@@ -26,8 +26,6 @@ export interface QuiverRouter<
 
   start: (
     namespace: string,
-    provider?: CtxIn extends QuiverContext<any, any, any>
-      ? QuiverProvider | undefined
-      : never,
+    provider?: CtxIn extends QuiverContext ? QuiverProvider | undefined : never,
   ) => Promise<{ stop: () => void }>;
 }

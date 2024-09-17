@@ -35,7 +35,7 @@ export class QuiverClient<
   }
 
   public client() {
-    const callProxy = async (path: string[], args: any[]) => {
+    const callProxy = (async (path: string[], args: any[]) => {
       try {
         console.log(`Calling path: ${path.join("/")}, args: ${args}`);
 
@@ -94,7 +94,7 @@ export class QuiverClient<
       } catch (error) {
         console.error(error);
       }
-    };
+    }).bind(this);
 
     const createProxy = (path: string[]): any => {
       return new Proxy(() => null, {
@@ -115,7 +115,9 @@ export class QuiverClient<
       });
     };
 
-    return createProxy([]) as ReturnType<Quiver.Client<Server>["client"]>;
+    return createProxy([this.server.namespace]) as ReturnType<
+      Quiver.Client<Server>["client"]
+    >;
   }
 
   private async handler(message: Message) {

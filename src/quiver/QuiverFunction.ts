@@ -4,6 +4,7 @@ import { Message } from "../types/Message.js";
 import { parseQuiverUrl } from "../parsers/parseQuiverUrl.js";
 import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
 import { QuiverError } from "../types/QuiverError.js";
+import { QuiverServerOptions } from "../types/QuiverServerOptions.js";
 
 export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
   implements Quiver.Function<CtxIn, CtxOut, Exec>
@@ -18,12 +19,16 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
 
   private namespace?: string;
 
+  private options?: QuiverServerOptions;
+
   public constructor(
     middleware: Quiver.Middleware<CtxIn, CtxOut, any, any>,
     exec: Exec,
+    options?: QuiverServerOptions,
   ) {
     this.middleware = middleware;
     this.exec = exec;
+    this.options = options;
   }
 
   public typeguard(ctx: CtxIn): never {
@@ -36,7 +41,7 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
 
   public async start(
     namespace: string,
-    provider?: CtxIn extends Quiver.Context<any, any, any>
+    provider?: CtxIn extends Quiver.Context
       ? Quiver.Provider | undefined
       : never,
   ) {
@@ -48,7 +53,7 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
 
     this.provider = provider;
 
-    const unsub = await provider.subscribe(this.handler);
+    const unsub = await provider.subscribe(this.handler.bind(this));
 
     return {
       stop: unsub.unsubscribe,
@@ -62,259 +67,351 @@ export class QuiverFunction<CtxIn, CtxOut, Exec extends (...args: any[]) => any>
   // NOTE This handler is only used when the function itself is used as the root route.
   // Otherwise, the handler in the router is used. This isn't great but fine for now, we
   // just need to keep remember to maintain parity between the two.
+
+  /* 
+    Ok, let's clarify the flow control here.
+
+    We use ctx.exit whenever we CANNOT REPLY WITH ANYTHING.
+    We use ctx.throw whenever we CANNOT REPLY WITH TYPE-SAFE DATA.
+    We use ctx.reeturn whenever we CAN REPLY WITH TYPE-SAFE DATA.
+
+    TODO We should have a fallback block for when throw/return serialization
+    fails.
+  */
   private async handler(message: Message) {
-    if (this.provider === undefined) {
-      throw new Error("Provider is undefined");
-    }
+    let ctx: Quiver.Context = { message };
 
-    if (this.namespace === undefined) {
-      throw new Error("Namespace is undefined");
-    }
+    outer: {
+      inner: {
+        if (this.namespace === undefined) {
+          ctx.exit = {
+            code: "NAMESPACE_UNDEFINED",
+          };
 
-    console.log(
-      `FUNCTION @${this.provider.signer.address} RECEIVED MESSAGE from ${message.senderAddress}\n`,
-      `${message.content}`,
-    );
-
-    /* ************************************************************************
-     *
-     * RECV_MESSAGE
-     *
-     * ***********************************************************************/
-
-    let received: Quiver.Request = {
-      message,
-    };
-
-    /* ************************************************************************
-     *
-     * PARSE_URL
-     *
-     * ***********************************************************************/
-
-    const url = parseQuiverUrl(received.message);
-
-    if (!url.ok) {
-      received.exit = {
-        code: "INVALID_URL",
-        reason: `Failed to parse message because ${url.reason}`,
-      };
-    }
-
-    received.url = url.value;
-
-    if (received.url === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    /* ************************************************************************
-     *
-     * NAMESPACE
-     *
-     * ***********************************************************************/
-
-    if (received.url.path[0] !== this.namespace) {
-      throw new Error(`Namespace mismatch`);
-    }
-
-    console.log(`ROUTER @${this.provider.signer.address} MATCHED NAMESPACE`);
-
-    /* ************************************************************************
-     *
-     * PARSE_JSON
-     *
-     * ***********************************************************************/
-
-    try {
-      received.json = JSON.parse(String(received.message.content));
-    } catch (error) {
-      received.throw = {
-        code: "JSON_PARSE_FAILED",
-      };
-    }
-
-    if (received.json === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    /* ************************************************************************
-     *
-     * PARSE_REQUEST
-     *
-     * ************************************************************************/
-
-    const request = parseQuiverRequest(received.json);
-
-    if (!request.ok) {
-      received.throw = {
-        code: "REQUEST_PARSE_FAILED",
-      };
-    }
-
-    received.request = request.value;
-
-    if (received.request === undefined) {
-      throw new Error(JSON.stringify(received, null, 2));
-    }
-
-    /* ************************************************************************
-     *
-     * GET_FUNCTION
-     *
-     * ***********************************************************************/
-
-    let ctx: Quiver.Context<any, Parameters<Exec>[0], ReturnType<Exec>> = {
-      received: received.message,
-      url: received.url,
-      json: received.json,
-      request: received.request,
-      function: this.exec,
-    };
-
-    /* ************************************************************************
-     *
-     * VALIDATE INPUT
-     *
-     * ***********************************************************************/
-
-    ctx.input = ctx.request.arguments;
-
-    /* ************************************************************************
-     *
-     * MIDDLEWARE
-     *
-     * ***********************************************************************/
-
-    const middlewares = this.compile();
-
-    for (const middleware of middlewares) {
-      for (const stage of middleware) {
-        let stageCtxIn: any = ctx;
-        let stageCtxOut: any = ctx;
-
-        for (const handler of stage) {
-          stageCtxOut = handler(stageCtxIn);
+          break outer;
         }
 
-        ctx = stageCtxOut;
+        if (this.provider === undefined) {
+          ctx.exit = {
+            code: "PROVIDER_UNDEFINED",
+          };
+
+          break outer;
+        }
+
+        /* ************************************************************************
+         *
+         * RECV_MESSAGE
+         *
+         * ***********************************************************************/
+
+        this.options?.logs?.onRecvMessage?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_URL
+         *
+         * ***********************************************************************/
+
+        const url = parseQuiverUrl(ctx.message);
+
+        if (!url.ok) {
+          ctx.exit = {
+            code: "INVALID_URL",
+            reason: `Failed to parse message because ${url.reason}`,
+          };
+
+          break outer;
+        }
+
+        ctx.url = url.value;
+
+        this.options?.logs?.onParsedUrl?.(ctx);
+
+        /* ************************************************************************
+         *
+         * NAMESPACE
+         *
+         * ***********************************************************************/
+
+        if (ctx.url.path[0] !== this.namespace) {
+          ctx.exit = {
+            code: "NAMESPACE_MISMATCH",
+          };
+
+          break outer;
+        }
+
+        this.options?.logs?.onMatchedNamespace?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_JSON
+         *
+         * ***********************************************************************/
+
+        try {
+          ctx.json = JSON.parse(String(ctx.message.content));
+        } catch (error) {
+          // NOTE We're now THROWing instead of EXITing because we have a URL.
+          ctx.throw = {
+            code: "JSON_PARSE_FAILED",
+          };
+
+          break inner;
+        }
+
+        this.options?.logs?.onParsedJson?.(ctx);
+
+        /* ************************************************************************
+         *
+         * PARSE_REQUEST
+         *
+         * ************************************************************************/
+
+        const request = parseQuiverRequest(ctx.json);
+
+        if (!request.ok) {
+          ctx.throw = {
+            code: "REQUEST_PARSE_FAILED",
+          };
+
+          break inner;
+        }
+
+        ctx.request = request.value;
+
+        this.options?.logs?.onParsedRequest?.(ctx);
+
+        /* ************************************************************************
+         *
+         * GET_FUNCTION
+         *
+         * ***********************************************************************/
+
+        ctx.function = this.exec;
+
+        this.options?.logs?.onMatchedFunction?.(ctx);
+
+        /* ************************************************************************
+         *
+         * VALIDATE INPUT
+         *
+         * ***********************************************************************/
+
+        // TODO Will come with the hooks API.
+
+        ctx.input = ctx.request.arguments;
+
+        /* ************************************************************************
+         *
+         * APPLY MIDDLEWARE
+         *
+         * ***********************************************************************/
+
+        const middlewares = this.compile();
+
+        for (const middleware of middlewares) {
+          for (const stage of middleware) {
+            let stageCtxIn: any = ctx;
+            let stageCtxOut: any = ctx;
+
+            for (const handler of stage) {
+              try {
+                // TODO This should be an async function.
+                stageCtxOut = handler(stageCtxIn);
+              } catch {
+                ctx.throw = {
+                  code: "MIDDLEWARE_ERROR",
+                };
+
+                break inner;
+              }
+
+              if (ctx.exit || ctx.throw || ctx.return) {
+                break inner;
+              }
+            }
+
+            ctx = stageCtxOut;
+          }
+        }
+
+        this.options?.logs?.onAppliedMiddleware?.(ctx);
+
+        /* ************************************************************************
+         *
+         * APPLY FUNCTION
+         *
+         * ***********************************************************************/
+
+        if (ctx.function === undefined) {
+          ctx.throw = {
+            code: "SERVER_ERROR",
+            message: "Function is undefined after matching",
+          };
+
+          break inner;
+        }
+
+        try {
+          ctx.return = {
+            status: "SUCCESS",
+            // TODO This should be an async function.
+            data: ctx.function(ctx.input, ctx),
+          };
+        } catch (error) {
+          ctx.throw = {
+            code: "SERVER_ERROR",
+            message: "Function threw an error",
+          };
+        }
+
+        this.options?.logs?.onAppliedFunction?.(ctx);
+      }
+
+      /* ************************************************************************
+       *
+       * BREAK INNER JUMPS HERE
+       *
+       * ***********************************************************************/
+
+      reply: {
+        /* ************************************************************************
+         *
+         * THROW
+         *
+         * ***********************************************************************/
+
+        if (ctx.throw !== undefined) {
+          this.options?.logs?.onThrowing?.(ctx);
+
+          const err: QuiverError = {
+            id: ctx.message.id,
+            ok: false,
+            ...ctx.throw,
+          };
+
+          let content;
+          try {
+            content = JSON.stringify(err);
+          } catch {
+            ctx.exit = {
+              code: "OUTPUT_SERIALIZATION_FAILED",
+              message: "Failed to serialize ctx.throw",
+            };
+
+            break reply;
+          }
+
+          if (ctx.url === undefined) {
+            ctx.exit = {
+              code: "URL_UNDEFINED",
+              reason:
+                "URL is undefined even though we're in the BREAK_INNER block",
+            };
+
+            break reply;
+          }
+
+          // TODO, how do we handle root (no path) urls?
+          const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
+
+          try {
+            const sent = await this.provider.publish({
+              conversation: {
+                peerAddress: ctx.message.conversation.peerAddress,
+                context: {
+                  conversationId,
+                  metadata: {},
+                },
+              },
+              content,
+            });
+
+            ctx.sent = sent;
+
+            this.options?.logs?.onSentThrow?.(ctx);
+          } catch {
+            ctx.exit = {
+              code: "XMTP_NETWORK_ERROR",
+              reason: `Failed to publish throw message`,
+            };
+
+            break reply;
+          }
+        }
+
+        /* ************************************************************************
+         *
+         * RETURN
+         *
+         * ***********************************************************************/
+
+        if (ctx.return !== undefined) {
+          this.options?.logs?.onReturning?.(ctx);
+
+          let content;
+          try {
+            content = JSON.stringify({
+              id: ctx.message.id,
+              ok: true,
+              ...ctx.return,
+            });
+          } catch (error) {
+            ctx.exit = {
+              code: "OUTPUT_SERIALIZATION_FAILED",
+              reason: "Failed to serialize ctx.return",
+            };
+
+            break reply;
+          }
+
+          if (ctx.url === undefined) {
+            ctx.exit = {
+              code: "URL_UNDEFINED",
+              reason:
+                "URL is undefined even though we're in the BREAK_INNER block",
+            };
+
+            break reply;
+          }
+
+          const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
+
+          try {
+            const sent = await this.provider.publish({
+              conversation: {
+                peerAddress: ctx.message.conversation.peerAddress,
+                context: {
+                  conversationId,
+                  metadata: {},
+                },
+              },
+              content,
+            });
+
+            ctx.sent = sent;
+
+            this.options?.logs?.onSentReturn?.(ctx);
+          } catch {
+            ctx.exit = {
+              code: "XMTP_NETWORK_ERROR",
+              reason: `Failed to publish return message`,
+            };
+
+            break reply;
+          }
+        }
       }
     }
 
     /* ************************************************************************
      *
-     * CALL_FUNCTION
+     * BREAK OUTER JUMPS HERE
      *
      * ***********************************************************************/
 
-    if (ctx.function === undefined) {
-      throw new Error(JSON.stringify(ctx, null, 2));
-    }
-
-    try {
-      ctx.output = ctx.function(ctx.input, ctx);
-    } catch (error) {
-      ctx.throw = {
-        code: "SERVER_ERROR",
-      };
-    }
-
-    /* ************************************************************************
-     *
-     * EXIT
-     *
-     * ***********************************************************************/
-
-    if (ctx.exit !== undefined) {
-      // do some stuff
-    }
-
-    /* ************************************************************************
-     *
-     * THROW
-     *
-     * ***********************************************************************/
-
-    if (ctx.throw !== undefined) {
-      const err: QuiverError = {
-        id: ctx.received.id,
-        ok: false,
-        ...ctx.throw,
-      };
-
-      let content;
-      try {
-        content = JSON.stringify(err);
-      } catch (error) {
-        throw new Error(`Failed to stringify throw`);
-      }
-
-      if (ctx.url === undefined) {
-        throw new Error(`Path not found in context`);
-      }
-
-      // TODO, how do we handle root (no path) urls?
-      const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
-
-      const sent = await this.provider.publish({
-        conversation: {
-          peerAddress: ctx.received.conversation.peerAddress,
-          context: {
-            conversationId,
-            metadata: {},
-          },
-        },
-        content,
-      });
-
-      ctx.sent = sent;
-    }
-
-    /* ************************************************************************
-     *
-     * RETURN
-     *
-     * ***********************************************************************/
-
-    if (ctx.return !== undefined) {
-      // send the return value
-
-      const response = {
-        id: ctx.received.id,
-        ok: true,
-        ...ctx.return,
-      };
-
-      let content;
-      try {
-        content = JSON.stringify(response);
-      } catch (error) {
-        throw new Error(`Failed to stringify ctx.return`);
-      }
-
-      if (ctx.url === undefined) {
-        throw new Error(`Path not found in context`);
-      }
-
-      const conversationId = `${ctx.url.quiver}/${ctx.url.version}/responses/${this.provider.signer.address}/${ctx.url.path.join("/")}`;
-
-      const sent = await this.provider.publish({
-        conversation: {
-          peerAddress: ctx.received.conversation.peerAddress,
-          context: {
-            conversationId,
-            metadata: {},
-          },
-        },
-        content,
-      });
-
-      ctx.sent = sent;
-    }
-
-    /* ************************************************************************
-     *
-     * FINALLY
-     *
-     * ***********************************************************************/
+    this.options?.logs?.onExit?.(ctx);
   }
 }
