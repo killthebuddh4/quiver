@@ -1,6 +1,6 @@
 import { QuiverPipeline } from "../QuiverPipeline.js";
-import { QuiverApp } from "./QuiverApp.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
+import { QuiverProvider } from "./QuiverProvider.js";
 import { QuiverContext } from "./QuiverContext.js";
 
 export interface QuiverFunction<
@@ -8,13 +8,19 @@ export interface QuiverFunction<
   CtxOut,
   Exec extends (...args: any[]) => any,
 > {
+  type: "QUIVER_FUNCTION";
+
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
+
+  route: () => (i: any, ctx: any) => any;
 
   compile: () => QuiverPipeline[];
 
   exec: Exec;
 
-  app: () => CtxIn extends QuiverContext
-    ? QuiverApp<QuiverFunction<CtxIn, CtxOut, Exec>>
-    : never;
+  start: (
+    provider?: CtxIn extends QuiverContext<any, any, any>
+      ? QuiverProvider | undefined
+      : never,
+  ) => Promise<{ stop: () => void }>;
 }

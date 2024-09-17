@@ -8,6 +8,6 @@ export type Maybe<T> =
   | {
       ok: false;
       value?: undefined;
-      code?: string;
+      code: string;
       reason?: string;
     };
