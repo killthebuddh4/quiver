@@ -1,6 +1,6 @@
-import * as Quiver from "../types/quiver/quiver.js";
+import * as Quiver from "../types/quiver.js";
 import { Maybe } from "../types/util/Maybe.js";
-import { QuiverApp } from "./QuiverApp.js";
+import { QuiverApp } from "./createApp.js";
 
 export class QuiverRouter<
   CtxIn,

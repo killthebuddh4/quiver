@@ -1,4 +1,4 @@
-import { QuiverProvider } from "../quiver/QuiverProvider.js";
+import { QuiverProvider } from "./QuiverProvider.js";
 import { QuiverProviderOptions } from "./QuiverProviderOptions.js";
 
 export type QuiverStartOptions = {

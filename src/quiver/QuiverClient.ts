@@ -1,244 +1,237 @@
-import * as Quiver from "../types/quiver/quiver.js";
 import { Message } from "../types/Message.js";
 import { parseQuiverUrl } from "../url/parseQuiverUrl.js";
 import { parseQuiverResponse } from "../parsers/parseQuiverResponse.js";
 import { getUniqueId } from "../lib/getUniqueId.js";
-import { QuiverClientOptions } from "../types/options/QuiverClientOptions.js";
+import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { getRequestUrl } from "../url/getRequestUrl.js";
 import { QuiverUrl } from "../types/QuiverUrl.js";
 import { urlToString } from "../url/urlToString.js";
-import { getProvider } from "../provider/getProvider.js";
 import { QuiverProvider } from "./QuiverProvider.js";
 
-export class QuiverClient<App extends Quiver.App>
-  implements Quiver.Client<App>
-{
-  public type = "QUIVER_CLIENT" as const;
+// export class QuiverClient<App extends Quiver.App>
+//   implements Quiver.Client<App>
+// {
+//   public type = "QUIVER_CLIENT" as const;
 
-  private provider: Quiver.Provider;
+//   private provider: Quiver.Provider;
 
-  private pending = new Map<string, (response: any) => any>();
+//   private pending = new Map<string, (response: any) => any>();
 
-  private server: { address: string; namespace: string };
+//   private server: { address: string; namespace: string };
 
-  private options?: QuiverClientOptions;
+//   private options?: QuiverClientOptions;
 
-  private subscription: Promise<{ unsubscribe: () => void }>;
+//   private subscription: Promise<{ unsubscribe: () => void }>;
 
-  public constructor(
-    server: { address: string; namespace: string },
-    options?: QuiverClientOptions,
-  ) {
-    const provider = new QuiverProvider();
+//   public constructor(
+//     server: { address: string; namespace: string },
+//     options?: QuiverClientOptions,
+//   ) {
+//     this.provider = new QuiverProvider();
+//     this.options = options;
+//     this.server = server;
+//     this.subscription = this.provider.subscribe(this.handler.bind(this));
+//   }
 
-    if (provider === undefined) {
-      throw new Error(`No provider found for address: ${address}`);
-    }
-    this.provider = provider;
-    this.options = options;
-    this.server = server;
-    this.subscription = this.provider.subscribe(this.handler.bind(this));
-  }
+//   public stop() {
+//     this.subscription.then((sub) => sub.unsubscribe());
+//   }
 
-  public stop() {
-    this.subscription.then((sub) => sub.unsubscribe());
-  }
+//   private async call(url: QuiverUrl, args: any[]) {
+//     if (this.provider === undefined) {
+//       throw new Error("Provider is undefined");
+//     }
 
-  private async call(url: QuiverUrl, args: any[]) {
-    if (this.provider === undefined) {
-      throw new Error("Provider is undefined");
-    }
+//     const request = {
+//       id: getUniqueId(),
+//       // TODO, this kind of doesn't make sense for a few reasons.
+//       function: url.path[url.path.length - 1] || "TODO",
+//       arguments: args,
+//     };
 
-    const request = {
-      id: getUniqueId(),
-      // TODO, this kind of doesn't make sense for a few reasons.
-      function: url.path[url.path.length - 1] || "TODO",
-      arguments: args,
-    };
+//     let str: string;
+//     try {
+//       str = JSON.stringify(request);
+//     } catch {
+//       return {
+//         ok: false,
+//         code: "INPUT_SERIALIZATION_FAILED",
+//         response: null,
+//       };
+//     }
 
-    let str: string;
-    try {
-      str = JSON.stringify(request);
-    } catch {
-      return {
-        ok: false,
-        code: "INPUT_SERIALIZATION_FAILED",
-        response: null,
-      };
-    }
+//     let sent: Awaited<ReturnType<Quiver.Provider["publish"]>>;
+//     try {
+//       this.options?.logs?.onSendingRequest?.(request);
 
-    let sent: Awaited<ReturnType<Quiver.Provider["publish"]>>;
-    try {
-      this.options?.logs?.onSendingRequest?.(request);
+//       sent = await this.provider.publish({
+//         conversation: {
+//           peerAddress: this.server.address,
+//           context: {
+//             conversationId: urlToString(url),
+//             metadata: {},
+//           },
+//         },
+//         content: str,
+//       });
 
-      sent = await this.provider.publish({
-        conversation: {
-          peerAddress: this.server.address,
-          context: {
-            conversationId: urlToString(url),
-            metadata: {},
-          },
-        },
-        content: str,
-      });
+//       this.options?.logs?.onSent?.(sent);
+//     } catch (error) {
+//       this.options?.logs?.onSendError?.(request, error);
 
-      this.options?.logs?.onSent?.(sent);
-    } catch (error) {
-      this.options?.logs?.onSendError?.(request, error);
+//       return {
+//         ok: false,
+//         code: "REQUEST_SEND_FAILED",
+//         response: null,
+//       };
+//     }
 
-      return {
-        ok: false,
-        code: "REQUEST_SEND_FAILED",
-        response: null,
-      };
-    }
+//     return new Promise((resolve) => {
+//       this.pending.set(sent.id, (response) => {
+//         this.pending.delete(sent.id);
+//         resolve(response);
+//       });
+//     });
+//   }
 
-    return new Promise((resolve) => {
-      this.pending.set(sent.id, (response) => {
-        this.pending.delete(sent.id);
-        resolve(response);
-      });
-    });
-  }
+//   private proxy(url: QuiverUrl) {
+//     const proxy = this.proxy.bind(this);
+//     const call = this.call.bind(this);
 
-  private proxy(url: QuiverUrl) {
-    const proxy = this.proxy.bind(this);
-    const call = this.call.bind(this);
+//     return new Proxy(() => null, {
+//       get: (_1, prop) => {
+//         if (typeof prop !== "string") {
+//           throw new Error(`Expected string, got ${typeof prop}`);
+//         }
 
-    return new Proxy(() => null, {
-      get: (_1, prop) => {
-        if (typeof prop !== "string") {
-          throw new Error(`Expected string, got ${typeof prop}`);
-        }
+//         url.path.push(prop);
 
-        url.path.push(prop);
+//         return proxy(url);
+//       },
 
-        return proxy(url);
-      },
+//       apply: (_1, _2, args) => {
+//         return call(url, args);
+//       },
+//     });
+//   }
 
-      apply: (_1, _2, args) => {
-        return call(url, args);
-      },
-    });
-  }
+//   public client() {
+//     if (this.provider === undefined) {
+//       throw new Error("Provider is undefined");
+//     }
+//     return this.proxy(
+//       getRequestUrl(this.provider.signer.address, this.server.namespace, []),
+//     ) as ReturnType<Quiver.Client<App>["client"]>;
+//   }
 
-  public client() {
-    if (this.provider === undefined) {
-      throw new Error("Provider is undefined");
-    }
-    return this.proxy(
-      getRequestUrl(this.provider.signer.address, this.server.namespace, []),
-    ) as ReturnType<Quiver.Client<App>["client"]>;
-  }
+//   private async handler(message: Message) {
+//     if (this.provider === undefined) {
+//       throw new Error("Somehow received a message but provider is undefined");
+//     }
 
-  private async handler(message: Message) {
-    if (this.provider === undefined) {
-      throw new Error("Somehow received a message but provider is undefined");
-    }
+//     /* ************************************************************************
+//      *
+//      * RECV_MESSAGE
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * RECV_MESSAGE
-     *
-     * ***********************************************************************/
+//     this.options?.logs?.onRecvMessage?.(message);
 
-    this.options?.logs?.onRecvMessage?.(message);
+//     let received: Quiver.Response = {
+//       message,
+//     };
 
-    let received: Quiver.Response = {
-      message,
-    };
+//     /* ************************************************************************
+//      *
+//      * PARSE_URL
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * PARSE_URL
-     *
-     * ***********************************************************************/
+//     const url = parseQuiverUrl(received.message);
 
-    const url = parseQuiverUrl(received.message);
+//     if (!url.ok) {
+//       this.options?.logs?.onParseUrlError?.(received.message, url);
 
-    if (!url.ok) {
-      this.options?.logs?.onParseUrlError?.(received.message, url);
+//       throw "TODO";
+//     }
 
-      throw "TODO";
-    }
+//     received.url = url.value;
 
-    received.url = url.value;
+//     if (received.url.namespace !== this.server.namespace) {
+//       this.options?.logs?.onNamespaceMismatch?.(
+//         received.message,
+//         received.url.namespace,
+//       );
 
-    if (received.url.namespace !== this.server.namespace) {
-      this.options?.logs?.onNamespaceMismatch?.(
-        received.message,
-        received.url.namespace,
-      );
+//       throw "TODO";
+//     }
 
-      throw "TODO";
-    }
+//     this.options?.logs?.onParsedUrl?.(received.url);
 
-    this.options?.logs?.onParsedUrl?.(received.url);
+//     /* ************************************************************************
+//      *
+//      * PARSE_JSON
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * PARSE_JSON
-     *
-     * ***********************************************************************/
+//     try {
+//       received.json = JSON.parse(String(received.message.content));
+//     } catch (error) {
+//       this.options?.logs?.onParseJsonError?.(received.message, error);
 
-    try {
-      received.json = JSON.parse(String(received.message.content));
-    } catch (error) {
-      this.options?.logs?.onParseJsonError?.(received.message, error);
+//       throw "TODO";
+//     }
 
-      throw "TODO";
-    }
+//     this.options?.logs?.onParsedJson?.(received.json);
 
-    this.options?.logs?.onParsedJson?.(received.json);
+//     /* ************************************************************************
+//      *
+//      * PARSE_RESPONSE
+//      *
+//      * ************************************************************************/
 
-    /* ************************************************************************
-     *
-     * PARSE_RESPONSE
-     *
-     * ************************************************************************/
+//     const response = parseQuiverResponse(received.json);
 
-    const response = parseQuiverResponse(received.json);
+//     if (!response.ok) {
+//       this.options?.logs?.onParseResponseError?.(received.message, response);
 
-    if (!response.ok) {
-      this.options?.logs?.onParseResponseError?.(received.message, response);
+//       throw "TODO";
+//     }
 
-      throw "TODO";
-    }
+//     received.response = response.value;
 
-    received.response = response.value;
+//     this.options?.logs?.onParsedResponse?.(received.response);
 
-    this.options?.logs?.onParsedResponse?.(received.response);
+//     /* ************************************************************************
+//      *
+//      * GET_REQUEST
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * GET_REQUEST
-     *
-     * ***********************************************************************/
+//     const request = this.pending.get(received.response.id);
 
-    const request = this.pending.get(received.response.id);
+//     if (request === undefined) {
+//       this.options?.logs?.onRequestNotFound?.(received.response);
 
-    if (request === undefined) {
-      this.options?.logs?.onRequestNotFound?.(received.response);
+//       throw "TODO";
+//     }
 
-      throw "TODO";
-    }
+//     /* ************************************************************************
+//      *
+//      * MIDDLEWARE
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * MIDDLEWARE
-     *
-     * ***********************************************************************/
+//     // TODO
 
-    // TODO
+//     /* ************************************************************************
+//      *
+//      * RESOLVE REQUEST
+//      *
+//      * ***********************************************************************/
 
-    /* ************************************************************************
-     *
-     * RESOLVE REQUEST
-     *
-     * ***********************************************************************/
+//     this.options?.logs?.onResolving?.();
 
-    this.options?.logs?.onResolving?.();
-
-    request(received.response);
-  }
-}
+//     request(received.response);
+//   }
+// }

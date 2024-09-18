@@ -18,7 +18,7 @@ describe("Quiver", () => {
         .app("quiver-test-min")
         .listen();
 
-      const client = q.client<typeof app>(q.provider().signer.address, {
+      const client = q.client<typeof app>({
         namespace: "quiver-test-min",
         address: app.address() as string,
       });
@@ -45,16 +45,14 @@ describe("Quiver", () => {
           b: q.function(() => "b"),
           c: q.function(() => "c"),
         })
-        .listen({
-          address: appProvider.signer.address,
-          namespace: "quiver-test-min",
-        });
+        .app("quiver-test-min")
+        .listen();
 
       const clientProvider = await q.provider().start();
 
       CLEANUP.push(() => clientProvider.stop());
 
-      const client = q.client<typeof app>(clientProvider.signer.address, {
+      const client = q.client<typeof app>({
         namespace: "quiver-test-min",
         address: appProvider.signer.address,
       });

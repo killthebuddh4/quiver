@@ -3,7 +3,7 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverClient } from "./QuiverClient.js";
 import { QuiverProvider } from "./QuiverProvider.js";
-import { QuiverProviderOptions } from "../options/QuiverProviderOptions.js";
+import { QuiverProviderOptions } from "./QuiverProviderOptions.js";
 import { QuiverApp } from "./QuiverApp.js";
 
 export interface QuiverApi {
@@ -11,13 +11,10 @@ export interface QuiverApi {
     exec: (ctx: CtxIn) => CtxOut,
   ) => QuiverMiddleware<CtxIn, CtxOut, never, never>;
 
-  client: <App extends QuiverApp>(
-    address: string,
-    server: {
-      namespace: string;
-      address: string;
-    },
-  ) => QuiverClient<App>;
+  client: <App extends QuiverApp>(server: {
+    namespace: string;
+    address: string;
+  }) => QuiverClient<App>;
 
   function: <Exec extends (...args: any[]) => any>(
     exec: Exec,

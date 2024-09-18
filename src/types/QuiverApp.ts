@@ -2,11 +2,11 @@ import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
 
 export interface QuiverApp {
-  address: () => string;
+  address: string;
 
   server: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>;
 
-  stop: () => void;
+  stop: () => QuiverApp;
 
   listen: () => Promise<QuiverApp>;
 }

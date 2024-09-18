@@ -1,5 +1,5 @@
-import { QuiverProvider } from "../quiver/QuiverProvider.js";
-import { QuiverContext } from "../quiver/QuiverContext.js";
+import { QuiverProvider } from "./QuiverProvider.js";
+import { QuiverContext } from "./QuiverContext.js";
 
 export type QuiverAppOptions = {
   provider?: QuiverProvider;

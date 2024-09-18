@@ -1,7 +1,7 @@
 import { ParallelExtension } from "../types/util/ParallelExtension.js";
 import { SerialExtension } from "../types/util/SerialExtension.js";
 import { Resolve } from "../types/util/Resolve.js";
-import { QuiverFunction } from "./QuiverFunction.js";
+import { QuiverFunction } from "./createFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
 import * as Quiver from "../types/quiver/quiver.js";
 

@@ -1,6 +1,6 @@
-import { QuiverPipeline } from "../QuiverPipeline.js";
+import { QuiverPipeline } from "./QuiverPipeline.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
-import { Maybe } from "../util/Maybe.js";
+import { Maybe } from "./util/Maybe.js";
 import { QuiverApp } from "./QuiverApp.js";
 import { QuiverContext } from "./QuiverContext.js";
 

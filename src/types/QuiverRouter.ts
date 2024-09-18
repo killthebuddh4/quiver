@@ -1,7 +1,7 @@
 import { QuiverFunction } from "./QuiverFunction.js";
-import { QuiverPipeline } from "../QuiverPipeline.js";
+import { QuiverPipeline } from "./QuiverPipeline.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
-import { Maybe } from "../util/Maybe.js";
+import { Maybe } from "./util/Maybe.js";
 import { QuiverContext } from "./QuiverContext.js";
 import { QuiverApp } from "./QuiverApp.js";
 

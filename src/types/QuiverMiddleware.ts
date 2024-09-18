@@ -1,9 +1,9 @@
-import { ParallelExtension } from "../util/ParallelExtension.js";
-import { SerialExtension } from "../util/SerialExtension.js";
-import { Resolve } from "../util/Resolve.js";
+import { ParallelExtension } from "./util/ParallelExtension.js";
+import { SerialExtension } from "./util/SerialExtension.js";
+import { Resolve } from "./util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { QuiverPipeline } from "../QuiverPipeline.js";
+import { QuiverPipeline } from "./QuiverPipeline.js";
 
 export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   extend: <Exec>(
