@@ -7,6 +7,8 @@ export interface QuiverProvider {
 
   start: () => Promise<QuiverProvider>;
 
+  stop: () => void;
+
   subscribe: (
     handler: (message: Message) => void,
   ) => Promise<{ unsubscribe: () => void }>;

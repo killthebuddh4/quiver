@@ -4,6 +4,8 @@ import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverProvider } from "./QuiverProvider.js";
 import { QuiverClient } from "./QuiverClient.js";
 import * as Quiver from "../types/quiver/quiver.js";
+import { QuiverProviderOptions } from "../types/options/QuiverProviderOptions.js";
+import { setProvider } from "../provider/setProvider.js";
 
 export const quiver: Quiver.Quiver = {
   function: <Exec extends (...args: any[]) => any>(fn: Exec) => {
@@ -28,18 +30,21 @@ export const quiver: Quiver.Quiver = {
     return new QuiverMiddleware([[fn]]);
   },
 
-  client: <
-    Server extends
-      | Quiver.Router<any, any, any>
-      | Quiver.Function<any, any, any>,
-  >(server: {
-    namespace: string;
-    address: string;
-  }) => {
-    return new QuiverClient(server) as unknown as Quiver.Client<Server>;
+  client: <App extends Quiver.App>(
+    address: string,
+    server: {
+      namespace: string;
+      address: string;
+    },
+  ) => {
+    return new QuiverClient(address, server) as unknown as Quiver.Client<App>;
   },
 
-  provider: () => {
-    return new QuiverProvider();
+  provider: (options?: QuiverProviderOptions) => {
+    const provider = new QuiverProvider(options);
+
+    setProvider(provider);
+
+    return provider;
   },
 };

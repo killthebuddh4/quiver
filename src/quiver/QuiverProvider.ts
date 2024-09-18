@@ -5,40 +5,76 @@ import { Conversation } from "../types/Conversation.js";
 import { Signer } from "../types/util/Signer.js";
 import { getUniqueId } from "../lib/getUniqueId.js";
 import * as Quiver from "../types/quiver/quiver.js";
+import { QuiverProviderOptions } from "../types/options/QuiverProviderOptions.js";
 
 export class QuiverProvider implements Quiver.Provider {
   public signer: Signer;
   private xmtp?: Client;
   private stream?: AsyncGenerator<Message, void, unknown>;
-  private handlers = new Map<string, (message: Message) => void>();
+  private handlers = new Map<
+    string,
+    (message: Message) => Promise<void> | void
+  >();
+  private options?: QuiverProviderOptions;
 
-  public constructor(options?: { signer?: Signer }) {
-    this.signer = options?.signer ?? Wallet.createRandom();
+  public constructor(options?: QuiverProviderOptions) {
+    this.options = options;
+
+    if (options?.init?.signer !== undefined) {
+      this.signer = options.init.signer;
+    } else if (options?.init?.key !== undefined) {
+      this.signer = new Wallet(options.init.key);
+    } else {
+      this.signer = Wallet.createRandom();
+    }
   }
 
   public async start() {
-    this.xmtp = await Client.create(this.signer);
-    this.stream = await this.xmtp.conversations.streamAllMessages();
+    if (this.stream !== undefined) {
+      return this;
+    }
+
+    try {
+      this.xmtp = await Client.create(this.signer);
+    } catch (err) {
+      this.options?.logs?.start?.onStartXmtpError?.(err);
+
+      throw err;
+    }
+
+    try {
+      this.stream = await this.xmtp.conversations.streamAllMessages();
+    } catch (err) {
+      this.options?.logs?.start?.onStartStreamError?.(err);
+
+      throw err;
+    }
 
     const stream = this.stream;
 
     (async () => {
       for await (const message of stream) {
         if (message.senderAddress === this.signer.address) {
+          this.options?.logs?.handle?.onSelfSentMessage?.(message);
+
           continue;
         }
 
-        console.log(
-          `PROVIDER @${this.signer.address} RECEIVED MESSAGE FROM @${message.senderAddress}`,
-        );
+        this.options?.logs?.handle?.onMessage?.(message);
 
         for (const handler of Array.from(this.handlers.values())) {
           try {
-            console.log(`PROVIDER @${this.signer.address} CALLING HANDLER`);
+            this.options?.logs?.handle?.onHandling?.(message);
+
             await handler(message);
-          } catch (e) {
-            console.log(`PROVIDER @${this.signer.address} HANDLER ERROR`);
-            console.error(e);
+          } catch (err) {
+            this.options?.logs?.handle?.onHandlerError?.(err);
+
+            if (this.options?.throwOnHandlerError) {
+              throw err;
+            }
+
+            continue;
           }
         }
       }
@@ -56,31 +92,55 @@ export class QuiverProvider implements Quiver.Provider {
   }
 
   public async subscribe(handler: (message: Message) => void) {
-    console.log(`PROIVDER @${this.signer.address} SUBSCRIBE CALLED`);
+    this.options?.logs?.pubsub?.onSubscribe?.();
 
     const id = getUniqueId();
 
     this.handlers.set(id, handler);
 
-    console.log(`HANDLER ADDED TO PROVIDER @${this.signer.address}`);
-
     return {
       unsubscribe: () => {
+        this.options?.logs?.pubsub?.onUnsubscribe?.();
         this.handlers.delete(id);
+        if (this.handlers.size === 0) {
+          this.stop();
+        }
       },
     };
   }
 
   public async publish(args: { conversation: Conversation; content: string }) {
+    this.options?.logs?.pubsub?.onPublishing?.(args.conversation, args.content);
+
     if (this.xmtp === undefined) {
       throw new Error(`XMTP client not yet initialized`);
     }
 
-    const conversation = await this.xmtp.conversations.newConversation(
-      args.conversation.peerAddress,
-      args.conversation.context,
-    );
+    let conversation;
+    try {
+      conversation = await this.xmtp.conversations.newConversation(
+        args.conversation.peerAddress,
+        args.conversation.context,
+      );
+    } catch (err) {
+      this.options?.logs?.pubsub?.onCreateConversationError?.(
+        args.conversation,
+        err,
+      );
 
-    return conversation.send(args.content);
+      throw err;
+    }
+
+    try {
+      const sent = await conversation.send(args.content);
+
+      this.options?.logs?.pubsub?.onSentMessage?.(sent);
+
+      return sent;
+    } catch (err) {
+      this.options?.logs?.pubsub?.onSendMessageError?.(args.content, err);
+
+      throw err;
+    }
   }
 }

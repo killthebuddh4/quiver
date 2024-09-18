@@ -1,12 +1,10 @@
 import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverFunction } from "./QuiverFunction.js";
-import { QuiverProvider } from "./QuiverProvider.js";
+import { QuiverApp } from "./QuiverApp.js";
 
-export type QuiverClient<
-  Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
-> = {
-  client: () => TypedClient<Server>;
-  start: (provider?: QuiverProvider) => Promise<{ stop: () => void }>;
+export type QuiverClient<App extends QuiverApp> = {
+  client: () => TypedClient<App["server"]>;
+  stop: () => void;
 };
 
 type TypedClient<

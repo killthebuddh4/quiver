@@ -5,7 +5,10 @@ import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverProvider } from "./QuiverProvider.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { QuiverContext } from "./QuiverContext.js";
+import { QuiverApp } from "./QuiverApp.js";
 import { QuiverContextResponse } from "./QuiverContextResponse.js";
+
+export type App = QuiverApp;
 
 export type Quiver = QuiverApi;
 
@@ -17,9 +20,7 @@ export type Function<
   Exec extends (...args: any[]) => any,
 > = QuiverFunction<CtxIn, CtxOut, Exec>;
 
-export type Client<
-  Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
-> = QuiverClient<Server>;
+export type Client<App extends QuiverApp> = QuiverClient<App>;
 
 export type Middleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> = QuiverMiddleware<
   CtxIn,

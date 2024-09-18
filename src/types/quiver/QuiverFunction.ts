@@ -1,6 +1,7 @@
 import { QuiverPipeline } from "../QuiverPipeline.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
-import { QuiverProvider } from "./QuiverProvider.js";
+import { Maybe } from "../util/Maybe.js";
+import { QuiverApp } from "./QuiverApp.js";
 import { QuiverContext } from "./QuiverContext.js";
 
 export interface QuiverFunction<
@@ -12,14 +13,11 @@ export interface QuiverFunction<
 
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
 
-  route: () => (i: any, ctx: any) => any;
+  route: () => Maybe<(i: any, ctx: any) => any>;
 
   compile: () => QuiverPipeline[];
 
   exec: Exec;
 
-  start: (
-    namespace: string,
-    provider?: CtxIn extends QuiverContext ? QuiverProvider | undefined : never,
-  ) => Promise<{ stop: () => void }>;
+  app: (namespace: string) => CtxIn extends QuiverContext ? QuiverApp : never;
 }

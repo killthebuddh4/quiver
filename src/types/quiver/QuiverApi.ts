@@ -3,18 +3,21 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverClient } from "./QuiverClient.js";
 import { QuiverProvider } from "./QuiverProvider.js";
+import { QuiverProviderOptions } from "../options/QuiverProviderOptions.js";
+import { QuiverApp } from "./QuiverApp.js";
 
 export interface QuiverApi {
   middleware: <CtxIn, CtxOut>(
     exec: (ctx: CtxIn) => CtxOut,
   ) => QuiverMiddleware<CtxIn, CtxOut, never, never>;
 
-  client: <
-    Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
-  >(server: {
-    namespace: string;
-    address: string;
-  }) => QuiverClient<Server>;
+  client: <App extends QuiverApp>(
+    address: string,
+    server: {
+      namespace: string;
+      address: string;
+    },
+  ) => QuiverClient<App>;
 
   function: <Exec extends (...args: any[]) => any>(
     exec: Exec,
@@ -30,5 +33,5 @@ export interface QuiverApi {
     routes: R,
   ) => QuiverRouter<any, any, R>;
 
-  provider: () => QuiverProvider;
+  provider: (options?: QuiverProviderOptions) => QuiverProvider;
 }

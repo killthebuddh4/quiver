@@ -303,14 +303,28 @@ If you have a feature (or bugfix) request, don't hesitate to [open an issue](TOD
 Ok so we're at a nice v0. The middleware API is type-safe (haven't worked out the buges yet though), the routing works, and the client proxy works. The next steps are (in roughly chronological order)
 
 - exit/throw/return control flow
+  - DONE, needs testing
 - basic options, logging, errors
-- debug the middleware system
+  - DONE, needs testing
 - iron out the namespace + path stuff
+  -  DONE, needs testing
+- debug the middleware system
+- test the start/stop functionality
 - write tests for each of the basic cases (function/router/function w/ middleware, etc)
 - write a couple useful middlewares
   - proxy
   - ens
 - clean up the relationship between types/quiver/classes
 - update the README
+- add a system for notifying subscribers when parents fail
 
 I really really really want this to be done by EOD tomorrow.
+
+
+NOTE
+
+- test each of the base case for each kind of QuiverError
+- i think we have a bug related to root paths. i don't think we handle 100% of
+  - root is a function
+  - root is a router, no path
+  - root is a router, with path

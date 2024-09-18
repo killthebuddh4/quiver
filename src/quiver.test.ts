@@ -1,22 +1,27 @@
 import q from "./index.js";
 
+const CLEANUP: Array<() => void> = [];
+
 describe("Quiver", () => {
-  it.only("minimal function example", async function () {
+  afterEach(() => {
+    while (CLEANUP.length > 0) {
+      CLEANUP.pop()?.();
+    }
+  });
+
+  it("minimal function example", async function () {
     this.timeout(10000);
 
     try {
-      const provider = await q.provider().start();
+      const app = await q
+        .function(() => "hello world")
+        .app("quiver-test-min")
+        .listen();
 
-      const app = q.function(() => "hello world");
-
-      const client = q.client<typeof app>({
+      const client = q.client<typeof app>(q.provider().signer.address, {
         namespace: "quiver-test-min",
-        address: provider.signer.address,
+        address: app.address() as string,
       });
-
-      await client.start(await q.provider().start());
-
-      await app.start("quiver-test-min", provider);
 
       const response = await client.client()();
 
@@ -25,26 +30,34 @@ describe("Quiver", () => {
       console.error(e);
     }
   });
+
   it("minimal router example", async function () {
     this.timeout(10000);
 
     try {
-      const provider = await q.provider().start();
+      const appProvider = await q.provider().start();
 
-      const app = q.router({
-        a: q.function(() => "a"),
-        b: q.function(() => "b"),
-        c: q.function(() => "c"),
-      });
+      CLEANUP.push(() => appProvider.stop());
 
-      const client = q.client<typeof app>({
+      const app = await q
+        .router({
+          a: q.function(() => "a"),
+          b: q.function(() => "b"),
+          c: q.function(() => "c"),
+        })
+        .listen({
+          address: appProvider.signer.address,
+          namespace: "quiver-test-min",
+        });
+
+      const clientProvider = await q.provider().start();
+
+      CLEANUP.push(() => clientProvider.stop());
+
+      const client = q.client<typeof app>(clientProvider.signer.address, {
         namespace: "quiver-test-min",
-        address: provider.signer.address,
+        address: appProvider.signer.address,
       });
-
-      await client.start(await q.provider().start());
-
-      await app.start("quiver-test-min", provider);
 
       const response = await client.client().a();
 
