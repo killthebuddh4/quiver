@@ -1,19 +1,22 @@
 import { QuiverRouter } from "./QuiverRouter.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverApp } from "./QuiverApp.js";
+import { QuiverClientOptions } from "./QuiverClientOptions.js";
+import { QuiverResult } from "./QuiverResult.js";
 
-export type QuiverClient<App extends QuiverApp> = {
-  client: () => TypedClient<App["server"]>;
-  stop: () => void;
-};
+export type QuiverClient<App extends QuiverApp<any>> = TypedClient<
+  App["server"]
+>;
 
 type TypedClient<
   Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
 > =
   Server extends QuiverFunction<any, any, infer Exec>
-    ? ReturnType<Exec> extends Promise<any>
-      ? Exec
-      : (...args: Parameters<Exec>) => Promise<ReturnType<Exec>>
+    ? Exec extends (...args: infer Args) => infer Ret
+      ? (
+          ...args: [...Args, options?: QuiverClientOptions]
+        ) => Promise<QuiverResult<Awaited<Ret>>>
+      : never
     : Server extends QuiverRouter<any, any, any>
       ? {
           [K in keyof Server["routes"]]: TypedClient<Server["routes"][K]>;

@@ -1,9 +1,11 @@
 import { Maybe } from "../types/util/Maybe.js";
-import { QuiverSuccess } from "../types/QuiverSuccess.js";
+import { QuiverSuccessResponse } from "../types/QuiverSuccessResponse.js";
 
 export const parseQuiverSuccess = (
   value: unknown,
-): Maybe<QuiverSuccess<unknown>> => {
+): Maybe<QuiverSuccessResponse<unknown>> => {
+  // if it's a string we try to parse it as JSON, otherwise we assume it's
+  // already an object
   let json;
   if (typeof value === "string") {
     try {

@@ -1,4 +1,4 @@
-import { QuiverProvider } from "../quiver/QuiverProvider.js";
+import { QuiverProvider } from "../types/QuiverProvider.js";
 import { store } from "./store.js";
 
 export const setProvider = (provider: QuiverProvider) => {

@@ -1,4 +1,4 @@
-import { QuiverError } from "./QuiverError.js";
-import { QuiverSuccess } from "./QuiverSuccess.js";
+import { QuiverErrorResponse } from "./QuiverErrorResponse.js";
+import { QuiverSuccessResponse } from "./QuiverSuccessResponse.js";
 
-export type QuiverResponse<D> = QuiverSuccess<D> | QuiverError;
+export type QuiverResponse<D> = QuiverSuccessResponse<D> | QuiverErrorResponse;

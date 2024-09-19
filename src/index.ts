@@ -1,4 +1,5 @@
-export * from "./quiver/quiver.js";
-import { quiver } from "./quiver/quiver.js";
+import { createQuiver } from "./quiver/createQuiver.js";
+
+export const quiver = createQuiver();
 
 export default quiver;

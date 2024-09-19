@@ -33,27 +33,17 @@ export const parseQuiverRequest = (value: unknown): Maybe<QuiverRequest> => {
     };
   }
 
-  if (typeof json.function !== "string") {
+  if (!("arguments" in json)) {
     return {
       ok: false,
-      code: "INVALID_FUNCTION_TYPE",
-      reason: `value.function is not a string, it's ${typeof json.function}`,
-    };
-  }
-
-  // TODO This might be too tight of a restriction
-  if (typeof json.arguments !== "object") {
-    return {
-      ok: false,
-      code: "INVALID_ARGUMENTS_TYPE",
-      reason: `value.arguments is not an object, it's ${typeof json.arguments}`,
+      code: "ARGUMENTS_NOT_FOUND",
+      reason: `value.arguments is not present`,
     };
   }
 
   return {
     ok: true,
     value: {
-      function: json.function,
       arguments: json.arguments,
     },
   };

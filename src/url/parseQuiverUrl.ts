@@ -18,11 +18,11 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
 
   const segments = url.split("/");
 
-  if (segments.length < 6) {
+  if (segments.length < 5) {
     return {
       ok: false,
       code: "INVALID_NUMBER_OF_SEGMENTS",
-      reason: `Expected 6 segments, got ${segments.length}`,
+      reason: `Expected at least 5 segments, got ${segments.length}`,
     };
   }
 

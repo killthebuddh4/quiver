@@ -10,6 +10,7 @@ export type QuiverAppOptions = {
     onParsedJson?: (ctx: QuiverContext) => void;
     onParsedRequest?: (ctx: QuiverContext) => void;
     onMatchedFunction?: (ctx: QuiverContext) => void;
+    onValidatedInput?: (ctx: QuiverContext) => void;
     onAppliedMiddleware?: (ctx: QuiverContext) => void;
     onAppliedFunction?: (ctx: QuiverContext) => void;
     onThrowing?: (ctx: QuiverContext) => void;

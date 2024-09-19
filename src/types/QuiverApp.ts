@@ -1,12 +1,15 @@
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
+import { QuiverProvider } from "./QuiverProvider.js";
 
-export interface QuiverApp {
-  address: string;
+export interface QuiverApp<
+  Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+> {
+  namespace: string;
 
-  server: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>;
+  server: Server;
 
-  stop: () => QuiverApp;
+  stop: () => void;
 
-  listen: () => Promise<QuiverApp>;
+  listen: (provider: QuiverProvider) => Promise<QuiverApp<Server>>;
 }

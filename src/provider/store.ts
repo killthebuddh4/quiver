@@ -1,3 +1,3 @@
-import { QuiverProvider } from "../quiver/QuiverProvider.js";
+import { QuiverProvider } from "../types/QuiverProvider.js";
 
 export const store = new Map<string, QuiverProvider>();

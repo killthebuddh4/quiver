@@ -5,6 +5,8 @@ import { Signer } from "./util/Signer.js";
 export interface QuiverProvider {
   signer: Signer;
 
+  address: string;
+
   start: () => Promise<QuiverProvider>;
 
   stop: () => void;

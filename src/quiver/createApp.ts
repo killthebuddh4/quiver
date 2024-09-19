@@ -1,52 +1,57 @@
 import { Message } from "../types/Message.js";
 import { parseQuiverUrl } from "../url/parseQuiverUrl.js";
 import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
-import { QuiverError } from "../types/QuiverError.js";
+import { QuiverErrorResponse } from "../types/QuiverErrorResponse.js";
 import { getResponseUrl } from "../url/getResponseUrl.js";
 import { urlToString } from "../url/urlToString.js";
 import { QuiverAppOptions } from "../types/QuiverAppOptions.js";
-import { QuiverProvider } from "./QuiverProvider.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverApp } from "../types/QuiverApp.js";
+import { QuiverProvider } from "../types/QuiverProvider.js";
 
-export const createApp = (
+/* ***************************************************************************
+ *
+ * IMPORTANT NOTE
+ *
+ * QuiverApp exists almost entirely to provide a type-safe "finalization" step
+ * for the QuiverFunction and QuiverRouter types. A function or router can only
+ * be deployed if it's input type is QuiverContext.
+ *
+ * **************************************************************************/
+
+export const createApp = <
+  Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
+>(
   namespace: string,
-  server: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
+  server: Server,
   options?: QuiverAppOptions,
-): QuiverApp => {
+): QuiverApp<Server> => {
   const state = {
     namespace,
+    provider: undefined as QuiverProvider | undefined,
     server,
     options,
-    provider: options?.provider ?? new QuiverProvider(),
     subscription: undefined as { unsubscribe: () => void } | undefined,
-  };
-
-  const address = state.provider.signer.address;
-
-  const listen = async (): Promise<QuiverApp> => {
-    await state.provider.start();
-
-    state.subscription = await state.provider.subscribe(handler);
-
-    return {
-      address: state.provider.signer.address,
-      server: state.server,
-      listen,
-      stop,
-    };
   };
 
   const stop = () => {
     state.subscription?.unsubscribe();
+  };
+
+  const listen = async (provider: QuiverProvider) => {
+    state.provider = provider;
+
+    await provider.start();
+
+    state.subscription = await provider.subscribe(handler);
 
     return {
-      address: state.provider.signer.address,
+      namespace: state.namespace,
       server: state.server,
-      listen,
       stop,
+      listen,
     };
   };
 
@@ -136,9 +141,8 @@ export const createApp = (
         try {
           ctx.json = JSON.parse(String(ctx.message.content));
         } catch (error) {
-          // NOTE We're now THROWing instead of EXITing because we have a URL.
           ctx.throw = {
-            code: "JSON_PARSE_FAILED",
+            code: "PARSE_REQUEST_JSON_FAILED",
           };
 
           break inner;
@@ -156,7 +160,7 @@ export const createApp = (
 
         if (!request.ok) {
           ctx.throw = {
-            code: "REQUEST_PARSE_FAILED",
+            code: "PARSE_REQUEST_FAILED",
           };
 
           break inner;
@@ -176,7 +180,8 @@ export const createApp = (
 
         if (!fn.ok) {
           ctx.throw = {
-            code: "UNKNOWN_FUNCTION",
+            code: "NO_FUNCTION_FOR_PATH",
+            message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
           };
 
           break inner;
@@ -192,9 +197,19 @@ export const createApp = (
          *
          * ***********************************************************************/
 
-        // TODO Will come with the hooks API.
+        try {
+          // TODO Will come with the hooks API.
+        } catch {
+          ctx.throw = {
+            code: "INPUT_TYPE_MISMATCH",
+          };
+
+          break inner;
+        }
 
         ctx.input = ctx.request.arguments;
+
+        state.options?.logs?.onValidatedInput?.(ctx);
 
         /* ************************************************************************
          *
@@ -211,8 +226,7 @@ export const createApp = (
 
             for (const handler of stage) {
               try {
-                // TODO This should be an async function.
-                stageCtxOut = handler(stageCtxIn);
+                stageCtxOut = await handler(stageCtxIn);
               } catch {
                 ctx.throw = {
                   code: "MIDDLEWARE_ERROR",
@@ -239,7 +253,7 @@ export const createApp = (
          * ***********************************************************************/
 
         if (ctx.function === undefined) {
-          ctx.throw = {
+          ctx.exit = {
             code: "SERVER_ERROR",
             message: "Function is undefined after matching",
           };
@@ -250,13 +264,11 @@ export const createApp = (
         try {
           ctx.return = {
             status: "SUCCESS",
-            // TODO This should be an async function.
-            data: ctx.function(ctx.input, ctx),
+            data: await ctx.function(ctx.input, ctx),
           };
         } catch (error) {
           ctx.throw = {
-            code: "SERVER_ERROR",
-            message: "Function threw an error",
+            code: "HANDLER_ERROR",
           };
         }
 
@@ -279,7 +291,7 @@ export const createApp = (
         if (ctx.throw !== undefined) {
           state.options?.logs?.onThrowing?.(ctx);
 
-          const err: QuiverError = {
+          const err: QuiverErrorResponse = {
             id: ctx.message.id,
             ok: false,
             ...ctx.throw,
@@ -289,14 +301,16 @@ export const createApp = (
           try {
             content = JSON.stringify(err);
           } catch {
+            // TODO We should be throwing here.
             ctx.exit = {
               code: "OUTPUT_SERIALIZATION_FAILED",
-              message: "Failed to serialize ctx.throw",
+              reason: `Failed to serialize thrown error and fallback error`,
             };
 
             break reply;
           }
 
+          // TODO We should be throwing here.
           if (ctx.url === undefined) {
             ctx.exit = {
               code: "URL_UNDEFINED",
@@ -355,6 +369,7 @@ export const createApp = (
               ...ctx.return,
             });
           } catch (error) {
+            // TODO We should be throwing here.
             ctx.exit = {
               code: "OUTPUT_SERIALIZATION_FAILED",
               reason: "Failed to serialize ctx.return",
@@ -364,6 +379,7 @@ export const createApp = (
           }
 
           if (ctx.url === undefined) {
+            // TODO We should be throwing here.
             ctx.exit = {
               code: "URL_UNDEFINED",
               reason:
@@ -416,9 +432,9 @@ export const createApp = (
   };
 
   return {
-    address,
+    namespace: state.namespace,
     server: state.server,
-    listen,
     stop,
+    listen,
   };
 };

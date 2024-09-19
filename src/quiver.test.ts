@@ -1,67 +1,87 @@
 import q from "./index.js";
+import { QuiverAppOptions } from "./types/QuiverAppOptions.js";
+import { QuiverClientOptions } from "./types/QuiverClientOptions.js";
 
-const CLEANUP: Array<() => void> = [];
+const CLEANUP: Array<{ stop: () => void }> = [];
 
 describe("Quiver", () => {
   afterEach(() => {
     while (CLEANUP.length > 0) {
-      CLEANUP.pop()?.();
+      CLEANUP.pop()?.stop();
     }
   });
 
   it("minimal function example", async function () {
     this.timeout(10000);
 
-    try {
-      const app = await q
-        .function(() => "hello world")
-        .app("quiver-test-min")
-        .listen();
+    const provider = await q.provider().start();
+    const namespace = "quiver-test-min";
+    const address = provider.address;
 
-      const client = q.client<typeof app>({
-        namespace: "quiver-test-min",
-        address: app.address() as string,
-      });
+    CLEANUP.push(provider);
 
-      const response = await client.client()();
+    const app = await q
+      .function(() => `Hello, world!`)
+      .app(namespace)
+      .listen(provider);
 
-      console.log(response);
-    } catch (e) {
-      console.error(e);
-    }
+    await (async () => {
+      const provider = await q.provider().start();
+
+      CLEANUP.push(provider);
+
+      try {
+        const client = q.client<typeof app>(provider, namespace, address);
+        const response = await client();
+
+        if (response.data !== "Hello, world!") {
+          throw new Error(`Expected "Hello, world!", got ${response.data}`);
+        }
+
+        console.log(response.data);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
+    })();
   });
 
   it("minimal router example", async function () {
     this.timeout(10000);
 
-    try {
-      const appProvider = await q.provider().start();
+    const provider = await q.provider().start();
+    const namespace = "quiver-test-min";
+    const address = provider.address;
 
-      CLEANUP.push(() => appProvider.stop());
+    CLEANUP.push(provider);
 
-      const app = await q
-        .router({
-          a: q.function(() => "a"),
-          b: q.function(() => "b"),
-          c: q.function(() => "c"),
-        })
-        .app("quiver-test-min")
-        .listen();
+    const app = await q
+      .router({
+        a: q.function(() => "a"),
+        b: q.function(() => "b"),
+        c: q.function(() => "c"),
+      })
+      .app(namespace)
+      .listen(provider);
 
-      const clientProvider = await q.provider().start();
+    await (async () => {
+      const provider = await q.provider().start();
 
-      CLEANUP.push(() => clientProvider.stop());
+      CLEANUP.push(provider);
 
-      const client = q.client<typeof app>({
-        namespace: "quiver-test-min",
-        address: appProvider.signer.address,
-      });
+      try {
+        const client = q.client<typeof app>(provider, namespace, address);
+        const response = await client.a();
 
-      const response = await client.client().a();
+        if (response.data !== "a") {
+          throw new Error(`Expected "a", got ${response.data}`);
+        }
 
-      console.log(response);
-    } catch (e) {
-      console.error(e);
-    }
+        console.log(response.data);
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
+    })();
   });
 });

@@ -3,6 +3,7 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { Maybe } from "./util/Maybe.js";
 import { QuiverApp } from "./QuiverApp.js";
 import { QuiverContext } from "./QuiverContext.js";
+import { QuiverAppOptions } from "./QuiverAppOptions.js";
 
 export interface QuiverFunction<
   CtxIn,
@@ -19,5 +20,10 @@ export interface QuiverFunction<
 
   exec: Exec;
 
-  app: (namespace: string) => CtxIn extends QuiverContext ? QuiverApp : never;
+  app: (
+    namespace: string,
+    options?: QuiverAppOptions,
+  ) => CtxIn extends QuiverContext
+    ? QuiverApp<QuiverFunction<CtxIn, CtxOut, Exec>>
+    : never;
 }

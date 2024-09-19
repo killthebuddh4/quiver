@@ -1,6 +1,6 @@
-import { Message } from "../Message.js";
-import { Conversation } from "../Conversation.js";
-import { Signer } from "../util/Signer.js";
+import { Message } from "./Message.js";
+import { Conversation } from "./Conversation.js";
+import { Signer } from "./util/Signer.js";
 
 export type QuiverProviderOptions = {
   init?: {

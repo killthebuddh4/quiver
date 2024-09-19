@@ -315,6 +315,7 @@ Ok so we're at a nice v0. The middleware API is type-safe (haven't worked out th
   - proxy
   - ens
 - clean up the relationship between types/quiver/classes
+  - DONE, needs testing (check intellisense clarity)
 - update the README
 - add a system for notifying subscribers when parents fail
 

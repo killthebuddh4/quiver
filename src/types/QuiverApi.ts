@@ -11,7 +11,7 @@ export interface QuiverApi {
     exec: (ctx: CtxIn) => CtxOut,
   ) => QuiverMiddleware<CtxIn, CtxOut, never, never>;
 
-  client: <App extends QuiverApp>(server: {
+  client: <App extends QuiverApp<any>>(server: {
     namespace: string;
     address: string;
   }) => QuiverClient<App>;

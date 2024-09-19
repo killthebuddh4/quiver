@@ -4,6 +4,7 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { Maybe } from "./util/Maybe.js";
 import { QuiverContext } from "./QuiverContext.js";
 import { QuiverApp } from "./QuiverApp.js";
+import { QuiverAppOptions } from "./QuiverAppOptions.js";
 
 export interface QuiverRouter<
   CtxIn,
@@ -24,5 +25,10 @@ export interface QuiverRouter<
 
   compile: (path?: string[]) => QuiverPipeline[];
 
-  app: (namespace: string) => CtxIn extends QuiverContext ? QuiverApp : never;
+  app: (
+    namespace: string,
+    options?: QuiverAppOptions,
+  ) => CtxIn extends QuiverContext
+    ? QuiverApp<QuiverRouter<CtxIn, CtxOut, Routes>>
+    : never;
 }

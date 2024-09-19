@@ -1,7 +1,11 @@
 import { Maybe } from "../types/util/Maybe.js";
-import { QuiverError } from "../types/QuiverError.js";
+import { QuiverErrorResponse } from "../types/QuiverErrorResponse.js";
 
-export const parseQuiverError = (error: unknown): Maybe<QuiverError> => {
+export const parseQuiverError = (
+  error: unknown,
+): Maybe<QuiverErrorResponse> => {
+  // if it's a string we try to parse it as JSON, otherwise we assume it's
+  // already an object
   let json;
   if (typeof error === "string") {
     try {
@@ -89,14 +93,19 @@ const STATUSES = [
   "CLIENT_ERROR",
   "INPUT_SERIALIZATION_FAILED",
   "REQUEST_TIMEOUT",
-  "JSON_PARSE_FAILED",
-  "RESPONSE_PARSE_FAILED",
-  "UNKNOWN_REQUEST_ID",
+  "PARSE_RESPONSE_JSON_FAILED",
+  "PARSE_RESPONSE_FAILED",
+  "NO_REQUEST_FOR_RESPONSE",
   "OUTPUT_TYPE_MISMATCH",
   "SERVER_ERROR",
-  "REQUEST_PARSE_FAILED",
-  "UNKNOWN_FUNCTION",
+  "MIDDLEWARE_ERROR",
+  "HANDLER_ERROR",
+  "PARSE_REQUEST_JSON_FAILED",
+  "PARSE_REQUEST_FAILED",
+  "NO_FUNCTION_FOR_PATH",
   "INPUT_TYPE_MISMATCH",
+  // Note that right now we don't handle serialization errors very well. They
+  // end up being mostly silent.
   "OUTPUT_SERIALIZATION_FAILED",
   "UNAUTHORIZED",
 ];

@@ -5,6 +5,7 @@ import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverApp } from "../types/QuiverApp.js";
 import { createApp } from "./createApp.js";
+import { QuiverAppOptions } from "../types/QuiverAppOptions.js";
 
 export const createFunction = <
   CtxIn,
@@ -40,15 +41,22 @@ export const createFunction = <
 
   const app = (
     namespace: string,
-  ): CtxIn extends QuiverContext ? QuiverApp : never => {
-    return createApp(namespace, {
-      type,
-      exec,
-      app,
-      middleware,
-      route,
-      compile,
-    }) as any;
+    options?: QuiverAppOptions,
+  ): CtxIn extends QuiverContext
+    ? QuiverApp<QuiverFunction<CtxIn, CtxOut, Exec>>
+    : never => {
+    return createApp(
+      namespace,
+      {
+        type,
+        exec,
+        app,
+        middleware,
+        route,
+        compile,
+      },
+      options,
+    ) as any;
   };
 
   return { type, middleware, route, compile, exec, app };
