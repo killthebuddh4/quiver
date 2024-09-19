@@ -309,8 +309,10 @@ Ok so we're at a nice v0. The middleware API is type-safe (haven't worked out th
 - iron out the namespace + path stuff
   -  DONE, needs testing
 - debug the middleware system
+  - WIP, testing
 - test the start/stop functionality
 - write tests for each of the basic cases (function/router/function w/ middleware, etc)
+  - WIP, testing
 - write a couple useful middlewares
   - proxy
   - ens
