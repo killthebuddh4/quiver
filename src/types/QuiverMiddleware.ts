@@ -9,7 +9,13 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   extend: <Exec>(
     exec: ParallelExtension<CtxIn, CtxOut, Exec>,
   ) => QuiverMiddleware<
-    Resolve<Exec extends (ctx: infer I) => any ? I & CtxIn : never>,
+    Resolve<
+      Exec extends (ctx: infer I) => any
+        ? CtxIn extends undefined
+          ? I
+          : I & CtxIn
+        : never
+    >,
     Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
     CtxExitIn,
     CtxExitOut
@@ -19,7 +25,11 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     exec: SerialExtension<CtxOut, Exec>,
   ) => QuiverMiddleware<
     Resolve<
-      Exec extends (ctx: infer I) => any ? Omit<I, keyof CtxIn> & CtxIn : never
+      Exec extends (ctx: infer I) => any
+        ? CtxIn extends undefined
+          ? Omit<I, keyof CtxOut>
+          : Omit<I, keyof CtxIn> & CtxIn
+        : never
     >,
     Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
     CtxExitIn,

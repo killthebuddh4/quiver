@@ -7,6 +7,6 @@ import { RightOverlap } from "./RightOverlap.js";
 export type SerialInput<CtxOutMw, CtxInFn> =
   Extract<keyof CtxOutMw, keyof CtxInFn> extends never
     ? CtxInFn
-    : RightOverlap<CtxOutMw, CtxInFn> extends LeftOverlap<CtxOutMw, CtxInFn>
+    : LeftOverlap<CtxOutMw, CtxInFn> extends RightOverlap<CtxOutMw, CtxInFn>
       ? CtxInFn
       : never;

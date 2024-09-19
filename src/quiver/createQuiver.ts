@@ -11,6 +11,7 @@ import { createMiddleware } from "./createMiddleware.js";
 import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { QuiverProvider } from "../types/QuiverProvider.js";
+import { Resolve } from "../types/util/Resolve.js";
 
 export const createQuiver = () => {
   return {
@@ -32,8 +33,20 @@ export const createQuiver = () => {
       return createRouter<any, unknown, Routes>(middleware, routes);
     },
 
-    middleware: <CtxIn, CtxOut>(fn: (ctx: CtxIn) => CtxOut) => {
-      return createMiddleware([[fn]]);
+    /*
+     What are the cases we care about?
+
+    - middleware that has no input requirements
+    - middleware that has input requirements
+
+     */
+    middleware: <F extends (ctx: any) => any>(fn: F) => {
+      return createMiddleware<
+        Resolve<Parameters<typeof fn>[0]>,
+        Resolve<ReturnType<F>>,
+        any,
+        any
+      >([[fn]]);
     },
 
     client: <App extends QuiverApp<any>>(

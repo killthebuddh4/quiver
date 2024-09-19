@@ -10,7 +10,7 @@ import { QuiverFunction } from "../types/QuiverFunction.js";
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handlers: Array<Array<(ctx: any) => any>>,
 ): QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> => {
-  const extend = <F>(fn: ParallelExtension<CtxIn, CtxOut, F>) => {
+  const extend = <Exec>(fn: ParallelExtension<CtxIn, CtxOut, Exec>) => {
     if (handlers.length === 0) {
       throw new Error("Middleware instance should never have empty handlers");
     }
@@ -20,14 +20,20 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     next[next.length - 1].push(fn);
 
     return createMiddleware<
-      Resolve<F extends (ctx: infer I) => any ? I & CtxIn : never>,
-      Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
+      Resolve<
+        Exec extends (ctx: infer I) => any
+          ? CtxIn extends undefined
+            ? I
+            : I & CtxIn
+          : never
+      >,
+      Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
     >(next);
   };
 
-  const pipe = <F>(fn: SerialExtension<CtxOut, F>) => {
+  const pipe = <Exec>(fn: SerialExtension<CtxOut, Exec>) => {
     if (handlers.length === 0) {
       throw new Error("Middleware instance should never have empty handlers");
     }
@@ -38,9 +44,13 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
 
     return createMiddleware<
       Resolve<
-        F extends (ctx: infer I) => any ? Omit<I, keyof CtxIn> & CtxIn : never
+        Exec extends (ctx: infer I) => any
+          ? CtxIn extends undefined
+            ? Omit<I, keyof CtxOut>
+            : Omit<I, keyof CtxIn> & CtxIn
+          : never
       >,
-      Resolve<F extends (ctx: any) => infer O ? O & CtxOut : never>,
+      Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
     >(next);

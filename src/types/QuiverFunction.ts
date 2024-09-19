@@ -23,7 +23,7 @@ export interface QuiverFunction<
   app: (
     namespace: string,
     options?: QuiverAppOptions,
-  ) => CtxIn extends QuiverContext
+  ) => CtxIn extends QuiverContext | undefined
     ? QuiverApp<QuiverFunction<CtxIn, CtxOut, Exec>>
     : never;
 }

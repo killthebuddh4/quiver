@@ -12,11 +12,11 @@ import { ParallelOutput } from "./ParallelOutput.js";
 export type ParallelExtension<CtxInMw, CtxOutMw, F> = F extends (
   ctx: infer I,
 ) => infer O
-  ? O extends I
-    ? ParallelInput<CtxInMw, I> extends never
+  ? CtxInMw extends undefined
+    ? F
+    : ParallelInput<CtxInMw, I> extends never
       ? never
       : ParallelOutput<CtxOutMw, O> extends never
         ? never
         : F
-    : never
   : never;

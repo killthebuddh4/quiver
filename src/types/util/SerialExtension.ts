@@ -11,8 +11,8 @@ import { SerialInput } from "./SerialInput.js";
 
 export type SerialExtension<CtxOutMw, F> = F extends (
   ctx: infer CtxInFn,
-) => infer O
-  ? O extends CtxInFn
+) => infer FnOut
+  ? FnOut extends CtxInFn
     ? SerialInput<CtxOutMw, CtxInFn> extends never
       ? never
       : F
