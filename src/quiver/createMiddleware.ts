@@ -4,12 +4,17 @@ import { Resolve } from "../types/util/Resolve.js";
 import { createFunction } from "./createFunction.js";
 import { createRouter } from "./createRouter.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
+import { ParallelExtendedCtxIn } from "../types/util/ParallelExtendedCtxIn.js";
+import { ParallelExtendedCtxOut } from "../types/util/ParallelExtendedCtxOut.js";
+import { SerialExtendedCtxIn } from "../types/util/SerialExtendedCtxIn.js";
+import { SerialExtendedCtxOut } from "../types/util/SerialExtendedCtxOut.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handlers: Array<Array<(ctx: any) => any>>,
 ): QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> => {
+  const type = "QUIVER_MIDDLEWARE" as const;
+
   const extend = <Exec>(fn: ParallelExtension<CtxIn, CtxOut, Exec>) => {
     if (handlers.length === 0) {
       throw new Error("Middleware instance should never have empty handlers");
@@ -20,14 +25,8 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     next[next.length - 1].push(fn);
 
     return createMiddleware<
-      Resolve<
-        Exec extends (ctx: infer I) => any
-          ? CtxIn extends undefined
-            ? I
-            : I & CtxIn
-          : never
-      >,
-      Resolve<Exec extends (ctx: infer I) => infer O ? I & O & CtxOut : never>,
+      Resolve<ParallelExtendedCtxIn<CtxIn, Exec>>,
+      Resolve<ParallelExtendedCtxOut<CtxOut, Exec>>,
       CtxExitIn,
       CtxExitOut
     >(next);
@@ -43,17 +42,26 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     next.push([fn]);
 
     return createMiddleware<
-      Resolve<
-        Exec extends (ctx: infer I) => any
-          ? CtxIn extends undefined
-            ? Omit<I, keyof CtxOut>
-            : Omit<I, keyof CtxIn> & CtxIn
-          : never
-      >,
-      Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
+      Resolve<SerialExtendedCtxIn<CtxIn, CtxOut, Exec>>,
+      Resolve<SerialExtendedCtxOut<CtxOut, Exec>>,
       CtxExitIn,
       CtxExitOut
     >(next);
+  };
+
+  const _switch = <Branches extends { [key: string]: (ctx: CtxOut) => any }>(
+    branches: Branches,
+  ) => {
+    const mw = {} as { [key in keyof Branches]: any };
+
+    for (const key in branches) {
+      mw[key] = createMiddleware([[branches[key]]]);
+    }
+
+    return createRouter<CtxIn, CtxOut, { [key in keyof Branches]: any }>(
+      createMiddleware(handlers),
+      branches,
+    );
   };
 
   const exec = (ctx: CtxIn): CtxOut => {
@@ -81,17 +89,5 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return createFunction(createMiddleware(handlers), exec);
   };
 
-  const router = <
-    Routes extends {
-      [key: string]:
-        | QuiverFunction<CtxOut | undefined, any, any>
-        | QuiverRouter<CtxOut | undefined, any, any>;
-    },
-  >(
-    routes: Routes,
-  ): QuiverRouter<CtxIn, CtxOut, Routes> => {
-    return createRouter(createMiddleware(handlers), routes);
-  };
-
-  return { extend, pipe, exec, function: _function, router };
+  return { type, extend, pipe, exec, function: _function, router: _switch };
 };

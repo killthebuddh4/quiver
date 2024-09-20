@@ -1,123 +1,78 @@
 import { Maybe } from "../types/util/Maybe.js";
-import { createApp } from "./createApp.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { QuiverApp } from "../types/QuiverApp.js";
-import { QuiverFunction } from "../types/QuiverFunction.js";
-import { QuiverContext } from "../types/QuiverContext.js";
-import { QuiverAppOptions } from "../types/QuiverAppOptions.js";
 import { NewKey } from "../types/util/NewKey.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { SerialExtension } from "../types/util/SerialExtension.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
+import { createMiddleware } from "./createMiddleware.js";
+import { SerialExtendedCtxIn } from "../types/util/SerialExtendedCtxIn.js";
 
 export const createRouter = <
   CtxIn,
   CtxOut,
-  Routes extends
-    | {
-        [key: string]:
-          | QuiverFunction<any, any, any>
-          | QuiverRouter<any, any, any>;
-      }
-    | undefined,
+  Routes extends {
+    [key: string]:
+      | QuiverMiddleware<any, any, any, any>
+      | QuiverRouter<any, any, any>;
+  },
 >(
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
   routes: Routes,
 ): QuiverRouter<CtxIn, CtxOut, Routes> => {
-  const type = "QUIVER_ROUTER" as const;
+  const type = "QUIVER_SWITCH" as const;
 
-  const compile = (path?: string[]): QuiverMiddleware<any, any, any, any>[] => {
-    if (path === undefined) {
-      throw new Error("Path is undefined");
+  const next = (
+    path?: string[],
+  ): Maybe<
+    QuiverMiddleware<any, any, any, any> | QuiverRouter<any, any, any>
+  > => {
+    if (path === undefined || path.length === 0) {
+      return {
+        ok: false,
+        code: "FUNCTION_NOT_FOUND",
+      };
     }
 
-    if (path.length === 0) {
-      throw new Error("Path is empty");
+    const nxt = routes[path[0]];
+
+    if (nxt === undefined) {
+      return {
+        ok: false,
+        code: "FUNCTION_NOT_FOUND",
+      };
     }
 
-    if (routes === undefined) {
-      throw new Error("Routes is undefined");
+    if (nxt.type === "QUIVER_MIDDLEWARE") {
+      if (path.length > 1) {
+        return {
+          ok: false,
+          code: "FUNCTION_NOT_FOUND",
+        };
+      }
+
+      return {
+        ok: true,
+        value: nxt,
+      };
     }
 
-    const route = routes[path[0]];
-
-    if (route === undefined) {
-      throw new Error(`Route not found ${path[0]}`);
-    }
-
-    const next = route.compile(path.slice(1));
-
-    return [middleware, ...next];
+    return nxt.next(path.slice(1));
   };
 
-  const route = (path: string[]): Maybe<(i: any, ctx: any) => any> => {
-    if (path.length === 0) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    if (routes === undefined) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    const route = routes[path[0]];
-
-    if (route === undefined) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    return route.route(path.slice(1));
-  };
-
-  const pipe: QuiverRouter<CtxIn, CtxOut, Routes>["pipe"] = <Exec>(
-    path: Routes extends undefined ? string : NewKey<Routes>,
-    route: SerialExtension<CtxOut, Exec>,
+  const use = <Exec>(
+    path: NewKey<Routes>,
+    fn: SerialExtension<CtxOut, Exec>,
   ) => {
-    const next = routes === undefined ? {} : { ...routes };
+    const route = createMiddleware<CtxOut, any, any, any>([[fn]]);
 
-    (next as any)[path] = route;
+    (routes as any)[path] = route;
 
     return createRouter<
-      Resolve<
-        Exec extends (ctx: infer I) => any
-          ? CtxIn extends undefined
-            ? Omit<I, keyof CtxOut>
-            : Omit<I, keyof CtxIn> & CtxIn
-          : never
-      >,
+      Resolve<SerialExtendedCtxIn<CtxIn, CtxOut, Exec>>,
       CtxOut,
-      Routes & { [key in string]: Exec }
+      Routes & { [key in string]: typeof route }
     >(middleware as any, routes as any) as any;
   };
 
-  const app = (
-    namespace: string,
-    options?: QuiverAppOptions,
-  ): CtxIn extends QuiverContext
-    ? QuiverApp<QuiverRouter<CtxIn, CtxOut, Routes>>
-    : never => {
-    return createApp(
-      namespace,
-      {
-        type,
-        middleware,
-        pipe,
-        routes,
-        compile,
-        route,
-        app,
-      } as any,
-      options,
-    ) as any;
-  };
-
-  return { type, pipe, middleware, routes, compile, route, app };
+  return { type, middleware, routes, next, use };
 };

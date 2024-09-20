@@ -312,7 +312,7 @@ describe("Quiver", () => {
 
   /* *************************************************************************
    *
-   * ROUTERS
+   * SWITCHES
    *
    * ************************************************************************/
 
@@ -321,7 +321,9 @@ describe("Quiver", () => {
       return { user: "test-user-1" };
     });
 
-    const router = q.router(mw);
+    const router = q.router("a", (ctx) => {
+      return ctx.user;
+    });
 
     router
       .pipe("a", () => {})

@@ -1,4 +1,3 @@
-import { createFunction } from "./createFunction.js";
 import { QuiverProviderOptions } from "../types/QuiverProviderOptions.js";
 import { setProvider } from "../provider/setProvider.js";
 import { createClient } from "./createClient.js";
@@ -10,32 +9,22 @@ import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { QuiverProvider } from "../types/QuiverProvider.js";
 import { Resolve } from "../types/util/Resolve.js";
+import { createFunction } from "./createFunction.js";
 import { QuiverContext } from "../types/QuiverContext.js";
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
 export const createQuiver = () => {
   return {
-    // TODO, ctx: QuiverContext should be allowed here
-    function: <Exec extends (i: any, ctx: QuiverContext) => any>(
-      exec: Exec,
-    ) => {
-      const middleware = createMiddleware<undefined, QuiverContext, any, any>([
-        [(ctx: any) => ctx],
-      ]);
-      return createFunction<undefined, QuiverContext, Exec>(middleware, exec);
+    router: <Exec extends (ctx: any) => any>(exec: Exec) => {
+      const middleware = createMiddleware<
+        Resolve<Parameters<typeof exec>[0]>,
+        Resolve<ReturnType<Exec>>,
+        any,
+        any
+      >([[exec]]);
+
+      return createRouter(middleware, {});
     },
 
-    router: <CtxIn, CtxOut>(mw: QuiverMiddleware<CtxIn, CtxOut, any, any>) => {
-      return createRouter<CtxIn, CtxOut, undefined>(mw, undefined);
-    },
-
-    /*
-     What are the cases we care about?
-
-    - middleware that has no input requirements
-    - middleware that has input requirements
-
-     */
     middleware: <F extends (ctx: any) => any>(fn: F) => {
       return createMiddleware<
         Resolve<Parameters<typeof fn>[0]>,
@@ -43,6 +32,16 @@ export const createQuiver = () => {
         any,
         any
       >([[fn]]);
+    },
+
+    function: <Exec extends (i: any, ctx: QuiverContext) => any>(
+      exec: Exec,
+    ) => {
+      const middleware = createMiddleware<undefined, any, any, any>([
+        [(ctx: any) => ctx],
+      ]);
+
+      return createFunction(middleware, exec);
     },
 
     client: <App extends QuiverApp<any>>(

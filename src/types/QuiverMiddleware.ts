@@ -3,19 +3,19 @@ import { SerialExtension } from "./util/SerialExtension.js";
 import { Resolve } from "./util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
+import { ParallelExtendedCtxIn } from "./util/ParallelExtendedCtxIn.js";
+import { ParallelExtendedCtxOut } from "./util/ParallelExtendedCtxOut.js";
+import { SerialExtendedCtxIn } from "./util/SerialExtendedCtxIn.js";
+import { SerialExtendedCtxOut } from "./util/SerialExtendedCtxOut.js";
 
 export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
+  type: "QUIVER_MIDDLEWARE";
+
   extend: <Exec>(
     exec: ParallelExtension<CtxIn, CtxOut, Exec>,
   ) => QuiverMiddleware<
-    Resolve<
-      Exec extends (ctx: infer I) => any
-        ? CtxIn extends undefined
-          ? I
-          : I & CtxIn
-        : never
-    >,
-    Resolve<Exec extends (ctx: infer I) => infer O ? I & O & CtxOut : never>,
+    Resolve<ParallelExtendedCtxIn<CtxIn, Exec>>,
+    Resolve<ParallelExtendedCtxOut<CtxOut, Exec>>,
     CtxExitIn,
     CtxExitOut
   >;
@@ -23,31 +23,23 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   pipe: <Exec>(
     exec: SerialExtension<CtxOut, Exec>,
   ) => QuiverMiddleware<
-    Resolve<
-      Exec extends (ctx: infer I) => any
-        ? CtxIn extends undefined
-          ? Omit<I, keyof CtxOut>
-          : Omit<I, keyof CtxIn> & CtxIn
-        : never
-    >,
-    Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
+    Resolve<SerialExtendedCtxIn<CtxIn, CtxOut, Exec>>,
+    Resolve<SerialExtendedCtxOut<CtxOut, Exec>>,
     CtxExitIn,
     CtxExitOut
   >;
+
+  router: <
+    Routes extends {
+      [key: string]: (ctx: CtxOut) => any;
+    },
+  >(
+    routes: Routes,
+  ) => QuiverRouter<CtxIn, CtxOut, { [key in keyof Routes]: any }>;
 
   exec: (ctx: CtxIn) => CtxOut;
 
   function: <Exec extends (i: any, ctx: CtxOut) => any>(
     exec: Exec,
   ) => QuiverFunction<CtxIn, CtxOut, Exec>;
-
-  router: <
-    R extends {
-      [key: string]:
-        | QuiverRouter<CtxOut | undefined, any, any>
-        | QuiverFunction<CtxOut | undefined, any, any>;
-    },
-  >(
-    routes: R,
-  ) => QuiverRouter<CtxIn, CtxOut, R>;
 }

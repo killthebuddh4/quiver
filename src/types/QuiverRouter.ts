@@ -1,9 +1,5 @@
-import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { Maybe } from "./util/Maybe.js";
-import { QuiverContext } from "./QuiverContext.js";
-import { QuiverApp } from "./QuiverApp.js";
-import { QuiverAppOptions } from "./QuiverAppOptions.js";
 import { NewKey } from "./util/NewKey.js";
 import { Resolve } from "./util/Resolve.js";
 import { SerialExtension } from "./util/SerialExtension.js";
@@ -14,22 +10,24 @@ export interface QuiverRouter<
   Routes extends
     | {
         [key: string]:
-          | QuiverFunction<CtxOut, any, any>
+          | QuiverMiddleware<CtxOut, any, any, any>
           | QuiverRouter<CtxOut, any, any>;
       }
     | undefined,
 > {
-  type: "QUIVER_ROUTER";
+  type: "QUIVER_SWITCH";
 
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
 
   routes: Routes;
 
-  route: (path: string[]) => Maybe<(i: any, ctx: any) => any>;
+  next: (
+    path?: string[],
+  ) => Maybe<
+    QuiverMiddleware<any, any, any, any> | QuiverRouter<any, any, any>
+  >;
 
-  compile: (path?: string[]) => QuiverMiddleware<any, any, any, any>[];
-
-  pipe: <Exec>(
+  use: <Exec>(
     path: Routes extends undefined ? string : NewKey<Routes>,
     exec: SerialExtension<CtxOut, Exec>,
   ) => QuiverRouter<
@@ -41,13 +39,8 @@ export interface QuiverRouter<
         : never
     >,
     Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
-    Routes & { [key in string]: Exec }
+    Routes extends undefined
+      ? { [key in typeof path]: any }
+      : Routes & { [key in typeof path]: any }
   >;
-
-  app: (
-    namespace: string,
-    options?: QuiverAppOptions,
-  ) => CtxIn extends QuiverContext
-    ? QuiverApp<QuiverRouter<CtxIn, CtxOut, Routes>>
-    : never;
 }
