@@ -220,28 +220,7 @@ export const createApp = <
         const middlewares = state.server.compile(ctx.url.path);
 
         for (const middleware of middlewares) {
-          for (const stage of middleware) {
-            let stageCtxIn: any = ctx;
-            let stageCtxOut: any = ctx;
-
-            for (const handler of stage) {
-              try {
-                stageCtxOut = await handler(stageCtxIn);
-              } catch {
-                ctx.throw = {
-                  code: "MIDDLEWARE_ERROR",
-                };
-
-                break inner;
-              }
-
-              if (ctx.exit || ctx.throw || ctx.return) {
-                break inner;
-              }
-            }
-
-            ctx = stageCtxOut;
-          }
+          ctx = await middleware.exec(ctx);
         }
 
         state.options?.logs?.onAppliedMiddleware?.(ctx);

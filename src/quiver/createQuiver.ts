@@ -1,36 +1,32 @@
 import { createFunction } from "./createFunction.js";
 import { QuiverProviderOptions } from "../types/QuiverProviderOptions.js";
 import { setProvider } from "../provider/setProvider.js";
-import { QuiverFunction } from "../types/QuiverFunction.js";
 import { createClient } from "./createClient.js";
 import { createProvider } from "./createProvider.js";
 import { createRouter } from "./createRouter.js";
-import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverApp } from "../types/QuiverApp.js";
 import { createMiddleware } from "./createMiddleware.js";
 import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { QuiverProvider } from "../types/QuiverProvider.js";
 import { Resolve } from "../types/util/Resolve.js";
+import { QuiverContext } from "../types/QuiverContext.js";
+import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
 export const createQuiver = () => {
   return {
-    function: <Exec extends (...args: any[]) => any>(fn: Exec) => {
-      const middleware = createMiddleware([[(ctx: any) => ctx]]);
-      return createFunction<any, unknown, Exec>(middleware, fn);
+    // TODO, ctx: QuiverContext should be allowed here
+    function: <Exec extends (i: any, ctx: QuiverContext) => any>(
+      exec: Exec,
+    ) => {
+      const middleware = createMiddleware<undefined, QuiverContext, any, any>([
+        [(ctx: any) => ctx],
+      ]);
+      return createFunction<undefined, QuiverContext, Exec>(middleware, exec);
     },
 
-    router: <
-      Routes extends {
-        [key: string]:
-          | QuiverFunction<any, any, any>
-          | QuiverRouter<any, any, any>;
-      },
-    >(
-      routes: Routes,
-    ) => {
-      const middleware = createMiddleware([[(ctx: any) => ctx]]);
-      return createRouter<any, unknown, Routes>(middleware, routes);
+    router: <CtxIn, CtxOut>(mw: QuiverMiddleware<CtxIn, CtxOut, any, any>) => {
+      return createRouter<CtxIn, CtxOut, undefined>(mw, undefined);
     },
 
     /*

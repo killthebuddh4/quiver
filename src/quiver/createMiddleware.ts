@@ -27,7 +27,7 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
             : I & CtxIn
           : never
       >,
-      Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
+      Resolve<Exec extends (ctx: infer I) => infer O ? I & O & CtxOut : never>,
       CtxExitIn,
       CtxExitOut
     >(next);
@@ -56,18 +56,17 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     >(next);
   };
 
-  const compile = () => {
-    return handlers;
-  };
-
-  const exec = (ctx: CtxIn) => {
+  const exec = (ctx: CtxIn): CtxOut => {
     let final: any = ctx;
 
     for (const stage of handlers) {
       let intermediate: any = final;
 
       for (const handler of stage) {
-        intermediate = handler(final);
+        intermediate = {
+          ...intermediate,
+          ...handler(final),
+        };
       }
 
       final = intermediate;
@@ -76,17 +75,17 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return final;
   };
 
-  const _function = <Exec extends (...args: any[]) => any>(
-    fn: Exec,
+  const _function = <Exec extends (i: any, ctx: CtxOut) => any>(
+    exec: Exec,
   ): QuiverFunction<CtxIn, CtxOut, Exec> => {
-    return createFunction(createMiddleware(handlers), fn);
+    return createFunction(createMiddleware(handlers), exec);
   };
 
   const router = <
     Routes extends {
       [key: string]:
-        | QuiverFunction<CtxOut, any, any>
-        | QuiverRouter<CtxOut, any, any>;
+        | QuiverFunction<CtxOut | undefined, any, any>
+        | QuiverRouter<CtxOut | undefined, any, any>;
     },
   >(
     routes: Routes,
@@ -94,5 +93,5 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return createRouter(createMiddleware(handlers), routes);
   };
 
-  return { extend, pipe, compile, exec, function: _function, router };
+  return { extend, pipe, exec, function: _function, router };
 };

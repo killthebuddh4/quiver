@@ -3,7 +3,6 @@ import { SerialExtension } from "./util/SerialExtension.js";
 import { Resolve } from "./util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { QuiverPipeline } from "./QuiverPipeline.js";
 
 export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   extend: <Exec>(
@@ -16,7 +15,7 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
           : I & CtxIn
         : never
     >,
-    Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
+    Resolve<Exec extends (ctx: infer I) => infer O ? I & O & CtxOut : never>,
     CtxExitIn,
     CtxExitOut
   >;
@@ -36,19 +35,17 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     CtxExitOut
   >;
 
-  compile: () => QuiverPipeline;
-
   exec: (ctx: CtxIn) => CtxOut;
 
-  function: <Exec extends (...args: any[]) => any>(
+  function: <Exec extends (i: any, ctx: CtxOut) => any>(
     exec: Exec,
   ) => QuiverFunction<CtxIn, CtxOut, Exec>;
 
   router: <
     R extends {
       [key: string]:
-        | QuiverRouter<CtxOut, any, any>
-        | QuiverFunction<CtxOut, any, any>;
+        | QuiverRouter<CtxOut | undefined, any, any>
+        | QuiverFunction<CtxOut | undefined, any, any>;
     },
   >(
     routes: R,

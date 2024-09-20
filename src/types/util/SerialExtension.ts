@@ -9,12 +9,8 @@ import { SerialInput } from "./SerialInput.js";
 // output of the previous function. We allow this by extending the input type.
 // Upstream middleware will then need to provide the values for these keys.
 
-export type SerialExtension<CtxOutMw, F> = F extends (
-  ctx: infer CtxInFn,
-) => infer FnOut
-  ? FnOut extends CtxInFn
-    ? SerialInput<CtxOutMw, CtxInFn> extends never
-      ? never
-      : F
-    : never
+export type SerialExtension<CtxOutMw, F> = F extends (ctx: infer CtxInFn) => any
+  ? SerialInput<CtxOutMw, CtxInFn> extends never
+    ? never
+    : F
   : never;

@@ -1,4 +1,3 @@
-import { QuiverPipeline } from "../types/QuiverPipeline.js";
 import { Maybe } from "../types/util/Maybe.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
@@ -10,19 +9,19 @@ import { QuiverAppOptions } from "../types/QuiverAppOptions.js";
 export const createFunction = <
   CtxIn,
   CtxOut,
-  Exec extends (...args: any[]) => any,
+  Exec extends (i: any, ctx: CtxOut) => any,
 >(
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
   exec: Exec,
 ): QuiverFunction<CtxIn, CtxOut, Exec> => {
   const type = "QUIVER_FUNCTION" as const;
 
-  const compile = (path?: string[]): QuiverPipeline[] => {
+  const compile = (path?: string[]): QuiverMiddleware<any, any, any, any>[] => {
     if (path !== undefined && path.length > 0) {
       throw new Error("QuiverFunction.compile() does not take any arguments");
     }
 
-    return [middleware.compile()];
+    return [middleware];
   };
 
   const route = (path?: string[]): Maybe<(i: any, ctx: any) => any> => {
@@ -42,7 +41,7 @@ export const createFunction = <
   const app = (
     namespace: string,
     options?: QuiverAppOptions,
-  ): CtxIn extends QuiverContext
+  ): CtxIn extends QuiverContext | undefined
     ? QuiverApp<QuiverFunction<CtxIn, CtxOut, Exec>>
     : never => {
     return createApp(
