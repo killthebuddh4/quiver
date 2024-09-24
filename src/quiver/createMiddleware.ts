@@ -1,5 +1,5 @@
 import { ParallelExtension } from "../types/util/ParallelExtension.js";
-import { SerialExtension } from "../types/util/SerialExtension.js";
+import { PipeableMw } from "../types/pipe/PipeableMw.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { createFunction } from "./createFunction.js";
 import { createRouter } from "./createRouter.js";
@@ -7,8 +7,8 @@ import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { ParallelExtendedCtxIn } from "../types/util/ParallelExtendedCtxIn.js";
 import { ParallelExtendedCtxOut } from "../types/util/ParallelExtendedCtxOut.js";
-import { SerialExtendedCtxIn } from "../types/util/SerialExtendedCtxIn.js";
-import { SerialExtendedCtxOut } from "../types/util/SerialExtendedCtxOut.js";
+import { PipedCtxIn } from "../types/pipe/PipedCtxIn.js";
+import { PipedCtxOut } from "../types/pipe/PipedCtxOut.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handlers: Array<Array<(ctx: any) => any>>,
@@ -32,35 +32,42 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     >(next);
   };
 
-  const pipe = <Exec>(fn: SerialExtension<CtxOut, Exec>) => {
+  const pipe = <Exec>(fn: PipeableMw<CtxOut, Exec>) => {
     if (handlers.length === 0) {
       throw new Error("Middleware instance should never have empty handlers");
     }
 
     const next = handlers.map((stage) => stage.map((handler) => handler));
 
-    next.push([fn]);
+    next.push([fn.exec]);
 
     return createMiddleware<
-      Resolve<SerialExtendedCtxIn<CtxIn, CtxOut, Exec>>,
-      Resolve<SerialExtendedCtxOut<CtxOut, Exec>>,
+      Resolve<
+        PipedCtxIn<
+          CtxIn,
+          CtxOut,
+          Exec extends QuiverMiddleware<infer CtxInNext, any, any, any>
+            ? CtxInNext
+            : never
+        >
+      >,
+      Resolve<
+        PipedCtxOut<
+          CtxOut,
+          Exec extends QuiverMiddleware<any, infer CtxOutNext, any, any>
+            ? CtxOutNext
+            : never
+        >
+      >,
       CtxExitIn,
       CtxExitOut
     >(next);
   };
 
-  const _switch = <Branches extends { [key: string]: (ctx: CtxOut) => any }>(
-    branches: Branches,
-  ) => {
-    const mw = {} as { [key in keyof Branches]: any };
-
-    for (const key in branches) {
-      mw[key] = createMiddleware([[branches[key]]]);
-    }
-
-    return createRouter<CtxIn, CtxOut, { [key in keyof Branches]: any }>(
+  const router = () => {
+    return createRouter<CtxIn, CtxOut, Record<never, any>>(
       createMiddleware(handlers),
-      branches,
+      {},
     );
   };
 
@@ -89,5 +96,5 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return createFunction(createMiddleware(handlers), exec);
   };
 
-  return { type, extend, pipe, exec, function: _function, router: _switch };
+  return { type, extend, pipe, exec, function: _function, router };
 };

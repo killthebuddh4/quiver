@@ -1,12 +1,12 @@
 import { ParallelExtension } from "./util/ParallelExtension.js";
-import { SerialExtension } from "./util/SerialExtension.js";
+import { PipeableMw } from "./pipe/PipeableMw.js";
 import { Resolve } from "./util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
 import { ParallelExtendedCtxIn } from "./util/ParallelExtendedCtxIn.js";
 import { ParallelExtendedCtxOut } from "./util/ParallelExtendedCtxOut.js";
-import { SerialExtendedCtxIn } from "./util/SerialExtendedCtxIn.js";
-import { SerialExtendedCtxOut } from "./util/SerialExtendedCtxOut.js";
+import { PipedCtxIn } from "./pipe/PipedCtxIn.js";
+import { PipedCtxOut } from "./pipe/PipedCtxOut.js";
 
 export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   type: "QUIVER_MIDDLEWARE";
@@ -20,22 +20,31 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     CtxExitOut
   >;
 
-  pipe: <Exec>(
-    exec: SerialExtension<CtxOut, Exec>,
+  pipe: <Next>(
+    nxt: PipeableMw<CtxOut, Next>,
   ) => QuiverMiddleware<
-    Resolve<SerialExtendedCtxIn<CtxIn, CtxOut, Exec>>,
-    Resolve<SerialExtendedCtxOut<CtxOut, Exec>>,
+    Resolve<
+      PipedCtxIn<
+        CtxIn,
+        CtxOut,
+        Next extends QuiverMiddleware<infer CtxInNext, any, any, any>
+          ? CtxInNext
+          : never
+      >
+    >,
+    Resolve<
+      PipedCtxOut<
+        CtxOut,
+        Next extends QuiverMiddleware<any, infer CtxOutNext, any, any>
+          ? CtxOutNext
+          : never
+      >
+    >,
     CtxExitIn,
     CtxExitOut
   >;
 
-  router: <
-    Routes extends {
-      [key: string]: (ctx: CtxOut) => any;
-    },
-  >(
-    routes: Routes,
-  ) => QuiverRouter<CtxIn, CtxOut, { [key in keyof Routes]: any }>;
+  router: () => QuiverRouter<CtxIn, CtxOut, Record<never, any>>;
 
   exec: (ctx: CtxIn) => CtxOut;
 

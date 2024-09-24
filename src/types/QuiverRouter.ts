@@ -2,18 +2,16 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { Maybe } from "./util/Maybe.js";
 import { NewKey } from "./util/NewKey.js";
 import { Resolve } from "./util/Resolve.js";
-import { SerialExtension } from "./util/SerialExtension.js";
+import { PipeableRoute } from "./pipe/PipeableRoute.js";
+import { PipedCtxIn } from "./pipe/PipedCtxIn.js";
+import { QuiverFunction } from "./QuiverFunction.js";
 
 export interface QuiverRouter<
   CtxIn,
   CtxOut,
-  Routes extends
-    | {
-        [key: string]:
-          | QuiverMiddleware<CtxOut, any, any, any>
-          | QuiverRouter<CtxOut, any, any>;
-      }
-    | undefined,
+  Routes extends {
+    [key: string]: QuiverRouter<any, any, any> | QuiverFunction<any, any, any>;
+  },
 > {
   type: "QUIVER_SWITCH";
 
@@ -27,20 +25,25 @@ export interface QuiverRouter<
     QuiverMiddleware<any, any, any, any> | QuiverRouter<any, any, any>
   >;
 
-  use: <Exec>(
-    path: Routes extends undefined ? string : NewKey<Routes>,
-    exec: SerialExtension<CtxOut, Exec>,
+  use: <P extends string, Next>(
+    path: keyof Routes extends never ? P : NewKey<Routes>,
+    nxt: PipeableRoute<CtxOut, Next>,
   ) => QuiverRouter<
+    Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<Next>>>,
+    CtxOut,
     Resolve<
-      Exec extends (ctx: infer I) => any
-        ? CtxIn extends undefined
-          ? Omit<I, keyof CtxOut>
-          : Omit<I, keyof CtxIn> & CtxIn
-        : never
-    >,
-    Resolve<Exec extends (ctx: any) => infer O ? O & CtxOut : never>,
-    Routes extends undefined
-      ? { [key in typeof path]: any }
-      : Routes & { [key in typeof path]: any }
+      Routes & {
+        [key in typeof path]:
+          | QuiverFunction<any, any, any>
+          | QuiverRouter<any, any, any>;
+      }
+    >
   >;
 }
+
+type NextCtxIn<Next> =
+  Next extends QuiverRouter<infer CtxIn, any, any>
+    ? CtxIn
+    : Next extends QuiverFunction<infer CtxIn, any, any>
+      ? CtxIn
+      : never;

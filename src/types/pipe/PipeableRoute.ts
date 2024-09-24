@@ -1,4 +1,6 @@
-import { SerialInput } from "./SerialInput.js";
+import { PipeableCtxIn } from "./PipeableCtxIn.js";
+import { QuiverRouter } from "../QuiverRouter.js";
+import { QuiverFunction } from "../QuiverFunction.js";
 
 // Serial functions with overlapping output -> input keys must have compatible
 // types for the overlapping keys. The overlapping keys are compatible according
@@ -9,8 +11,13 @@ import { SerialInput } from "./SerialInput.js";
 // output of the previous function. We allow this by extending the input type.
 // Upstream middleware will then need to provide the values for these keys.
 
-export type SerialExtension<CtxOutMw, F> = F extends (ctx: infer CtxInFn) => any
-  ? SerialInput<CtxOutMw, CtxInFn> extends never
-    ? never
-    : F
-  : never;
+export type PipeableRoute<CtxOutMw, Next> =
+  Next extends QuiverRouter<infer CtxInNext, any, any>
+    ? PipeableCtxIn<CtxOutMw, CtxInNext> extends never
+      ? never
+      : Next
+    : Next extends QuiverFunction<infer CtxInNext, any, any>
+      ? PipeableCtxIn<CtxOutMw, CtxInNext> extends never
+        ? never
+        : Next
+      : never;
