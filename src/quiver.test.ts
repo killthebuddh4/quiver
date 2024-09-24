@@ -22,63 +22,6 @@ describe("Quiver", () => {
 
   /* *************************************************************************
    *
-   * MIDDLEWARE EXECUTION
-   *
-   * ************************************************************************/
-
-  it.only("middleware execution works as expected", async function () {
-    const mw0 = q.middleware(() => {
-      return { user: "test-user-1" };
-    });
-
-    const mw1 = q.middleware((ctx: { user: string }) => {
-      return ctx;
-    });
-
-    const mw2 = q.middleware((ctx: { user: string }) => {
-      return { ...ctx, pass: "test-pass-1" };
-    });
-
-    const app = mw0
-      .router()
-      .use(
-        "mw1",
-        mw1.function(() => null),
-      )
-      .use(
-        "mw2",
-        mw2.function(() => null),
-      );
-
-    const e0 = exec(app, ["mw1"], {} as QuiverContext);
-
-    console.log(e0);
-
-    const e1 = exec(app, ["mw2"], {} as QuiverContext);
-
-    console.log(e1);
-
-    const mw3 = q.middleware((ctx: { user: string; pass: string }) => {
-      return {
-        ...ctx,
-        authed: true,
-      };
-    });
-
-    const nested = mw2.router().use(
-      "mw3",
-      mw3.function(() => null),
-    );
-
-    const app2 = mw0.router().use("mw2", nested);
-
-    const e2 = exec(app2, ["mw2", "mw3"], {} as QuiverContext);
-
-    console.log(e2);
-  });
-
-  /* *************************************************************************
-   *
    * ROUTER
    *
    * ************************************************************************/
@@ -259,22 +202,119 @@ describe("Quiver", () => {
    *
    * ************************************************************************/
 
+  describe("pipe with disjoint inputs, minimal", () => {
+    const lhs = q.middleware((ctx: { y: string }) => {
+      return ctx;
+    });
+
+    const rhs = lhs.pipe(q.middleware((ctx: { x: string }) => ctx));
+
+    it("types work as expected", async function () {
+      type ctxin = Expect<Equal<MwCtxIn<typeof rhs>, { y: string; x: string }>>;
+      type ctxout = Expect<
+        Equal<MwCtxOut<typeof rhs>, { y: string; x: string }>
+      >;
+    });
+
+    it("exec works as expected", async function () {
+      const ret = await exec(
+        rhs.function(() => null),
+        [],
+        { y: "y", x: "x" },
+      );
+
+      if (ret.x !== "x") {
+        throw new Error(`Expected x to be "x", got ${ret.x}`);
+      }
+
+      if (ret.y !== "y") {
+        throw new Error(`Expected y to be "y", got ${ret.y}`);
+      }
+
+      console.log("ret", ret);
+    });
+  });
+
+  describe("pipe with disjoint inputs and external pass-through", () => {
+    const lhs = q.middleware((ctx: { y: string }) => {
+      return ctx;
+    });
+
+    const rhs = lhs.pipe(q.middleware((ctx: { x: string }) => ctx));
+
+    it("types work as expected", async function () {
+      type ctxin = Expect<Equal<MwCtxIn<typeof rhs>, { y: string; x: string }>>;
+      type ctxout = Expect<
+        Equal<MwCtxOut<typeof rhs>, { y: string; x: string }>
+      >;
+    });
+
+    it("exec works as expected", async function () {
+      const ret = await exec(
+        rhs.function(() => null),
+        [],
+        { z: "z", y: "y", x: "x" },
+      );
+
+      if (ret.x !== "x") {
+        throw new Error(`Expected x to be "x", got ${ret.x}`);
+      }
+
+      if (ret.y !== "y") {
+        throw new Error(`Expected y to be "y", got ${ret.y}`);
+      }
+
+      if (ret.z !== "z") {
+        throw new Error(`Expected z to be "z", got ${ret.z}`);
+      }
+
+      console.log("ret", ret);
+    });
+  });
+
+  describe("pipe with output -> input overlap", () => {
+    const lhs = q.middleware((ctx: { y: string }) => {
+      return ctx;
+    });
+
+    const rhs = lhs.pipe(q.middleware((ctx: { x: string }) => ctx));
+
+    it("types work as expected", async function () {
+      type ctxin = Expect<Equal<MwCtxIn<typeof rhs>, { y: string; x: string }>>;
+      type ctxout = Expect<
+        Equal<MwCtxOut<typeof rhs>, { y: string; x: string }>
+      >;
+    });
+
+    it("exec works as expected", async function () {
+      const ret = await exec(
+        rhs.function(() => null),
+        [],
+        { z: "z", y: "y", x: "x" },
+      );
+
+      if (ret.x !== "x") {
+        throw new Error(`Expected x to be "x", got ${ret.x}`);
+      }
+
+      if (ret.y !== "y") {
+        throw new Error(`Expected y to be "y", got ${ret.y}`);
+      }
+
+      if (ret.z !== "z") {
+        throw new Error(`Expected z to be "z", got ${ret.z}`);
+      }
+
+      console.log("ret", ret);
+    });
+  });
+
   it("pipe typing works as expected", async function () {
     const lhs = q.middleware((ctx: { y: string | null }) => {
       return { ...ctx, k: 100 };
     });
 
     /* Disjoint inputs */
-
-    const a = lhs.pipe(q.middleware((ctx: { x: string }) => ctx));
-
-    type actxin = Expect<
-      Equal<MwCtxIn<typeof a>, { y: string | null; x: string }>
-    >;
-
-    type actxout = Expect<
-      Equal<MwCtxOut<typeof a>, { y: string | null; x: string; k: number }>
-    >;
 
     /* LHS output extends RHS input */
 

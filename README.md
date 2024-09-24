@@ -114,7 +114,7 @@ Check out these runnable examples:
 - Hello, world!
 - Using quiver with [React](https://react.dev)
 - ENS authentication
-- Peer-to-peer, serverless Chess
+- Peer-to-peer, serverless Tic-Tac-Toe
 - Type-Safety
 
 If you have a use-case in mind, and are wondering how it might work, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
@@ -133,201 +133,75 @@ If you have a use-case in mind, and are wondering how it might work, don't hesit
 
 ## Middleware
 
-A middleware should be able to:
-
-- return
-- throw
-- exit
-- mutate
-
-Quiver (router)
-
-- middleware
-- message
-- check the path
-- check the json
-- check the request
-- middleware
-- pass to router
-- middleware
-- pass to function
-- middleware
-- parse inputs
-- call handler
-- return value
-- publish value
-
-Function
-
-- parse input
-- create context
-- call function
-
-Client
-
-- send request
-- set handler
-- wait for inbound
-- inbound
-- get response resolver
-- parse output
-- return value
-
-Send
-
-- serialize output
-- sent response
-
-[A, B] -> C
-
-[D, E] -> B
-
-A -> B -> C
-
-quiver.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-quiver.after(
-  "target",
-  "name",
-  handler,
-)
-
-quiver.throw.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-quiver.return.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-quiver.exit.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-quiver.router.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-quiver.send.use(
-  "target",
-  "event",
-  "name",
-  handler
-)
-
-
-
-
-
-quiver.throw.before(
-  "target",
-  "name",
-  handler
-)
-
-quiver.return.before(
-  "target",
-  "name",
-  handler
-)
-
-router.use(
-  "name",
-  "target",
-  "event",
-  handler,
-)
-
-router.use(
-  "name",
-  "target",
-  "event",
-  handler,
-)
-
-
-
-router.trace(
-  router.hooks,
-  router.events,
-  ctx => {
-  }
-)
-
-router.hooks.replace(
-  "target",
-  "name",
-)
-
-
-QM => Ctx | Return | Throw
-
-
-
-
-
-
-
-
-
-
-
-
 ## How does it work?
 
 `Quiver` is built on top of the superb [XMTP](https://xmtp.org) messaging protocol. XMTP provides out-of-the-box end-to-end encrypted messaging.
 
 ## Roadmap
 
+Right now we're currently on the _path to v0._
+
 If you have a feature (or bugfix) request, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
 
-#### TODO
+#### Basic Middleware Test Cases
 
-Ok so we're at a nice v0. The middleware API is type-safe (haven't worked out the buges yet though), the routing works, and the client proxy works. The next steps are (in roughly chronological order)
+- extend
+  - type signatures, constructed return types, execution values
+  - lhs defined, lhs undefined
+  - rhs defined, rhs undefined
+  - inputs disjoint, overlapping
 
-- exit/throw/return control flow
-  - DONE, needs testing
-- basic options, logging, errors
-  - DONE, needs testing
-- iron out the namespace + path stuff
-  -  DONE, needs testing
-- debug the middleware system
-  - WIP, testing
-- test the start/stop functionality
-- write tests for each of the basic cases (function/router/function w/ middleware, etc)
-  - WIP, testing
-- write a couple useful middlewares
-  - proxy
-  - ens
-- clean up the relationship between types/quiver/classes
-  - DONE, needs testing (check intellisense clarity)
-- update the README
-- add a system for notifying subscribers when parents fail
+- pipe
+  - type signatures, constructed return types, execution values
+  - lhs defined, lhs undefined
+  - rhs defined, rhs undefined
+  - rhs input overlaps input, output, both, neither
 
-I really really really want this to be done by EOD tomorrow.
+- use
+  - type signatures, constructed return types, execution values
+  - lhs defined, lhs undefined
+  - rhs defined, rhs undefined
+  - overlap input, output, both, neither
 
+#### Basic Control Flow Test Cases
 
-NOTE
+- early throw
+- early exit
+- early return
+- throw
+- exit
+- return
 
-- test each of the base case for each kind of QuiverError
-- i think we have a bug related to root paths. i don't think we handle 100% of
-  - root is a function
-  - root is a router, no path
-  - root is a router, with path
+#### Basic End-to-End Test Cases
+
+- root function without middleware
+- root function with middleware
+- root router without middleware
+- root router with middleware
+- 3-layer with middleware
+
+#### Document How
+
+- core api
+  - fluent api
+  - basic examples
+  - control flow works
+  - middleware
+  - (hooks coming soon)
+  - function
+  - router
+  - app
+  - provider
+  - logging
+- middleware works
+  - fluent api
+  - type signatures
+  - constructed types
+- client works
+  - types
+  - fetching
+
+#### Useful Middlewares
+
+- ens
+- proxy

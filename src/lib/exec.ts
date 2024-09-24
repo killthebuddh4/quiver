@@ -1,4 +1,3 @@
-import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
@@ -6,7 +5,7 @@ import { QuiverFunction } from "../types/QuiverFunction.js";
 export const exec = (
   server: QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
   path: string[],
-  context: QuiverContext,
+  context: { [key: string]: any },
 ) => {
   const middlewares: Array<QuiverMiddleware<any, any, any, any>> = [];
 
@@ -14,7 +13,7 @@ export const exec = (
     if (path.length > 0) {
       return {
         code: "NO_FUNCTION_FOR_PATH",
-        message: `No function found for path: ${path.join("/")}, ${path}`,
+        message: `No function found for path: ${path.join("/")}. Root is a function but got a path with length > 0.`,
       };
     }
 
@@ -25,7 +24,7 @@ export const exec = (
     if (path.length === 0) {
       return {
         code: "NO_FUNCTION_FOR_PATH",
-        message: `No function found for path: ${path.join("/")}, ${path}`,
+        message: `No function found for path: ${path.join("/")}. Root is a router but got a path with length 0.`,
       };
     }
 
@@ -37,7 +36,14 @@ export const exec = (
     middlewares.push(next.middleware);
 
     for (const segment of path) {
-      next = server.next(segment);
+      if (next.type === "QUIVER_FUNCTION") {
+        return {
+          code: "NO_FUNCTION_FOR_PATH",
+          message: `No function found for path: ${path.join("/")}. Reached a function before end of path.`,
+        };
+      }
+
+      next = next.next(segment);
 
       if (next === undefined) {
         break;
@@ -49,14 +55,14 @@ export const exec = (
     if (next === undefined) {
       return {
         code: "NO_FUNCTION_FOR_PATH",
-        message: `No function found for path: ${path.join("/")}, ${path}`,
+        message: `No function found for path: ${path.join("/")}`,
       };
     }
 
     if (next.type === "QUIVER_ROUTER") {
       return {
         code: "NO_FUNCTION_FOR_PATH",
-        message: `No function found for path: ${path.join("/")}, ${path}`,
+        message: `No function found for path: ${path.join("/")}`,
       };
     }
   }
@@ -64,7 +70,10 @@ export const exec = (
   let ctx = context;
 
   for (const middleware of middlewares) {
-    ctx = middleware.exec(ctx);
+    ctx = {
+      ...ctx,
+      ...middleware.exec(ctx),
+    };
   }
 
   return ctx;

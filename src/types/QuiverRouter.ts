@@ -24,7 +24,7 @@ export interface QuiverRouter<
   ) => QuiverFunction<any, any, any> | QuiverRouter<any, any, any> | undefined;
 
   use: <P extends string, Next>(
-    path: keyof Routes extends never ? P : NewKey<Routes>,
+    path: keyof Routes extends never ? P : NewKey<Routes, P>,
     nxt: PipeableRoute<CtxOut, Next>,
   ) => QuiverRouter<
     Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<Next>>>,
