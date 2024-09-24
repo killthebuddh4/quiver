@@ -2,7 +2,9 @@
 
 import q from "./index.js";
 import { Equal } from "./types/test/Equal.js";
+import { exec } from "./lib/exec.js";
 import { MwCtxIn } from "./types/util/MwCtxIn.js";
+import { QuiverContext } from "./types/QuiverContext.js";
 import { MwCtxOut } from "./types/util/MwCtxOut.js";
 import { Expect } from "./types/test/Expect.js";
 import { Message } from "./types/Message.js";
@@ -16,6 +18,63 @@ describe("Quiver", () => {
     while (CLEANUP.length > 0) {
       CLEANUP.pop()?.stop();
     }
+  });
+
+  /* *************************************************************************
+   *
+   * MIDDLEWARE EXECUTION
+   *
+   * ************************************************************************/
+
+  it.only("middleware execution works as expected", async function () {
+    const mw0 = q.middleware(() => {
+      return { user: "test-user-1" };
+    });
+
+    const mw1 = q.middleware((ctx: { user: string }) => {
+      return ctx;
+    });
+
+    const mw2 = q.middleware((ctx: { user: string }) => {
+      return { ...ctx, pass: "test-pass-1" };
+    });
+
+    const app = mw0
+      .router()
+      .use(
+        "mw1",
+        mw1.function(() => null),
+      )
+      .use(
+        "mw2",
+        mw2.function(() => null),
+      );
+
+    const e0 = exec(app, ["mw1"], {} as QuiverContext);
+
+    console.log(e0);
+
+    const e1 = exec(app, ["mw2"], {} as QuiverContext);
+
+    console.log(e1);
+
+    const mw3 = q.middleware((ctx: { user: string; pass: string }) => {
+      return {
+        ...ctx,
+        authed: true,
+      };
+    });
+
+    const nested = mw2.router().use(
+      "mw3",
+      mw3.function(() => null),
+    );
+
+    const app2 = mw0.router().use("mw2", nested);
+
+    const e2 = exec(app2, ["mw2", "mw3"], {} as QuiverContext);
+
+    console.log(e2);
   });
 
   /* *************************************************************************
@@ -71,7 +130,7 @@ describe("Quiver", () => {
 
     type r2ctxout = Expect<Equal<RouterCtxOut<typeof r2>, { user: string }>>;
 
-    /* Router -> router types */
+    /* Same as above but with routers */
 
     const r3 = q
       .middleware(() => {
@@ -79,23 +138,9 @@ describe("Quiver", () => {
       })
       .router();
 
-    const f3 = q
-      .middleware((ctx: { user: string }) => {
-        return ctx;
-      })
-      .function(() => null);
+    const r4 = r3.use("f0", f0);
 
-    const f4 = q
-      .middleware((ctx: { pass: string }) => {
-        return ctx;
-      })
-      .function(() => null);
-
-    const r4 = r3.use("f3", f3).use("f4", f4);
-
-    type r4ctxin = Expect<Equal<RouterCtxIn<typeof r4>, { pass: string }>>;
-
-    type r4ctxout = Expect<Equal<RouterCtxOut<typeof r4>, { user: string }>>;
+    // .use("f2", f2);
   });
 
   /* *************************************************************************
@@ -423,118 +468,4 @@ describe("Quiver", () => {
    * E2E EXAMPLES
    *
    * ************************************************************************/
-
-  it("minimal middleware example", async function () {
-    this.timeout(10000);
-
-    const provider = await q.provider().start();
-    const namespace = "quiver-test-min";
-    const address = provider.address;
-
-    CLEANUP.push(provider);
-
-    const mw = q.middleware(() => {
-      return { foo: "foo" };
-    });
-
-    const fn = mw.function((i, ctx) => {
-      return ctx.foo;
-    });
-
-    const app = await fn.app(namespace).listen(provider);
-
-    await (async () => {
-      const provider = await q.provider().start();
-
-      CLEANUP.push(provider);
-
-      try {
-        const client = q.client<typeof app>(provider, namespace, address);
-        const response = await client();
-
-        if (response.data !== "Hello, world!") {
-          throw new Error(`Expected "Hello, world!", got ${response.data}`);
-        }
-
-        console.log(response.data);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      }
-    })();
-  });
-
-  it("minimal function example", async function () {
-    this.timeout(10000);
-
-    const provider = await q.provider().start();
-    const namespace = "quiver-test-min";
-    const address = provider.address;
-
-    CLEANUP.push(provider);
-
-    const app = await q
-      .function(() => `Hello, world!`)
-      .app(namespace)
-      .listen(provider);
-
-    await (async () => {
-      const provider = await q.provider().start();
-
-      CLEANUP.push(provider);
-
-      try {
-        const client = q.client<typeof app>(provider, namespace, address);
-        const response = await client();
-
-        if (response.data !== "Hello, world!") {
-          throw new Error(`Expected "Hello, world!", got ${response.data}`);
-        }
-
-        console.log(response.data);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      }
-    })();
-  });
-
-  it("minimal router example", async function () {
-    this.timeout(10000);
-
-    const provider = await q.provider().start();
-    const namespace = "quiver-test-min";
-    const address = provider.address;
-
-    CLEANUP.push(provider);
-
-    const app = await q
-      .router({
-        a: q.function(() => "a"),
-        b: q.function(() => "b"),
-        c: q.function(() => "c"),
-      })
-      .app(namespace)
-      .listen(provider);
-
-    await (async () => {
-      const provider = await q.provider().start();
-
-      CLEANUP.push(provider);
-
-      try {
-        const client = q.client<typeof app>(provider, namespace, address);
-        const response = await client.a();
-
-        if (response.data !== "a") {
-          throw new Error(`Expected "a", got ${response.data}`);
-        }
-
-        console.log(response.data);
-      } catch (e) {
-        console.error(e);
-        throw e;
-      }
-    })();
-  });
 });

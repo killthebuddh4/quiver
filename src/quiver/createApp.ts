@@ -10,6 +10,7 @@ import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverApp } from "../types/QuiverApp.js";
 import { QuiverProvider } from "../types/QuiverProvider.js";
+import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
 /* ***************************************************************************
  *
@@ -176,18 +177,68 @@ export const createApp = <
          *
          * ***********************************************************************/
 
-        const fn = state.server.route(ctx.url.path);
+        const middlewares: Array<QuiverMiddleware<any, any, any, any>> = [];
 
-        if (!fn.ok) {
-          ctx.throw = {
-            code: "NO_FUNCTION_FOR_PATH",
-            message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
-          };
+        if (state.server.type === "QUIVER_FUNCTION") {
+          if (ctx.url.path.length > 0) {
+            ctx.throw = {
+              code: "NO_FUNCTION_FOR_PATH",
+              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
+            };
 
-          break inner;
+            break inner;
+          }
+
+          middlewares.push(state.server.middleware);
+
+          ctx.function = state.server.exec;
+        } else {
+          if (ctx.url.path.length === 0) {
+            ctx.throw = {
+              code: "NO_FUNCTION_FOR_PATH",
+              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
+            };
+
+            break inner;
+          }
+
+          let next:
+            | undefined
+            | QuiverFunction<any, any, any>
+            | QuiverRouter<any, any, any> = state.server;
+
+          middlewares.push(next.middleware);
+
+          for (const segment of ctx.url.path) {
+            next = state.server.next(segment);
+
+            if (next === undefined) {
+              break;
+            }
+
+            middlewares.push(next.middleware);
+          }
+
+          if (next === undefined) {
+            ctx.throw = {
+              code: "NO_FUNCTION_FOR_PATH",
+              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
+            };
+
+            break inner;
+          }
+
+          if (next.type === "QUIVER_ROUTER") {
+            ctx.throw = {
+              code: "NO_FUNCTION_FOR_PATH",
+              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
+            };
+
+            break inner;
+          }
+
+          ctx.function = next.exec;
         }
-
-        ctx.function = fn.value;
 
         state.options?.logs?.onMatchedFunction?.(ctx);
 
@@ -216,8 +267,6 @@ export const createApp = <
          * APPLY MIDDLEWARE
          *
          * ***********************************************************************/
-
-        const middlewares = state.server.compile(ctx.url.path);
 
         for (const middleware of middlewares) {
           ctx = await middleware.exec(ctx);

@@ -13,17 +13,15 @@ export interface QuiverRouter<
     [key: string]: QuiverRouter<any, any, any> | QuiverFunction<any, any, any>;
   },
 > {
-  type: "QUIVER_SWITCH";
+  type: "QUIVER_ROUTER";
 
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
 
   routes: Routes;
 
   next: (
-    path?: string[],
-  ) => Maybe<
-    QuiverMiddleware<any, any, any, any> | QuiverRouter<any, any, any>
-  >;
+    path: string,
+  ) => QuiverFunction<any, any, any> | QuiverRouter<any, any, any> | undefined;
 
   use: <P extends string, Next>(
     path: keyof Routes extends never ? P : NewKey<Routes>,

@@ -11,59 +11,16 @@ export const createRouter = <
   CtxIn,
   CtxOut,
   Routes extends {
-    [key: string]:
-      | QuiverMiddleware<any, any, any, any>
-      | QuiverRouter<any, any, any>;
+    [key: string]: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>;
   },
 >(
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
   routes: Routes,
 ): QuiverRouter<CtxIn, CtxOut, Routes> => {
-  const type = "QUIVER_SWITCH" as const;
+  const type = "QUIVER_ROUTER" as const;
 
-  const next = (
-    path?: string[],
-  ): Maybe<
-    QuiverMiddleware<any, any, any, any> | QuiverRouter<any, any, any>
-  > => {
-    if (path === undefined || path.length === 0) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    if (routes === undefined) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    const nxt = routes[path[0]];
-
-    if (nxt === undefined) {
-      return {
-        ok: false,
-        code: "FUNCTION_NOT_FOUND",
-      };
-    }
-
-    if (nxt.type === "QUIVER_MIDDLEWARE") {
-      if (path.length > 1) {
-        return {
-          ok: false,
-          code: "FUNCTION_NOT_FOUND",
-        };
-      }
-
-      return {
-        ok: true,
-        value: nxt,
-      };
-    }
-
-    return nxt.next(path.slice(1));
+  const next = (path: string) => {
+    return routes[path];
   };
 
   const use = <R>(
