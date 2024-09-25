@@ -12,11 +12,9 @@ import { ExtendingCtxOut } from "./ExtendingCtxOut.js";
 
 export type ExtendingMw<CtxInMw, CtxOutMw, Next> =
   Next extends QuiverMiddleware<infer CtxInNext, infer CtxOutNext, any, any>
-    ? CtxInMw extends undefined
-      ? Next
-      : ExtendingCtxIn<CtxInMw, CtxInNext> extends never
+    ? ExtendingCtxIn<CtxInMw, CtxInNext> extends never
+      ? never
+      : ExtendingCtxOut<CtxOutMw, CtxOutNext> extends never
         ? never
-        : ExtendingCtxOut<CtxOutMw, CtxOutNext> extends never
-          ? never
-          : Next
+        : Next
     : never;

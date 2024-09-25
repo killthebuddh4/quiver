@@ -13,6 +13,77 @@ import { RouterCtxOut } from "./types/util/RouterCtxOut.js";
 
 const CLEANUP: Array<{ stop: () => void }> = [];
 
+describe("middleware.extend type safety", () => {
+  it("outputs must be disjoint", async function () {
+    const lhs = q.middleware(() => {
+      return { x: "x" };
+    });
+
+    const rhs = q.middleware(() => {
+      return { x: "x" };
+    });
+
+    /* @ts-expect-error x is already in the output */
+    lhs.extend(rhs);
+  });
+  
+  it("undefined input middleware can be extended", async function () {
+    const lhs = q.middleware(() => {
+      return { x: "x" };
+    });
+
+    /* by a middleware with defined input */
+
+    const rhs0 = q.middleware((ctx: { y: number }) => {
+      return ctx;
+    });
+
+    lhs.extend(rhs0);
+
+    /* by a middleware with undefined input */
+
+    const rhs1 = q.middleware(() => {
+      return { y: "y" };
+    });
+
+    lhs.extend(rhs1);
+  });
+
+  it("disjoint inputs can be extended", async function () {
+    const lhs = q.middleware((ctx: { x: string }) => {
+      return ctx;
+    });
+
+    const rhs = q.middleware((ctx: { y: string }) => {
+      return ctx;
+    });
+
+    lhs.extend(rhs);
+  });
+
+  it("overlapping inputs must be compatible", async function () {
+    const lhs = q.middleware((ctx: { x: string }) => {
+      return ctx;
+    });
+
+    /* compatible overlap */
+
+    const rhs0 = q.middleware((ctx: { x: string | number }) => {
+      // Cannot return ctx because outputs must be disjoint
+      return { foo: "foo"};
+    });
+
+    /* incompatible overlap */
+
+    const rhs1 = q.middleware((ctx: { x: number }) => {
+      return ctx;
+    });
+
+    /* @ts-expect-error incompatible overlap */
+    lhs.extend(rhs1);
+  });
+});
+
 describe("Quiver", () => {
   afterEach(() => {
     while (CLEANUP.length > 0) {
@@ -289,6 +360,126 @@ describe("Quiver", () => {
   });
 
   describe("middleware.extend", () => {
+    it("outputs must be disjoint", async function () {
+      const lhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      const rhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      /* @ts-expect-error x is already in the output */
+      lhs.extend(rhs);
+    });
+
+    it("undefined input middleware can be extended", async function () {
+      const lhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      const rhs = q.middleware((ctx: { y: number }) => {
+        return ctx;
+      });
+
+      lhs.extend(rhs);
+    });
+
+    it("undefined ctxin -> undefined ctxin, return types ", async function () {
+      const lhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      const rhs = q.middleware(() => {
+        return { y: "y" };
+      });
+
+      const nxt = lhs.extend(rhs);
+
+      type ctxin = Expect<Equal<MwCtxIn<typeof nxt>, undefined>>;
+      type ctxout = Expect<Equal<MwCtxOut<typeof nxt>, { x: string; y: string }>>;
+    });
+
+
+    it("undefined ctxin -> undefined ctxin, output values", async function () {
+      // TODO
+    });
+    
+    it("defined ctxin -> undefined ctxin, input type safety", async function () {
+      const lhs = q.middleware((ctx: { x: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware(() => {
+        return { y: "y" };
+      });
+
+      lhs.extend(rhs);
+    });
+
+    it("defined ctxin -> undefined ctxin, return types", async function () {
+      const lhs = q.middleware((ctx: { x: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware(() => {
+        return { y: "y" };
+      });
+
+      const nxt = lhs.extend(rhs);
+
+      type ctxin = Expect<Equal<MwCtxIn<typeof nxt>, { x: string }>>;
+      type ctxout = Expect<Equal<MwCtxOut<typeof nxt>, { x: string; y: string }>>;
+    });
+
+    it("defined ctxin -> undefined ctxin, output values", async function () {
+      // TODO
+    });
+
+    it("defined ctxin -> defined ctxin, disjoint inputs, input type safety", async function () {
+      const lhs = q.middleware((ctx: { x: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware((ctx: { y: string }) => {
+        return ctx;
+      });
+
+      lhs.extend(rhs);
+    });
+
+    it("defined ctxin -> defined ctxin, disjoint inputs, return types", async function () {
+      const lhs = q.middleware((ctx: { x: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware((ctx: { y: string }) => {
+        return ctx;
+      });
+
+      const nxt = lhs.extend(rhs);
+
+      type ctxin = Expect<Equal<MwCtxIn<typeof nxt>, { x: string; y: string }>>;
+      type ctxout = Expect<Equal<MwCtxOut<typeof nxt>, { x: string; y: string }>>;
+    });
+
+    it("defined ctxin -> defined ctxin, disjoint inputs, output values", async function () {
+      // TODO
+    });
+
+    it("defined ctxin -> defined ctxin, partial overlap with matching types, type safety", async function () {
+      const lhs = q.middleware((ctx: { x: string, y: null }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware((ctx: { x: string, z: string }) => {
+        return { z: ctx.z };
+      });
+
+      lhs.extend(rhs);
+    });
+
+  describe("middleware.pipe", () => {
     it("defined -> undefined is allowed", async function () {
       const lhs = q.middleware((ctx: { y: string }) => {
         return ctx;

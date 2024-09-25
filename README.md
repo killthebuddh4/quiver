@@ -133,6 +133,53 @@ If you have a use-case in mind, and are wondering how it might work, don't hesit
 
 ## Middleware
 
+An app built with `quiver` is essentially a tree where each non-leaf node is a `QuiverRouter` and each leaf node is a `QuiverFunction` and every node optionally includes a `QuiverMiddleware`. When an app receives a request, a `QuiverContext` is created and passed to the root node. Each node's middleware adds key-value pairs to the context and then passes it to the next node. Quiver provides type-safe functions for creating nodes and trees.
+
+Every middleware is essentially a function that implements the signature `(ctx: CtxIn) => CtxOut` where `CtxIn` always extends `QuiverContext` and `CtxOut` always extends `CtxIn`. As a context is passed from node to node, it becomes and bigger-and-bigger and more-and-more-narrowed version of the original.
+
+Quiver provides type-safe functions for constructing middleware nodes and trees. Middlewares are instantiated with `q.middleware(fn)` and merged using `mw.extend(next)` and `mw.pipe(next)`. `mw.extend` can be thought of as "parallel merge" and `mw.pipe` can be thought of as "serial merge". Middleware trees are constructed by first converting a bare node to a router using `mw.router()` and then adding children to the router using `router.use(key, next)`.
+
+Quiver's middleware functions construct middleware according to a set of rules. Some of the rules involve input/output types and are enforced by the `TypeScript` compiler while others involve control flow and are enforced at runtime. It's important to understand these rules, the rest of this section is dedicated to explaining them in detail.
+
+#### control flow
+
+TODO
+
+#### mw.extend (parallel merge)
+
+TODO
+
+#### mw.pipe (serial merge)
+
+TODO
+
+#### Input/Output rules for middleware nodes.
+
+Every middleware node's output is an extension 
+
+#### When can a middleware `extend` another?
+
+`lhs` can be extended by `rhs` (`lhs.extend(rhs)`) when:
+
+- their output types share no keys
+
+and
+
+- one or both of their input types are `undefined`
+- or, if their input types share no keys
+- or, if their input types share keys (overlap) and the corresponding values are compatible
+
+When input types overlap they are compatible if the overlapping sections have a non-empty intersection. That is: for every shared key, if there's some value that satisfies both the `lhs` and the `rhs` input types, then they are compatible.
+
+
+  
+
+
+
+
+
+
+
 ## How does it work?
 
 `Quiver` is built on top of the superb [XMTP](https://xmtp.org) messaging protocol. XMTP provides out-of-the-box end-to-end encrypted messaging.
@@ -145,8 +192,13 @@ If you have a feature (or bugfix) request, don't hesitate to [open an issue](TOD
 
 #### Basic Middleware Test Cases
 
-- extend
   - type signatures, constructed return types, execution values
+
+
+- extend
+
+
+
   - defined -> undefined
   - defined -> defined
     - disjoint
@@ -159,6 +211,7 @@ If you have a feature (or bugfix) request, don't hesitate to [open an issue](TOD
   - inputs disjoint, overlapping
 
 - pipe
+  - 
   - type signatures, constructed return types, execution values
   - lhs defined, lhs undefined
   - rhs defined, rhs undefined
