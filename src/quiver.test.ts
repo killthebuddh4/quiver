@@ -107,9 +107,11 @@ describe("Quiver", () => {
 
     /* RHS extends LHS */
 
-    const a = lhs.extend((ctx: { y: string }) => {
-      return { z: ctx.y };
-    });
+    const a = lhs.extend(
+      q.middleware((ctx: { y: string }) => {
+        return { z: ctx.y };
+      }),
+    );
 
     type actxin = Expect<Equal<MwCtxIn<typeof a>, { y: string }>>;
 
@@ -117,9 +119,11 @@ describe("Quiver", () => {
 
     /* LHS extends RHS */
 
-    const b = lhs.extend((ctx: { y: number | string | null }) => {
-      return { z: ctx.y };
-    });
+    const b = lhs.extend(
+      q.middleware((ctx: { y: number | string | null }) => {
+        return { z: ctx.y };
+      }),
+    );
 
     type bctxin = Expect<Equal<MwCtxIn<typeof b>, { y: string | null }>>;
 
@@ -129,9 +133,11 @@ describe("Quiver", () => {
 
     /* Disjoint input */
 
-    const c = lhs.extend((ctx: { x: string }) => {
-      return { z: ctx.x };
-    });
+    const c = lhs.extend(
+      q.middleware((ctx: { x: string }) => {
+        return { z: ctx.x };
+      }),
+    );
 
     type cctxin = Expect<
       Equal<MwCtxIn<typeof c>, { x: string; y: string | null }>
@@ -143,9 +149,11 @@ describe("Quiver", () => {
 
     /* Extending using undefined input */
 
-    const d = lhs.extend(() => {
-      return { z: 10 };
-    });
+    const d = lhs.extend(
+      q.middleware(() => {
+        return { z: 10 };
+      }),
+    );
 
     type dctxin = Expect<Equal<MwCtxIn<typeof d>, { y: string | null }>>;
 
@@ -159,9 +167,11 @@ describe("Quiver", () => {
       return { baz: "baz" };
     });
 
-    const e = unspec.extend((ctx: { y: string }) => {
-      return { z: ctx.y };
-    });
+    const e = unspec.extend(
+      q.middleware((ctx: { y: string }) => {
+        return { z: ctx.y };
+      }),
+    );
 
     type ectxin = Expect<Equal<MwCtxIn<typeof e>, { y: string }>>;
 
@@ -171,9 +181,11 @@ describe("Quiver", () => {
 
     /* Extending an undefined input with an undefined input */
 
-    const f = unspec.extend(() => {
-      return { z: 10 };
-    });
+    const f = unspec.extend(
+      q.middleware(() => {
+        return { z: 10 };
+      }),
+    );
 
     type fctxin = Expect<Equal<MwCtxIn<typeof f>, undefined>>;
 
@@ -183,17 +195,21 @@ describe("Quiver", () => {
 
     /* Unsatisfiable input */
 
-    /* @ts-expect-error string | null & undefined -> never */
-    lhs.extend((ctx: { y: undefined }) => {
-      return { bar: ctx.y };
-    });
+    lhs.extend(
+      /* @ts-expect-error string | null & undefined -> never */
+      q.middleware((ctx: { y: undefined }) => {
+        return { bar: ctx.y };
+      }),
+    );
 
     /* Overlapping output */
-    /* @ts-expect-error y is already in the output */
 
-    lhs.extend(() => {
-      return { y: "y" };
-    });
+    lhs.extend(
+      /* @ts-expect-error y is already in the output */
+      q.middleware(() => {
+        return { y: "y" };
+      }),
+    );
   });
 
   /* *************************************************************************
@@ -272,7 +288,33 @@ describe("Quiver", () => {
     });
   });
 
-  describe("pipe with output -> input overlap", () => {
+  describe("middleware.extend", () => {
+    it("defined -> undefined is allowed", async function () {
+      const lhs = q.middleware((ctx: { y: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      lhs.pipe(rhs);
+    });
+
+    it("defined -> undefined has the right return type", async function () {
+      const lhs = q.middleware((ctx: { y: string }) => {
+        return ctx;
+      });
+
+      const rhs = q.middleware(() => {
+        return { x: "x" };
+      });
+
+      const nxt = lhs.pipe(rhs);
+
+      type test = Expect<Equal<MwCtxIn<typeof nxt>, { y: string }>>;
+    });
+
     const lhs = q.middleware((ctx: { y: string }) => {
       return ctx;
     });

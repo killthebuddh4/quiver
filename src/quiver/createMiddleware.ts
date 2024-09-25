@@ -1,12 +1,12 @@
-import { ParallelExtension } from "../types/util/ParallelExtension.js";
 import { PipeableMw } from "../types/pipe/PipeableMw.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { createFunction } from "./createFunction.js";
 import { createRouter } from "./createRouter.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
-import { ParallelExtendedCtxIn } from "../types/util/ParallelExtendedCtxIn.js";
-import { ParallelExtendedCtxOut } from "../types/util/ParallelExtendedCtxOut.js";
+import { ExtendedCtxIn } from "../types/extend/ExtendedCtxIn.js";
+import { ExtendedCtxOut } from "../types/extend/ExtendedCtxOut.js";
+import { ExtendingMw } from "../types/extend/ExtendingMw.js";
 import { PipedCtxIn } from "../types/pipe/PipedCtxIn.js";
 import { PipedCtxOut } from "../types/pipe/PipedCtxOut.js";
 
@@ -15,21 +15,21 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
 ): QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> => {
   const type = "QUIVER_MIDDLEWARE" as const;
 
-  const extend = <Exec>(fn: ParallelExtension<CtxIn, CtxOut, Exec>) => {
+  const extend = <Next>(next: ExtendingMw<CtxIn, CtxOut, Next>) => {
     if (handlers.length === 0) {
       throw new Error("Middleware instance should never have empty handlers");
     }
 
-    const next = handlers.map((stage) => stage.map((handler) => handler));
+    const nxt = handlers.map((stage) => stage.map((handler) => handler));
 
-    next[next.length - 1].push(fn);
+    nxt[nxt.length - 1].push(next.exec);
 
     return createMiddleware<
-      Resolve<ParallelExtendedCtxIn<CtxIn, Exec>>,
-      Resolve<ParallelExtendedCtxOut<CtxOut, Exec>>,
+      Resolve<ExtendedCtxIn<CtxIn, NextCtxIn<Next>>>,
+      Resolve<ExtendedCtxOut<CtxOut, NextCtxIn<Next>, NextCtxOut<Next>>>,
       CtxExitIn,
       CtxExitOut
-    >(next);
+    >(nxt);
   };
 
   const pipe = <Exec>(fn: PipeableMw<CtxOut, Exec>) => {
@@ -98,3 +98,9 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
 
   return { type, extend, pipe, exec, function: _function, router };
 };
+
+type NextCtxIn<Next> =
+  Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
+
+type NextCtxOut<Next> =
+  Next extends QuiverMiddleware<any, infer CtxOut, any, any> ? CtxOut : never;

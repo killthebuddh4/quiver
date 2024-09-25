@@ -1,21 +1,27 @@
-import { ParallelExtension } from "./util/ParallelExtension.js";
 import { PipeableMw } from "./pipe/PipeableMw.js";
 import { Resolve } from "./util/Resolve.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { QuiverRouter } from "./QuiverRouter.js";
-import { ParallelExtendedCtxIn } from "./util/ParallelExtendedCtxIn.js";
-import { ParallelExtendedCtxOut } from "./util/ParallelExtendedCtxOut.js";
+import { ExtendedCtxIn } from "./extend/ExtendedCtxIn.js";
+import { ExtendedCtxOut } from "./extend/ExtendedCtxOut.js";
+import { ExtendingMw } from "./extend/ExtendingMw.js";
 import { PipedCtxIn } from "./pipe/PipedCtxIn.js";
 import { PipedCtxOut } from "./pipe/PipedCtxOut.js";
+
+type NextCtxIn<Next> =
+  Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
+
+type NextCtxOut<Next> =
+  Next extends QuiverMiddleware<any, infer CtxOut, any, any> ? CtxOut : never;
 
 export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   type: "QUIVER_MIDDLEWARE";
 
-  extend: <Exec>(
-    exec: ParallelExtension<CtxIn, CtxOut, Exec>,
+  extend: <Next>(
+    next: ExtendingMw<CtxIn, CtxOut, Next>,
   ) => QuiverMiddleware<
-    Resolve<ParallelExtendedCtxIn<CtxIn, Exec>>,
-    Resolve<ParallelExtendedCtxOut<CtxOut, Exec>>,
+    Resolve<ExtendedCtxIn<CtxIn, NextCtxIn<Next>>>,
+    Resolve<ExtendedCtxOut<CtxOut, NextCtxIn<Next>, NextCtxOut<Next>>>,
     CtxExitIn,
     CtxExitOut
   >;
@@ -23,23 +29,8 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   pipe: <Next>(
     nxt: PipeableMw<CtxOut, Next>,
   ) => QuiverMiddleware<
-    Resolve<
-      PipedCtxIn<
-        CtxIn,
-        CtxOut,
-        Next extends QuiverMiddleware<infer CtxInNext, any, any, any>
-          ? CtxInNext
-          : never
-      >
-    >,
-    Resolve<
-      PipedCtxOut<
-        CtxOut,
-        Next extends QuiverMiddleware<any, infer CtxOutNext, any, any>
-          ? CtxOutNext
-          : never
-      >
-    >,
+    Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<Next>>>,
+    Resolve<PipedCtxOut<CtxOut, NextCtxOut<Next>>>,
     CtxExitIn,
     CtxExitOut
   >;

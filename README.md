@@ -147,6 +147,13 @@ If you have a feature (or bugfix) request, don't hesitate to [open an issue](TOD
 
 - extend
   - type signatures, constructed return types, execution values
+  - defined -> undefined
+  - defined -> defined
+    - disjoint
+    - overlapping
+  - undefined -> undefined
+  - undefined -> defined
+
   - lhs defined, lhs undefined
   - rhs defined, rhs undefined
   - inputs disjoint, overlapping
