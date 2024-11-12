@@ -12,6 +12,7 @@
     "strict": true,
     "strictNullChecks": true,
     "outDir": "build",
+    "noImplicitAny": true,
   },
   "exclude": ["node_modules"]
 }

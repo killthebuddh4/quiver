@@ -1,9 +1,6 @@
 import { PipeableMw } from "../types/pipe/PipeableMw.js";
 import { Resolve } from "../types/util/Resolve.js";
-import { createFunction } from "./createFunction.js";
-import { createRouter } from "./createRouter.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { QuiverFunction } from "../types/QuiverFunction.js";
 import { ExtendedCtxIn } from "../types/extend/ExtendedCtxIn.js";
 import { ExtendedCtxOut } from "../types/extend/ExtendedCtxOut.js";
 import { ExtendingMw } from "../types/extend/ExtendingMw.js";
@@ -64,13 +61,6 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     >(next);
   };
 
-  const router = () => {
-    return createRouter<CtxIn, CtxOut, Record<never, any>>(
-      createMiddleware(handlers),
-      {},
-    );
-  };
-
   const exec = (ctx: CtxIn): CtxOut => {
     let final: any = ctx;
 
@@ -90,13 +80,7 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return final;
   };
 
-  const _function = <Exec extends (i: any, ctx: CtxOut) => any>(
-    exec: Exec,
-  ): QuiverFunction<CtxIn, CtxOut, Exec> => {
-    return createFunction(createMiddleware(handlers), exec);
-  };
-
-  return { type, extend, pipe, exec, function: _function, router };
+  return { type, extend, pipe, exec };
 };
 
 type NextCtxIn<Next> =

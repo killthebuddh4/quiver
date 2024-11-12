@@ -36,15 +36,21 @@
 - [Quickstart](#quickstart)
 - [Examples](#examples)
 - [API Reference](#api-reference)
-    - [createQuiver](#createquiver)
-    - [createFunction](#createfunction)
-    - [createRouter](#createrouter)
-    - [createClient](#createclient)
-    - [createMiddleware](#createmiddleware)
+    - [`Quiver`](#quiver)
+    - [`QuiverRouter`](#quiverrouter)
+    - [`QuiverClient`](#quiverclient)
+    - [`QuiverProvider`](#quiverprovider)
+    - [`QuiverMiddleware`](#quivermiddleware)
 - [Middleware](#middleware)
+    - [mw.extend (parallel merge)](#mwextend-parallel-merge)
+    - [mw.pipe (serial merge)](#mwpipe-serial-merge)
 - [How does it work?](#how-does-it-work)
 - [Roadmap](#roadmap)
-    - [TODO](#todo)
+    - [Basic Middleware Test Cases](#basic-middleware-test-cases)
+    - [Basic Control Flow Test Cases](#basic-control-flow-test-cases)
+    - [Basic End-to-End Test Cases](#basic-end-to-end-test-cases)
+    - [Document How](#document-how)
+    - [Useful Middlewares](#useful-middlewares)
 
 ## Install
 
@@ -121,15 +127,15 @@ If you have a use-case in mind, and are wondering how it might work, don't hesit
 
 ## API Reference
 
-#### createQuiver
+#### `Quiver`
 
-#### createFunction
+#### `QuiverRouter`
 
-#### createRouter
+#### `QuiverClient`
 
-#### createClient
+#### `QuiverProvider`
 
-#### createMiddleware
+#### `QuiverMiddleware`
 
 ## Middleware
 
@@ -141,44 +147,62 @@ Quiver provides type-safe functions for constructing middleware nodes and trees.
 
 Quiver's middleware functions construct middleware according to a set of rules. Some of the rules involve input/output types and are enforced by the `TypeScript` compiler while others involve control flow and are enforced at runtime. It's important to understand these rules, the rest of this section is dedicated to explaining them in detail.
 
-#### control flow
-
-TODO
 
 #### mw.extend (parallel merge)
 
-TODO
+_The following documentation's goal is technical correctness and completeness rather than readability for the end-user. Ideally, it's the beginning of a formal specification. Once we have comprehensive testing for each case, and a stable implementation, we can simplify this documentation for the end-user._
+
+Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s input when:
+
+Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s output when:
+
+Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s input when:
+
+Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s output when:
+
+Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` input when:
+
+Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` output when:
+
+Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` input when:
+
+Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` output when:
+
+Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` input when:
+
+Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` output when:
+
+Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` input when:
+
+Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` output when:
 
 #### mw.pipe (serial merge)
 
-TODO
+_The following documentation's goal is technical correctness and completeness rather than readability for the end-user. Ideally, it's the beginning of a formal specification. Once we have comprehensive testing for each case, and a stable implementation, we can simplify this documentation for the end-user._
 
-#### Input/Output rules for middleware nodes.
+Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s input when:
 
-Every middleware node's output is an extension 
+Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s output when:
 
-#### When can a middleware `extend` another?
+Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s input when:
 
-`lhs` can be extended by `rhs` (`lhs.extend(rhs)`) when:
+Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s output when:
 
-- their output types share no keys
+Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` input when:
 
-and
+Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` output when:
 
-- one or both of their input types are `undefined`
-- or, if their input types share no keys
-- or, if their input types share keys (overlap) and the corresponding values are compatible
+Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` input when:
 
-When input types overlap they are compatible if the overlapping sections have a non-empty intersection. That is: for every shared key, if there's some value that satisfies both the `lhs` and the `rhs` input types, then they are compatible.
+Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` output when:
 
+Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` input when:
 
-  
+Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` output when:
 
+Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` input when:
 
-
-
-
-
+Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` output when:
 
 ## How does it work?
 
@@ -191,6 +215,7 @@ Right now we're currently on the _path to v0._
 If you have a feature (or bugfix) request, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
 
 #### Basic Middleware Test Cases
+
 
   - type signatures, constructed return types, execution values
 

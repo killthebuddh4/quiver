@@ -1,7 +1,5 @@
 import { PipeableMw } from "./pipe/PipeableMw.js";
 import { Resolve } from "./util/Resolve.js";
-import { QuiverFunction } from "./QuiverFunction.js";
-import { QuiverRouter } from "./QuiverRouter.js";
 import { ExtendedCtxIn } from "./extend/ExtendedCtxIn.js";
 import { ExtendedCtxOut } from "./extend/ExtendedCtxOut.js";
 import { ExtendingMw } from "./extend/ExtendingMw.js";
@@ -35,11 +33,5 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     CtxExitOut
   >;
 
-  router: () => QuiverRouter<CtxIn, CtxOut, Record<never, any>>;
-
   exec: (ctx: CtxIn) => CtxOut;
-
-  function: <Exec extends (i: any, ctx: CtxOut) => any>(
-    exec: Exec,
-  ) => QuiverFunction<CtxIn, CtxOut, Exec>;
 }
