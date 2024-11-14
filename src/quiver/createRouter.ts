@@ -1,4 +1,3 @@
-import { Maybe } from "../types/util/Maybe.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { NewKey } from "../types/util/NewKey.js";
 import { Resolve } from "../types/util/Resolve.js";
