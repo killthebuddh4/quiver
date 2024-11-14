@@ -20,7 +20,7 @@ export const createQuiver = () => {
         Resolve<ReturnType<Exec>>,
         any,
         any
-      >([[exec]]);
+      >(exec);
 
       return createRouter(middleware, {});
     },
@@ -31,15 +31,15 @@ export const createQuiver = () => {
         Resolve<ReturnType<F>>,
         any,
         any
-      >([[fn]]);
+      >(fn);
     },
 
     function: <Exec extends (i: any, ctx: QuiverContext) => any>(
       exec: Exec,
     ) => {
-      const middleware = createMiddleware<undefined, any, any, any>([
-        [(ctx: any) => ctx],
-      ]);
+      const middleware = createMiddleware<undefined, any, any, any>(
+        (ctx: any) => ctx,
+      );
 
       return createFunction(middleware, exec);
     },

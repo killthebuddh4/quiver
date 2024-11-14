@@ -2,8 +2,7 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { Maybe } from "./util/Maybe.js";
 import { NewKey } from "./util/NewKey.js";
 import { Resolve } from "./util/Resolve.js";
-import { PipeableRoute } from "./pipe/PipeableRoute.js";
-import { PipedCtxIn } from "./pipe/PipedCtxIn.js";
+import { PipedCtxIn } from "./middleware/PipedCtxIn.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 
 export interface QuiverRouter<
@@ -25,7 +24,7 @@ export interface QuiverRouter<
 
   use: <P extends string, Next>(
     path: keyof Routes extends never ? P : NewKey<Routes, P>,
-    nxt: PipeableRoute<CtxOut, Next>,
+    nxt: any,
   ) => QuiverRouter<
     Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<Next>>>,
     CtxOut,

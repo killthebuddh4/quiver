@@ -150,59 +150,23 @@ Quiver's middleware functions construct middleware according to a set of rules. 
 
 #### mw.extend (parallel merge)
 
-_The following documentation's goal is technical correctness and completeness rather than readability for the end-user. Ideally, it's the beginning of a formal specification. Once we have comprehensive testing for each case, and a stable implementation, we can simplify this documentation for the end-user._
+The extend operation `lhs.extend(rhs)` is valid when:
 
-Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s input when:
+- `lhs` and `rhs` do not write to any of the same keys, and
+- any key which both `lhs` and `rhs` read from have compatible types (one extends the other).
 
-Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s output when:
-
-Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s input when:
-
-Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s output when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` input when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` output when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` input when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` output when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` input when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` output when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` input when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` output when:
+The extend operation `lhs.extend(rhs)` produces a new middleware with new `ReadsKeys` and `WritesKeys` types. The `ReadsKeys` type is the intersection of the two inputs' `ReadsKeys` types. The `WritesKeys` type is the intersection of the two inputs' `WritesKeys` types.
 
 #### mw.pipe (serial merge)
 
-_The following documentation's goal is technical correctness and completeness rather than readability for the end-user. Ideally, it's the beginning of a formal specification. Once we have comprehensive testing for each case, and a stable implementation, we can simplify this documentation for the end-user._
+The pipe operation `lhs.pipe(rhs)` is valid when the `lhs` provides a context that is compatible with the `rhs`'s input. The provided context _is not_ simply the `lhs`'s `WritesKeys` type because the middleware engine passes the entire context from `lhs` to `rhs`. The provided context is constructed by the `lhs` when `lhs` is executed. The `lhs` receives a record that looks like `ReadsKeys` and then writes to it according to the `WritesKeys` type. So, the provided context's type is:
 
-Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s input when:
+- Any key in `lhs`'s `WritesKeys`, plus
+- any key in `lhs`'s `ReadsKeys` that is not in `rhs`'s `WritesKeys`.
 
-Given `lhs.extend(rhs)`, `lhs'`s input is compatible with `rhs`'s output when:
+_Note that the provided type is NOT exactly the same as `ReadsKeys & WritesKeys` because the `rhs` may overwrite keys with different types of data._
 
-Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s input when:
-
-Given `lhs.extend(rhs)`, `lhs'`s output is compatible with `rhs`'s output when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` input when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `lhs` output when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` input when:
-
-Given `lhs.extend(rhs)`, the result input is correct relative to `rhs` output when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` input when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `lhs` output when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` input when:
-
-Given `lhs.extend(rhs)`, the result output is correct relative to `rhs` output when:
+The provided context is compatible with `rhs` as long as there are no incompatible keys. The provided context does not need to provide all keys, it only needs to not provide incompatible keys.
 
 ## How does it work?
 

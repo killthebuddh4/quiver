@@ -1,49 +1,53 @@
-import { PipeableMw } from "../types/pipe/PipeableMw.js";
+import { PipeableMw } from "../types/middleware/PipeableMw.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { ExtendedCtxIn } from "../types/extend/ExtendedCtxIn.js";
-import { ExtendedCtxOut } from "../types/extend/ExtendedCtxOut.js";
-import { ExtendingMw } from "../types/extend/ExtendingMw.js";
-import { PipedCtxIn } from "../types/pipe/PipedCtxIn.js";
-import { PipedCtxOut } from "../types/pipe/PipedCtxOut.js";
+import { ExtendingMw } from "../types/middleware/ExtendingMw.js";
+import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
+import { PipedCtxOut } from "../types/middleware/PipedCtxOut.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
-  handlers: Array<Array<(ctx: any) => any>>,
+  handler: (ctx: any) => any,
 ): QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> => {
   const type = "QUIVER_MIDDLEWARE" as const;
 
-  const extend = <Next>(next: ExtendingMw<CtxIn, CtxOut, Next>) => {
-    if (handlers.length === 0) {
-      throw new Error("Middleware instance should never have empty handlers");
-    }
-
-    const nxt = handlers.map((stage) => stage.map((handler) => handler));
-
-    nxt[nxt.length - 1].push(next.exec);
+  const extend = <Next>(
+    next: ExtendingMw<QuiverMiddleware<CtxIn, CtxOut, any, any>, Next>,
+  ) => {
+    const nxt = (ctx: any) => {
+      return {
+        ...next.exec({ ...ctx }),
+        ...handler({ ...ctx }),
+      };
+    };
 
     return createMiddleware<
-      Resolve<ExtendedCtxIn<CtxIn, NextCtxIn<Next>>>,
-      Resolve<ExtendedCtxOut<CtxOut, NextCtxIn<Next>, NextCtxOut<Next>>>,
+      Resolve<CtxIn & NextCtxIn<Next>>,
+      Resolve<CtxOut & NextCtxOut<Next>>,
       CtxExitIn,
       CtxExitOut
     >(nxt);
   };
 
-  const pipe = <Exec>(fn: PipeableMw<CtxOut, Exec>) => {
-    if (handlers.length === 0) {
-      throw new Error("Middleware instance should never have empty handlers");
-    }
+  const pipe = <Next>(
+    next: PipeableMw<QuiverMiddleware<CtxIn, CtxOut, any, any>, Next>,
+  ) => {
+    const nxt = (ctx: any) => {
+      let ctxnext = {
+        ...ctx,
+        ...handler({ ...ctx }),
+      };
 
-    const next = handlers.map((stage) => stage.map((handler) => handler));
-
-    next.push([fn.exec]);
+      return {
+        ...next.exec({ ...ctxnext }),
+      };
+    };
 
     return createMiddleware<
       Resolve<
         PipedCtxIn<
           CtxIn,
           CtxOut,
-          Exec extends QuiverMiddleware<infer CtxInNext, any, any, any>
+          Next extends QuiverMiddleware<infer CtxInNext, any, any, any>
             ? CtxInNext
             : never
         >
@@ -51,33 +55,18 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
       Resolve<
         PipedCtxOut<
           CtxOut,
-          Exec extends QuiverMiddleware<any, infer CtxOutNext, any, any>
+          Next extends QuiverMiddleware<any, infer CtxOutNext, any, any>
             ? CtxOutNext
             : never
         >
       >,
       CtxExitIn,
       CtxExitOut
-    >(next);
+    >(nxt);
   };
 
-  const exec = (ctx: CtxIn): CtxOut => {
-    let final: any = ctx;
-
-    for (const stage of handlers) {
-      let intermediate: any = final;
-
-      for (const handler of stage) {
-        intermediate = {
-          ...intermediate,
-          ...handler(final),
-        };
-      }
-
-      final = intermediate;
-    }
-
-    return final;
+  const exec = (ctx: any) => {
+    return { ...ctx, ...handler(ctx) };
   };
 
   return { type, extend, pipe, exec };

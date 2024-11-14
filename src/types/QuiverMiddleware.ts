@@ -1,10 +1,9 @@
-import { PipeableMw } from "./pipe/PipeableMw.js";
+import { PipeableMw } from "./middleware/PipeableMw.js";
 import { Resolve } from "./util/Resolve.js";
-import { ExtendedCtxIn } from "./extend/ExtendedCtxIn.js";
-import { ExtendedCtxOut } from "./extend/ExtendedCtxOut.js";
-import { ExtendingMw } from "./extend/ExtendingMw.js";
-import { PipedCtxIn } from "./pipe/PipedCtxIn.js";
-import { PipedCtxOut } from "./pipe/PipedCtxOut.js";
+import { ExtendingMw } from "./middleware/ExtendingMw.js";
+import { PipedCtxIn } from "./middleware/PipedCtxIn.js";
+import { PipedCtxOut } from "./middleware/PipedCtxOut.js";
+import { QuiverPipeline } from "./QuiverPipeline.js";
 
 type NextCtxIn<Next> =
   Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
@@ -16,16 +15,16 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
   type: "QUIVER_MIDDLEWARE";
 
   extend: <Next>(
-    next: ExtendingMw<CtxIn, CtxOut, Next>,
+    next: ExtendingMw<QuiverMiddleware<CtxIn, CtxOut, any, any>, Next>,
   ) => QuiverMiddleware<
-    Resolve<ExtendedCtxIn<CtxIn, NextCtxIn<Next>>>,
-    Resolve<ExtendedCtxOut<CtxOut, NextCtxIn<Next>, NextCtxOut<Next>>>,
+    Resolve<CtxIn & NextCtxIn<Next>>,
+    Resolve<CtxOut & NextCtxOut<Next>>,
     CtxExitIn,
     CtxExitOut
   >;
 
   pipe: <Next>(
-    nxt: PipeableMw<CtxOut, Next>,
+    nxt: PipeableMw<QuiverMiddleware<CtxIn, CtxOut, any, any>, Next>,
   ) => QuiverMiddleware<
     Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<Next>>>,
     Resolve<PipedCtxOut<CtxOut, NextCtxOut<Next>>>,
@@ -33,5 +32,5 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     CtxExitOut
   >;
 
-  exec: (ctx: CtxIn) => CtxOut;
+  exec: (ctx: any) => any;
 }

@@ -2,10 +2,9 @@ import { Maybe } from "../types/util/Maybe.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { NewKey } from "../types/util/NewKey.js";
 import { Resolve } from "../types/util/Resolve.js";
-import { PipeableRoute } from "../types/pipe/PipeableRoute.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
-import { PipedCtxIn } from "../types/pipe/PipedCtxIn.js";
+import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
 
 export const createRouter = <
   CtxIn,
@@ -25,7 +24,7 @@ export const createRouter = <
 
   const use = <R>(
     path: keyof Routes extends never ? string : NewKey<Routes>,
-    route: PipeableRoute<CtxOut, R>,
+    route: any,
   ) => {
     return createRouter<
       Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<R>>>,
