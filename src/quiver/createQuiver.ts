@@ -11,18 +11,16 @@ import { QuiverProvider } from "../types/QuiverProvider.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { createFunction } from "./createFunction.js";
 import { QuiverContext } from "../types/QuiverContext.js";
+import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 
 export const createQuiver = () => {
   return {
-    router: <Exec extends (ctx: any) => any>(exec: Exec) => {
-      const middleware = createMiddleware<
-        Resolve<Parameters<typeof exec>[0]>,
-        Resolve<ReturnType<Exec>>,
-        any,
-        any
-      >(exec);
-
-      return createRouter(middleware, {});
+    router: <Mw extends QuiverMiddleware<any, any, any, any>>(mw: Mw) => {
+      return createRouter<
+        Mw extends QuiverMiddleware<infer I, any, any, any> ? I : never,
+        Mw extends QuiverMiddleware<any, infer O, any, any> ? O : never,
+        {}
+      >(mw, {});
     },
 
     middleware: <F extends (ctx: any) => any>(fn: F) => {

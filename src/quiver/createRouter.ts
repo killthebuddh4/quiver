@@ -1,15 +1,15 @@
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
-import { NewKey } from "../types/util/NewKey.js";
 import { Resolve } from "../types/util/Resolve.js";
-import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
+import { RouterCtxIn } from "../types/util/RouterCtxIn.js";
+import { RouteableRoute } from "../types/router/RouteableRoute.js";
 
 export const createRouter = <
   CtxIn,
   CtxOut,
   Routes extends {
-    [key: string]: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>;
+    [key: string]: QuiverRouter<any, any, any> | undefined;
   },
 >(
   middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
@@ -22,13 +22,17 @@ export const createRouter = <
   };
 
   const use = <R>(
-    path: keyof Routes extends never ? string : NewKey<Routes>,
-    route: any,
+    path: string,
+    route: RouteableRoute<QuiverRouter<CtxIn, CtxOut, any>, R>,
   ) => {
     return createRouter<
-      Resolve<PipedCtxIn<CtxIn, CtxOut, NextCtxIn<R>>>,
+      Resolve<PipedCtxIn<CtxIn, CtxOut, RouterCtxIn<R>>>,
       CtxOut,
-      Routes & { [key in string]: typeof route }
+      {
+        [key in keyof Routes | typeof path]:
+          | QuiverRouter<any, any, any>
+          | undefined;
+      }
     >(
       middleware as any,
       {
@@ -40,10 +44,3 @@ export const createRouter = <
 
   return { type, middleware, routes, next, use };
 };
-
-type NextCtxIn<Next> =
-  Next extends QuiverRouter<infer CtxIn, any, any>
-    ? CtxIn
-    : Next extends QuiverFunction<infer CtxIn, any, any>
-      ? CtxIn
-      : never;

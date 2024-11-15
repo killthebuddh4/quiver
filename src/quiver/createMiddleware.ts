@@ -4,6 +4,8 @@ import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { ExtendingMw } from "../types/middleware/ExtendingMw.js";
 import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "../types/middleware/PipedCtxOut.js";
+import { MwCtxIn } from "../types/util/MwCtxIn.js";
+import { MwCtxOut } from "../types/util/MwCtxOut.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handler: (ctx: any) => any,
@@ -21,8 +23,8 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     };
 
     return createMiddleware<
-      Resolve<CtxIn & NextCtxIn<Next>>,
-      Resolve<CtxOut & NextCtxOut<Next>>,
+      Resolve<CtxIn & MwCtxIn<Next>>,
+      Resolve<CtxOut & MwCtxOut<Next>>,
       CtxExitIn,
       CtxExitOut
     >(nxt);
@@ -32,7 +34,7 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     next: PipeableMw<QuiverMiddleware<CtxIn, CtxOut, any, any>, Next>,
   ) => {
     const nxt = (ctx: any) => {
-      let ctxnext = {
+      const ctxnext = {
         ...ctx,
         ...handler({ ...ctx }),
       };
@@ -43,23 +45,8 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     };
 
     return createMiddleware<
-      Resolve<
-        PipedCtxIn<
-          CtxIn,
-          CtxOut,
-          Next extends QuiverMiddleware<infer CtxInNext, any, any, any>
-            ? CtxInNext
-            : never
-        >
-      >,
-      Resolve<
-        PipedCtxOut<
-          CtxOut,
-          Next extends QuiverMiddleware<any, infer CtxOutNext, any, any>
-            ? CtxOutNext
-            : never
-        >
-      >,
+      Resolve<PipedCtxIn<CtxIn, CtxOut, MwCtxIn<Next>>>,
+      Resolve<PipedCtxOut<CtxOut, MwCtxOut<Next>>>,
       CtxExitIn,
       CtxExitOut
     >(nxt);
@@ -71,9 +58,3 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
 
   return { type, extend, pipe, exec };
 };
-
-type NextCtxIn<Next> =
-  Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
-
-type NextCtxOut<Next> =
-  Next extends QuiverMiddleware<any, infer CtxOut, any, any> ? CtxOut : never;
