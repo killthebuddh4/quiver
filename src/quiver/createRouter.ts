@@ -3,7 +3,7 @@ import { Resolve } from "../types/util/Resolve.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
-import { RouterCtxIn } from "../types/util/RouterCtxIn.js";
+import { RouterCtxIn } from "../types/router/RouterCtxIn.js";
 import { RouteableRoute } from "../types/router/RouteableRoute.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { createHandler } from "./createHandler.js";

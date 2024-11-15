@@ -35,9 +35,7 @@ export const createQuiver = () => {
       >(fn);
     },
 
-    function: <F extends (i: any, ctx: any) => { o: any; ctx: any }>(
-      func: F,
-    ) => {
+    function: <F extends (i: any, ctx: any) => any>(func: F) => {
       return createFunction<
         F extends (i: any, ctx: infer CtxIn) => { o: any; ctx: any }
           ? CtxIn

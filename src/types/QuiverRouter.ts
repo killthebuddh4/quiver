@@ -2,7 +2,7 @@ import { QuiverMiddleware } from "./QuiverMiddleware.js";
 import { QuiverFunction } from "./QuiverFunction.js";
 import { Resolve } from "./util/Resolve.js";
 import { PipedCtxIn } from "./middleware/PipedCtxIn.js";
-import { RouterCtxIn } from "./util/RouterCtxIn.js";
+import { RouterCtxIn } from "./router/RouterCtxIn.js";
 import { RouteableRoute } from "./router/RouteableRoute.js";
 import { FunctionCtxIn } from "./router/FunctionCtxIn.js";
 import { RouteableFunction } from "./router/RouteableFunction.js";

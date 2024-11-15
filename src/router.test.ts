@@ -2,9 +2,9 @@ import quiver from "./index.js";
 import { ResultCtx } from "./types/middleware/ResultCtx.js";
 import { Equal } from "./types/test/Equal.js";
 import { Expect } from "./types/test/Expect.js";
-import { RouterCtxIn } from "./types/util/RouterCtxIn.js";
+import { RouterCtxIn } from "./types/router/RouterCtxIn.js";
 import { Resolve } from "./types/util/Resolve.js";
-import { RouterCtxOut } from "./types/util/RouterCtxOut.js";
+import { RouterCtxOut } from "./types/router/RouterCtxOut.js";
 
 const q = quiver();
 

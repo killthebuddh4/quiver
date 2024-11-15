@@ -4,8 +4,8 @@ import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { ExtendingMw } from "../types/middleware/ExtendingMw.js";
 import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "../types/middleware/PipedCtxOut.js";
-import { MwCtxIn } from "../types/util/MwCtxIn.js";
-import { MwCtxOut } from "../types/util/MwCtxOut.js";
+import { InCtx } from "../types/middleware/InCtx.js";
+import { OutCtx } from "../types/middleware/OutCtx.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handler: (ctx: any) => any,
@@ -23,8 +23,8 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     };
 
     return createMiddleware<
-      Resolve<CtxIn & MwCtxIn<Next>>,
-      Resolve<CtxOut & MwCtxOut<Next>>,
+      Resolve<CtxIn & InCtx<Next>>,
+      Resolve<CtxOut & OutCtx<Next>>,
       CtxExitIn,
       CtxExitOut
     >(nxt);
@@ -45,8 +45,8 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     };
 
     return createMiddleware<
-      Resolve<PipedCtxIn<CtxIn, CtxOut, MwCtxIn<Next>>>,
-      Resolve<PipedCtxOut<CtxOut, MwCtxOut<Next>>>,
+      Resolve<PipedCtxIn<CtxIn, CtxOut, InCtx<Next>>>,
+      Resolve<PipedCtxOut<CtxOut, OutCtx<Next>>>,
       CtxExitIn,
       CtxExitOut
     >(nxt);

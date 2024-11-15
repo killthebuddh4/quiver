@@ -2,7 +2,7 @@ import { Wallet } from "@ethersproject/wallet";
 import { Client } from "@xmtp/xmtp-js";
 import { Message } from "../types/Message.js";
 import { Conversation } from "../types/Conversation.js";
-import { Signer } from "../types/util/Signer.js";
+import { Signer } from "../types/xmtp/Signer.js";
 import { getUniqueId } from "../lib/getUniqueId.js";
 import { QuiverXmtpOptions } from "../types/QuiverXmtpOptions.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";

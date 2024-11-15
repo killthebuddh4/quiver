@@ -11,14 +11,10 @@ type TypedClient<
   Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
 > =
   Server extends QuiverFunction<any, any, infer Func>
-    ? Func extends (i: infer I, ctx: infer CtxIn) => infer Ret
+    ? Func extends (...args: infer Args) => infer Ret
       ? (
-          ...args: [I, options?: QuiverClientOptions]
-        ) => Promise<
-          QuiverResult<
-            Awaited<Ret extends { o: infer O; ctx: any } ? O : never>
-          >
-        >
+          ...args: [...Args, options?: QuiverClientOptions]
+        ) => Promise<QuiverResult<Awaited<Ret>>>
       : never
     : Server extends QuiverRouter<any, any, any>
       ? {

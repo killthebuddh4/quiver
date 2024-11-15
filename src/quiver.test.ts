@@ -1,13 +1,13 @@
 import q from "./index.js";
 
 describe("quiver", () => {
-  it("hello world works", async function () {
+  it.only("hello world works", async function () {
     this.timeout(10000);
 
     const backend = q();
 
     const hello = backend.function(() => {
-      return { o: "Hello, World!", ctx: {} };
+      return "Hello, World!";
     });
 
     const middleware = backend.middleware(() => {
@@ -33,6 +33,12 @@ describe("quiver", () => {
 
     const response = await client.hello(undefined);
 
-    console.log(response);
+    if (!response.ok) {
+      throw new Error("Response not ok");
+    }
+
+    if (response.data !== "Hello, World!") {
+      throw new Error(`Expected "Hello, World!", got ${response.data}`);
+    }
   });
 });
