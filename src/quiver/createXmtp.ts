@@ -4,12 +4,10 @@ import { Message } from "../types/Message.js";
 import { Conversation } from "../types/Conversation.js";
 import { Signer } from "../types/util/Signer.js";
 import { getUniqueId } from "../lib/getUniqueId.js";
-import { QuiverProviderOptions } from "../types/QuiverProviderOptions.js";
-import { QuiverProvider } from "../types/QuiverProvider.js";
+import { QuiverXmtpOptions } from "../types/QuiverXmtpOptions.js";
+import { QuiverXmtp } from "../types/QuiverXmtp.js";
 
-export const createProvider = (
-  options?: QuiverProviderOptions,
-): QuiverProvider => {
+export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
   const state = {
     signer: (() => {
       if (options?.init?.signer !== undefined) {
@@ -35,7 +33,7 @@ export const createProvider = (
     (message: Message) => Promise<void> | void
   >();
 
-  const start = async (): Promise<QuiverProvider> => {
+  const start = async (): Promise<QuiverXmtp> => {
     if (state.stream !== undefined) {
       return {
         signer: state.signer,

@@ -2,12 +2,12 @@ import { Message } from "./Message.js";
 import { Conversation } from "./Conversation.js";
 import { Signer } from "./util/Signer.js";
 
-export interface QuiverProvider {
+export interface QuiverXmtp {
   signer: Signer;
 
   address: string;
 
-  start: () => Promise<QuiverProvider>;
+  start: () => Promise<QuiverXmtp>;
 
   stop: () => void;
 

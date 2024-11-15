@@ -1,4 +1,6 @@
-import q from "./index.js";
+import quiver from "./index.js";
+
+const q = quiver();
 
 describe("mw.exec(ctx) works as expected", () => {
   it("works with one middleware", () => {

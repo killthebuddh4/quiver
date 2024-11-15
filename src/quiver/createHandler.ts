@@ -4,58 +4,19 @@ import { parseQuiverRequest } from "../parsers/parseQuiverRequest.js";
 import { QuiverErrorResponse } from "../types/QuiverErrorResponse.js";
 import { getResponseUrl } from "../url/getResponseUrl.js";
 import { urlToString } from "../url/urlToString.js";
-import { QuiverAppOptions } from "../types/QuiverAppOptions.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
-import { QuiverApp } from "../types/QuiverApp.js";
-import { QuiverProvider } from "../types/QuiverProvider.js";
+import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
+import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
 
-/* ***************************************************************************
- *
- * IMPORTANT NOTE
- *
- * QuiverApp exists almost entirely to provide a type-safe "finalization" step
- * for the QuiverFunction and QuiverRouter types. A function or router can only
- * be deployed if it's input type is QuiverContext.
- *
- * **************************************************************************/
-
-export const createApp = <
-  Server extends QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
->(
+export const createHandler = (
   namespace: string,
-  server: Server,
-  options?: QuiverAppOptions,
-): QuiverApp<Server> => {
-  const state = {
-    namespace,
-    provider: undefined as QuiverProvider | undefined,
-    server,
-    options,
-    subscription: undefined as { unsubscribe: () => void } | undefined,
-  };
-
-  const stop = () => {
-    state.subscription?.unsubscribe();
-  };
-
-  const listen = async (provider: QuiverProvider) => {
-    state.provider = provider;
-
-    await provider.start();
-
-    state.subscription = await provider.subscribe(handler);
-
-    return {
-      namespace: state.namespace,
-      server: state.server,
-      stop,
-      listen,
-    };
-  };
-
+  xmtp: QuiverXmtp,
+  router: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
+  options?: QuiverHandlerOptions,
+) => {
   /* 
     Ok, let's clarify the flow control here.
 
@@ -66,34 +27,18 @@ export const createApp = <
     TODO We should have a fallback block for when throw/return serialization
     fails.
   */
-  const handler = async (message: Message) => {
+  return async (message: Message) => {
     let ctx: QuiverContext = { message };
 
     outer: {
       inner: {
-        if (state.namespace === undefined) {
-          ctx.exit = {
-            code: "NAMESPACE_UNDEFINED",
-          };
-
-          break outer;
-        }
-
-        if (state.provider === undefined) {
-          ctx.exit = {
-            code: "PROVIDER_UNDEFINED",
-          };
-
-          break outer;
-        }
-
         /* ************************************************************************
          *
          * RECV_MESSAGE
          *
          * ***********************************************************************/
 
-        state.options?.logs?.onRecvMessage?.(ctx);
+        options?.logs?.onRecvMessage?.(ctx);
 
         /* ************************************************************************
          *
@@ -114,7 +59,7 @@ export const createApp = <
 
         ctx.url = url.value;
 
-        state.options?.logs?.onParsedUrl?.(ctx);
+        options?.logs?.onParsedUrl?.(ctx);
 
         /* ************************************************************************
          *
@@ -122,16 +67,16 @@ export const createApp = <
          *
          * ***********************************************************************/
 
-        if (ctx.url.namespace !== state.namespace) {
+        if (ctx.url.namespace !== namespace) {
           ctx.exit = {
             code: "NAMESPACE_MISMATCH",
-            message: `Namespace mismatch: ${ctx.url.namespace} !== ${state.namespace}`,
+            message: `Namespace mismatch: ${ctx.url.namespace} !== ${namespace}`,
           };
 
           break outer;
         }
 
-        state.options?.logs?.onMatchedNamespace?.(ctx);
+        options?.logs?.onMatchedNamespace?.(ctx);
 
         /* ************************************************************************
          *
@@ -149,7 +94,7 @@ export const createApp = <
           break inner;
         }
 
-        state.options?.logs?.onParsedJson?.(ctx);
+        options?.logs?.onParsedJson?.(ctx);
 
         /* ************************************************************************
          *
@@ -169,7 +114,7 @@ export const createApp = <
 
         ctx.request = request.value;
 
-        state.options?.logs?.onParsedRequest?.(ctx);
+        options?.logs?.onParsedRequest?.(ctx);
 
         /* ************************************************************************
          *
@@ -179,7 +124,7 @@ export const createApp = <
 
         const middlewares: Array<QuiverMiddleware<any, any, any, any>> = [];
 
-        if (state.server.type === "QUIVER_FUNCTION") {
+        if (router.type === "QUIVER_FUNCTION") {
           if (ctx.url.path.length > 0) {
             ctx.throw = {
               code: "NO_FUNCTION_FOR_PATH",
@@ -189,9 +134,7 @@ export const createApp = <
             break inner;
           }
 
-          middlewares.push(state.server.middleware);
-
-          ctx.function = state.server.exec;
+          ctx.function = router.func;
         } else {
           if (ctx.url.path.length === 0) {
             ctx.throw = {
@@ -205,18 +148,20 @@ export const createApp = <
           let next:
             | undefined
             | QuiverFunction<any, any, any>
-            | QuiverRouter<any, any, any> = state.server;
+            | QuiverRouter<any, any, any> = router;
 
           middlewares.push(next.middleware);
 
           for (const segment of ctx.url.path) {
-            next = state.server.next(segment);
+            next = router.next(segment);
 
             if (next === undefined) {
               break;
             }
 
-            middlewares.push(next.middleware);
+            if (next.type === "QUIVER_ROUTER") {
+              middlewares.push(next.middleware);
+            }
           }
 
           if (next === undefined) {
@@ -237,10 +182,10 @@ export const createApp = <
             break inner;
           }
 
-          ctx.function = next.exec;
+          ctx.function = next.func;
         }
 
-        state.options?.logs?.onMatchedFunction?.(ctx);
+        options?.logs?.onMatchedFunction?.(ctx);
 
         /* ************************************************************************
          *
@@ -260,7 +205,7 @@ export const createApp = <
 
         ctx.input = ctx.request.arguments;
 
-        state.options?.logs?.onValidatedInput?.(ctx);
+        options?.logs?.onValidatedInput?.(ctx);
 
         /* ************************************************************************
          *
@@ -272,7 +217,7 @@ export const createApp = <
           ctx = await middleware.exec(ctx);
         }
 
-        state.options?.logs?.onAppliedMiddleware?.(ctx);
+        options?.logs?.onAppliedMiddleware?.(ctx);
 
         /* ************************************************************************
          *
@@ -300,7 +245,7 @@ export const createApp = <
           };
         }
 
-        state.options?.logs?.onAppliedFunction?.(ctx);
+        options?.logs?.onAppliedFunction?.(ctx);
       }
 
       /* ************************************************************************
@@ -317,7 +262,7 @@ export const createApp = <
          * ***********************************************************************/
 
         if (ctx.throw !== undefined) {
-          state.options?.logs?.onThrowing?.(ctx);
+          options?.logs?.onThrowing?.(ctx);
 
           const err: QuiverErrorResponse = {
             id: ctx.message.id,
@@ -350,13 +295,13 @@ export const createApp = <
           }
 
           const responseUrl = getResponseUrl(
-            state.provider.signer.address,
-            state.namespace,
+            xmtp.signer.address,
+            namespace,
             ctx.url.path,
           );
 
           try {
-            const sent = await state.provider.publish({
+            const sent = await xmtp.publish({
               conversation: {
                 peerAddress: ctx.message.conversation.peerAddress,
                 context: {
@@ -369,7 +314,7 @@ export const createApp = <
 
             ctx.sent = sent;
 
-            state.options?.logs?.onSentThrow?.(ctx);
+            options?.logs?.onSentThrow?.(ctx);
           } catch {
             ctx.exit = {
               code: "XMTP_NETWORK_ERROR",
@@ -387,7 +332,7 @@ export const createApp = <
          * ***********************************************************************/
 
         if (ctx.return !== undefined) {
-          state.options?.logs?.onReturning?.(ctx);
+          options?.logs?.onReturning?.(ctx);
 
           let content;
           try {
@@ -418,13 +363,13 @@ export const createApp = <
           }
 
           const responseUrl = getResponseUrl(
-            state.provider.signer.address,
-            state.namespace,
+            xmtp.signer.address,
+            namespace,
             ctx.url.path,
           );
 
           try {
-            const sent = await state.provider.publish({
+            const sent = await xmtp.publish({
               conversation: {
                 peerAddress: ctx.message.conversation.peerAddress,
                 context: {
@@ -437,7 +382,7 @@ export const createApp = <
 
             ctx.sent = sent;
 
-            state.options?.logs?.onSentReturn?.(ctx);
+            options?.logs?.onSentReturn?.(ctx);
           } catch {
             ctx.exit = {
               code: "XMTP_NETWORK_ERROR",
@@ -456,13 +401,6 @@ export const createApp = <
      *
      * ***********************************************************************/
 
-    state.options?.logs?.onExit?.(ctx);
-  };
-
-  return {
-    namespace: state.namespace,
-    server: state.server,
-    stop,
-    listen,
+    options?.logs?.onExit?.(ctx);
   };
 };

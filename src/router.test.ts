@@ -1,10 +1,12 @@
-import q from "./index.js";
+import quiver from "./index.js";
 import { ResultCtx } from "./types/middleware/ResultCtx.js";
 import { Equal } from "./types/test/Equal.js";
 import { Expect } from "./types/test/Expect.js";
 import { RouterCtxIn } from "./types/util/RouterCtxIn.js";
 import { Resolve } from "./types/util/Resolve.js";
 import { RouterCtxOut } from "./types/util/RouterCtxOut.js";
+
+const q = quiver();
 
 describe("router", () => {
   it("valid routes do not result in type errors", () => {

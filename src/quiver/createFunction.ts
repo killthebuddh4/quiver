@@ -1,15 +1,13 @@
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 
 export const createFunction = <
   CtxIn,
   CtxOut,
-  Exec extends (i: any, ctx: CtxOut) => any,
+  Func extends (i: any, ctx: CtxIn) => { o: any; ctx: CtxOut },
 >(
-  middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
-  exec: Exec,
-): QuiverFunction<CtxIn, CtxOut, Exec> => {
+  func: Func,
+): QuiverFunction<CtxIn, CtxOut, Func> => {
   const type = "QUIVER_FUNCTION" as const;
 
-  return { type, middleware, exec };
+  return { type, func };
 };

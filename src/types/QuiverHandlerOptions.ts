@@ -1,8 +1,7 @@
-import { QuiverProvider } from "./QuiverProvider.js";
+import { QuiverXmtp } from "./QuiverXmtp.js";
 import { QuiverContext } from "./QuiverContext.js";
 
-export type QuiverAppOptions = {
-  provider?: QuiverProvider;
+export type QuiverHandlerOptions = {
   logs?: {
     onRecvMessage?: (ctx: QuiverContext) => void;
     onParsedUrl?: (ctx: QuiverContext) => void;

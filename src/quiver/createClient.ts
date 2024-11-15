@@ -5,17 +5,20 @@ import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { getRequestUrl } from "../url/getRequestUrl.js";
 import { QuiverUrl } from "../types/QuiverUrl.js";
 import { urlToString } from "../url/urlToString.js";
-import { QuiverApp } from "../types/QuiverApp.js";
+import { QuiverRouter } from "../types/QuiverRouter.js";
+import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientContext } from "../types/QuiverClientContext.js";
-import { QuiverProvider } from "../types/QuiverProvider.js";
+import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { QuiverResult } from "../types/QuiverResult.js";
 
-export const createClient = <App extends QuiverApp<any>>(props: {
-  provider: QuiverProvider;
+export const createClient = <
+  Router extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+>(props: {
+  xmtp: QuiverXmtp;
   server: { address: string; namespace: string };
   options?: QuiverClientOptions;
-}): QuiverClient<App> => {
+}): QuiverClient<Router> => {
   const pending = new Map<string, (response: Message) => any>();
 
   const call = async (
@@ -39,11 +42,13 @@ export const createClient = <App extends QuiverApp<any>>(props: {
       };
     }
 
-    let sent: Awaited<ReturnType<QuiverProvider["publish"]>>;
+    let sent: Awaited<ReturnType<QuiverXmtp["publish"]>>;
     try {
       props.options?.logs?.onSendingRequest?.(request);
 
-      sent = await props.provider.publish({
+      await props.xmtp.start();
+
+      sent = await props.xmtp.publish({
         conversation: {
           peerAddress: props.server.address,
           context: {
@@ -278,9 +283,9 @@ export const createClient = <App extends QuiverApp<any>>(props: {
   // TODO, should we create a subscription for each call? Maybe? That would give
   // us a way to unsubscribe.
 
-  props.provider.subscribe(handler);
+  props.xmtp.subscribe(handler);
 
   return proxy(
-    getRequestUrl(props.provider.signer.address, props.server.namespace, []),
-  ) as unknown as QuiverClient<App>;
+    getRequestUrl(props.xmtp.signer.address, props.server.namespace, []),
+  ) as unknown as QuiverClient<Router>;
 };

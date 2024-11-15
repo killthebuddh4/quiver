@@ -1,10 +1,12 @@
-import q from "./index.js";
+import quiver from "./index.js";
 import { Resolve } from "./types/util/Resolve.js";
 import { Equal } from "./types/test/Equal.js";
 import { Expect } from "./types/test/Expect.js";
 import { ResultCtx } from "./types/middleware/ResultCtx.js";
 import { InCtx } from "./types/middleware/InCtx.js";
 import { OutCtx } from "./types/middleware/OutCtx.js";
+
+const q = quiver();
 
 describe("middleware piping works as expected", () => {
   it("valid operations do not result in type errors", () => {

@@ -1,9 +1,9 @@
-import { QuiverProvider } from "./QuiverProvider.js";
-import { QuiverProviderOptions } from "./QuiverProviderOptions.js";
+import { QuiverXmtp } from "./QuiverXmtp.js";
+import { QuiverXmtpOptions } from "./QuiverXmtpOptions.js";
 
 export type QuiverStartOptions = {
   provider?: {
-    provider?: QuiverProvider;
-    options?: QuiverProviderOptions;
+    provider?: QuiverXmtp;
+    options?: QuiverXmtpOptions;
   };
 };

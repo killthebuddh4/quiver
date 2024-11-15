@@ -1,3 +1,3 @@
-import { QuiverProvider } from "../types/QuiverProvider.js";
+import { QuiverXmtp } from "../types/QuiverXmtp.js";
 
-export const store = new Map<string, QuiverProvider>();
+export const store = new Map<string, QuiverXmtp>();

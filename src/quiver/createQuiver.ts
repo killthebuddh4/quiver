@@ -1,26 +1,29 @@
-import { QuiverProviderOptions } from "../types/QuiverProviderOptions.js";
-import { setProvider } from "../provider/setProvider.js";
 import { createClient } from "./createClient.js";
-import { createProvider } from "./createProvider.js";
+import { createXmtp } from "./createXmtp.js";
 import { createRouter } from "./createRouter.js";
-import { QuiverApp } from "../types/QuiverApp.js";
 import { createMiddleware } from "./createMiddleware.js";
 import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
-import { QuiverProvider } from "../types/QuiverProvider.js";
 import { Resolve } from "../types/util/Resolve.js";
 import { createFunction } from "./createFunction.js";
-import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
+import { QuiverFunction } from "../types/QuiverFunction.js";
+import { QuiverRouter } from "../types/QuiverRouter.js";
 
 export const createQuiver = () => {
+  const xmtp = createXmtp();
+
+  xmtp.start();
+
   return {
+    address: xmtp.signer.address,
+
     router: <Mw extends QuiverMiddleware<any, any, any, any>>(mw: Mw) => {
       return createRouter<
         Mw extends QuiverMiddleware<infer I, any, any, any> ? I : never,
         Mw extends QuiverMiddleware<any, infer O, any, any> ? O : never,
         {}
-      >(mw, {});
+      >(xmtp, mw, {});
     },
 
     middleware: <F extends (ctx: any) => any>(fn: F) => {
@@ -32,35 +35,32 @@ export const createQuiver = () => {
       >(fn);
     },
 
-    function: <Exec extends (i: any, ctx: QuiverContext) => any>(
-      exec: Exec,
+    function: <F extends (i: any, ctx: any) => { o: any; ctx: any }>(
+      func: F,
     ) => {
-      const middleware = createMiddleware<undefined, any, any, any>(
-        (ctx: any) => ctx,
-      );
-
-      return createFunction(middleware, exec);
+      return createFunction<
+        F extends (i: any, ctx: infer CtxIn) => { o: any; ctx: any }
+          ? CtxIn
+          : never,
+        F extends (i: any, ctx: any) => { o: any; ctx: infer CtxOut }
+          ? CtxOut
+          : never,
+        F
+      >(func);
     },
 
-    client: <App extends QuiverApp<any>>(
-      provider: QuiverProvider,
+    client: <
+      R extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+    >(
       namespace: string,
       address: string,
       options?: QuiverClientOptions,
     ) => {
       return createClient({
-        provider,
+        xmtp,
         server: { namespace, address },
         options,
-      }) as unknown as QuiverClient<App>;
-    },
-
-    provider: (options?: QuiverProviderOptions) => {
-      const provider = createProvider(options);
-
-      setProvider(provider);
-
-      return provider;
+      }) as unknown as QuiverClient<R>;
     },
   };
 };

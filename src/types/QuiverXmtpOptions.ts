@@ -2,7 +2,7 @@ import { Message } from "./Message.js";
 import { Conversation } from "./Conversation.js";
 import { Signer } from "./util/Signer.js";
 
-export type QuiverProviderOptions = {
+export type QuiverXmtpOptions = {
   init?: {
     // NOTE Only signer is supported for now. It should be very simple to add
     // more options here, but we don't need them yet.
