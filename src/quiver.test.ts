@@ -1,10 +1,10 @@
-import q from "./index.js";
+import quiver from "./index.js";
 
-describe("quiver", () => {
-  it.only("hello world works", async function () {
+describe.only("quiver end-to-end tests", () => {
+  it("hello world works", async function () {
     this.timeout(10000);
 
-    const backend = q();
+    const backend = quiver.q();
 
     const hello = backend.function(() => {
       return "Hello, World!";
@@ -18,7 +18,7 @@ describe("quiver", () => {
 
     router.listen("test");
 
-    const frontend = q();
+    const frontend = quiver.q();
 
     const client = frontend.client<typeof router>("test", backend.address, {
       logs: {

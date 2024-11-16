@@ -40,8 +40,79 @@ export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
     (message: Message) => Promise<void> | void
   >();
 
+  /* TODO. We need to think through the startup API a little bit more. This feels
+   * like a brute force hackish approach to forcing only a single startup. See
+   * dev notes from 2024-11-16. */
+
+  let starting: Promise<QuiverXmtp> | undefined = undefined;
+
   const start = async (): Promise<QuiverXmtp> => {
-    if (state.stream !== undefined) {
+    if (starting) {
+      return starting;
+    }
+
+    starting = (async () => {
+      if (state.stream !== undefined) {
+        return {
+          signer: state.signer,
+          address: state.signer.address,
+          start,
+          stop,
+          subscribe,
+          publish,
+        };
+      }
+
+      try {
+        state.xmtp = await Client.create(state.signer);
+      } catch (err) {
+        options?.logs?.start?.onStartXmtpError?.(err);
+
+        throw err;
+      }
+
+      try {
+        state.stream = await state.xmtp.conversations.streamAllMessages();
+      } catch (err) {
+        options?.logs?.start?.onStartStreamError?.(err);
+
+        throw err;
+      }
+
+      (async () => {
+        if (state.stream === undefined) {
+          throw new Error(
+            `Stream not yet initialized, this should be impossible`,
+          );
+        }
+
+        for await (const message of state.stream) {
+          if (message.senderAddress === state.signer.address) {
+            options?.logs?.handle?.onSelfSentMessage?.(message);
+
+            continue;
+          }
+
+          options?.logs?.handle?.onMessage?.(message);
+
+          for (const handler of Array.from(handlers.values())) {
+            try {
+              options?.logs?.handle?.onHandling?.(message);
+
+              await handler(message);
+            } catch (err) {
+              options?.logs?.handle?.onHandlerError?.(err);
+
+              if (options?.throwOnHandlerError) {
+                throw err;
+              }
+
+              continue;
+            }
+          }
+        }
+      })();
+
       return {
         signer: state.signer,
         address: state.signer.address,
@@ -50,66 +121,9 @@ export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
         subscribe,
         publish,
       };
-    }
-
-    try {
-      state.xmtp = await Client.create(state.signer);
-    } catch (err) {
-      options?.logs?.start?.onStartXmtpError?.(err);
-
-      throw err;
-    }
-
-    try {
-      state.stream = await state.xmtp.conversations.streamAllMessages();
-    } catch (err) {
-      options?.logs?.start?.onStartStreamError?.(err);
-
-      throw err;
-    }
-
-    (async () => {
-      if (state.stream === undefined) {
-        throw new Error(
-          `Stream not yet initialized, this should be impossible`,
-        );
-      }
-
-      for await (const message of state.stream) {
-        if (message.senderAddress === state.signer.address) {
-          options?.logs?.handle?.onSelfSentMessage?.(message);
-
-          continue;
-        }
-
-        options?.logs?.handle?.onMessage?.(message);
-
-        for (const handler of Array.from(handlers.values())) {
-          try {
-            options?.logs?.handle?.onHandling?.(message);
-
-            await handler(message);
-          } catch (err) {
-            options?.logs?.handle?.onHandlerError?.(err);
-
-            if (options?.throwOnHandlerError) {
-              throw err;
-            }
-
-            continue;
-          }
-        }
-      }
     })();
 
-    return {
-      signer: state.signer,
-      address: state.signer.address,
-      start,
-      stop,
-      subscribe,
-      publish,
-    };
+    return starting;
   };
 
   const stop = () => {

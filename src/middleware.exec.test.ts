@@ -1,8 +1,8 @@
 import quiver from "./index.js";
 
-const q = quiver();
-
 describe("mw.exec(ctx) works as expected", () => {
+  const q = quiver.q();
+
   it("works with one middleware", () => {
     const mw = q.middleware((ctx: { a: string }) => {
       return { b: 1 };

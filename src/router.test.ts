@@ -6,9 +6,9 @@ import { RouterCtxIn } from "./types/router/RouterCtxIn.js";
 import { Resolve } from "./types/util/Resolve.js";
 import { RouterCtxOut } from "./types/router/RouterCtxOut.js";
 
-const q = quiver();
-
 describe("router", () => {
+  const q = quiver.q();
+
   it("valid routes do not result in type errors", () => {
     const router = q.router(
       q.middleware((ctx: { user: string }) => {

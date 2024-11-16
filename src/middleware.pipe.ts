@@ -6,9 +6,9 @@ import { ResultCtx } from "./types/middleware/ResultCtx.js";
 import { InCtx } from "./types/middleware/InCtx.js";
 import { OutCtx } from "./types/middleware/OutCtx.js";
 
-const q = quiver();
-
 describe("middleware piping works as expected", () => {
+  const q = quiver.q();
+
   it("valid operations do not result in type errors", () => {
     const lhs = q.middleware((ctx: { a: string }) => {
       return { b: 1 };
