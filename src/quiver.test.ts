@@ -79,7 +79,7 @@ describe("quiver end-to-end tests", () => {
     }
   });
 
-  it.only("multiple layers of routes works", async function () {
+  it("multiple layers of routes works", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();

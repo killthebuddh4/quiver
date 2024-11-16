@@ -1,106 +1,73 @@
 import quiver from "./index.js";
-import { ResultCtx } from "./types/middleware/ResultCtx.js";
-import { Equal } from "./types/test/Equal.js";
-import { Expect } from "./types/test/Expect.js";
-import { RouterCtxIn } from "./types/router/RouterCtxIn.js";
-import { Resolve } from "./types/util/Resolve.js";
-import { RouterCtxOut } from "./types/router/RouterCtxOut.js";
+import { route } from "./router/route.js";
 
-describe("router", () => {
+describe("routing works", () => {
   const q = quiver.q();
 
-  it("valid routes do not result in type errors", () => {
-    const router = q.router(
-      q.middleware((ctx: { user: string }) => {
-        return { password: "password" };
-      }),
-    );
-
-    const route = q.router(
-      q.middleware((ctx: { password: string }) => {
-        return {};
-      }),
-    );
-
-    router.use("/", route);
+  const mw = q.middleware(() => {
+    return {};
   });
 
-  it("invalid routes result in type errors", () => {
-    const router = q.router(
-      q.middleware((ctx: { user: string }) => {
-        return { password: "password" };
-      }),
-    );
-
-    const route = q.router(
-      q.middleware((ctx: { password: number }) => {
-        return {};
-      }),
-    );
-
-    // @ts-expect-error
-    router.use("/", route);
+  const fn = q.function(() => {
+    return null;
   });
 
-  it("router.use(route) yields the expected CtxIn type", () => {
-    const router = q.router(
-      q.middleware((ctx: { user: string }) => {
-        return { password: "password" };
-      }),
-    );
+  it("single layer, single route matches valid routes", function () {
+    const router = q.router(mw).bind("a", fn);
 
-    const route = q.router(
-      q.middleware((ctx: { token: string }) => {
-        return {};
-      }),
-    );
+    const match = route(["a"], router);
 
-    const routed = router.use("/", route);
-
-    type Expected = { user: string; token: string };
-    type Actual = RouterCtxIn<typeof routed>;
-    type Test = Expect<Equal<Actual, Expected>>;
+    if (!match.success) {
+      throw new Error("Expected match to be successful");
+    }
   });
 
-  it("router.use(route) yields the expected CtxOut type", () => {
-    const router = q.router(
-      q.middleware((ctx: { user: string }) => {
-        return { password: "password" };
-      }),
-    );
+  it("single layer, single route does not match invalid routes", function () {
+    const router = q.router(mw).bind("a", fn);
 
-    const route = q.router(
-      q.middleware((ctx: { token: string }) => {
-        return {};
-      }),
-    );
+    const match = route(["b"], router);
 
-    const routed = router.use("/", route);
-
-    type Expected = { password: string };
-    type Actual = RouterCtxOut<typeof routed>;
-    type Test = Expect<Equal<Actual, Expected>>;
+    if (match.success) {
+      throw new Error("Expected match to be unsuccessful");
+    }
   });
 
-  it("router.use(route) yields the expected ResultCtx type", () => {
-    const router = q.router(
-      q.middleware((ctx: { user: string }) => {
-        return { password: "password" };
-      }),
-    );
+  it("single layer, multiple routes matches valid routes", function () {
+    const router = q.router(mw).bind("a", fn).bind("b", fn);
 
-    const route = q.router(
-      q.middleware((ctx: { token: string }) => {
-        return {};
-      }),
-    );
+    const aMatch = route(["a"], router);
 
-    const routed = router.use("/", route);
+    if (!aMatch.success) {
+      throw new Error("Expected match to be successful");
+    }
 
-    type Expected = { password: string; token: string; user: string };
-    type Actual = Resolve<
-      ResultCtx<RouterCtxIn<typeof routed>, RouterCtxOut<typeof routed>>
-    >;
-    type Test = Expect<Equal<Actual, Expected>>;
+    const bMatch = route(["b"], router);
+
+    if (!bMatch.success) {
+      throw new Error("Expected match to be successful");
+    }
+  });
+
+  it("multi layer, single route matches valid routes", function () {
+    const second = q.router(mw).bind("a", fn);
+    const first = q.router(mw).use("second", second);
+
+    const match = route(["second", "a"], first);
+
+    if (!match.success) {
+      console.log(match);
+      throw new Error("Expected match to be successful");
+    }
+  });
+
+  it("multi layer, single route does not match invalid routes", function () {
+    const second = q.router(mw).bind("a", fn);
+    const first = q.router(mw).use("second", second);
+
+    const match = route(["second", "b"], first);
+
+    if (match.success) {
+      throw new Error("Expected match to be unsuccessful");
+    }
   });
 });
