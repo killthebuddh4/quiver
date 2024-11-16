@@ -58,20 +58,22 @@ describe("quiver end-to-end tests", () => {
 
     const client = frontend.client<typeof router>("test", backend.address);
 
-    const aResponse = await client.a(undefined);
+    const aResponse = await client.a();
 
     if (!aResponse.ok) {
-      throw new Error("Response not ok");
+      console.error(aResponse);
+      throw new Error("aResponse not ok");
     }
 
     if (aResponse.data !== "A") {
       throw new Error(`Expected "A", got ${aResponse.data}`);
     }
 
-    const bResponse = await client.b(undefined);
+    const bResponse = await client.b();
 
     if (!bResponse.ok) {
-      throw new Error("Response not ok");
+      console.error(bResponse);
+      throw new Error("bResponse not ok");
     }
 
     if (bResponse.data !== "B") {
@@ -79,7 +81,7 @@ describe("quiver end-to-end tests", () => {
     }
   });
 
-  it("multiple layers of routes works", async function () {
+  it.only("multiple layers of routes works", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();

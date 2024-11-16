@@ -10,6 +10,7 @@ import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
+import { route } from "../router/route.js";
 
 export const createHandler = (
   namespace: string,
@@ -122,68 +123,27 @@ export const createHandler = (
          *
          * ***********************************************************************/
 
-        const middlewares: Array<QuiverMiddleware<any, any, any, any>> = [];
+        const match = route(ctx.url.path, router);
 
-        if (router.type === "QUIVER_FUNCTION") {
-          if (ctx.url.path.length > 0) {
-            ctx.throw = {
-              code: "NO_FUNCTION_FOR_PATH",
-              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
-            };
+        if (!match.success) {
+          ctx.throw = {
+            code: "NO_FUNCTION_FOR_PATH",
+            message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
+          };
 
-            break inner;
-          }
-
-          ctx.function = router.func;
-        } else {
-          if (ctx.url.path.length === 0) {
-            ctx.throw = {
-              code: "NO_FUNCTION_FOR_PATH",
-              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
-            };
-
-            break inner;
-          }
-
-          let next:
-            | undefined
-            | QuiverFunction<any, any, any>
-            | QuiverRouter<any, any, any> = router;
-
-          middlewares.push(next.middleware);
-
-          for (const segment of ctx.url.path) {
-            next = router.next(segment);
-
-            if (next === undefined) {
-              break;
-            }
-
-            if (next.type === "QUIVER_ROUTER") {
-              middlewares.push(next.middleware);
-            }
-          }
-
-          if (next === undefined) {
-            ctx.throw = {
-              code: "NO_FUNCTION_FOR_PATH",
-              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
-            };
-
-            break inner;
-          }
-
-          if (next.type === "QUIVER_ROUTER") {
-            ctx.throw = {
-              code: "NO_FUNCTION_FOR_PATH",
-              message: `No function found for path: ${ctx.url.path.join("/")}, ${ctx.url.path}`,
-            };
-
-            break inner;
-          }
-
-          ctx.function = next.func;
+          break inner;
         }
+
+        if (match.function === null) {
+          ctx.throw = {
+            code: "SERVER_ERROR",
+            message: `Something went wrong with the router`,
+          };
+
+          break inner;
+        }
+
+        ctx.function = match.function.func;
 
         options?.logs?.onMatchedFunction?.(ctx);
 
@@ -213,7 +173,8 @@ export const createHandler = (
          *
          * ***********************************************************************/
 
-        for (const middleware of middlewares) {
+        for (const middleware of match.middlewares) {
+          // TODO We need to handle middleware errors. See dev notes from 2024-11-16.
           ctx = await middleware.exec(ctx);
         }
 

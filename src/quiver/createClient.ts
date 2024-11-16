@@ -180,9 +180,10 @@ export const createClient = <
           throw new Error(`Expected string, got ${typeof prop}`);
         }
 
-        url.path.push(prop);
-
-        return proxy(url);
+        return proxy({
+          ...url,
+          path: [...url.path, prop],
+        });
       },
 
       apply: (_1, _2, args) => {

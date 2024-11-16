@@ -6,10 +6,7 @@ type RouteResult = {
   success: boolean;
   path: string[];
   matched: string[];
-  middlewares: Array<{
-    segment: string;
-    middleware: QuiverMiddleware<any, any, any, any> | null;
-  }>;
+  middlewares: Array<QuiverMiddleware<any, any, any, any>>;
   function: QuiverFunction<any, any, any> | null;
   message?: string;
 };
@@ -18,8 +15,6 @@ export const route = (
   path: string[],
   router: QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
 ): RouteResult => {
-  const middlewares: Array<QuiverMiddleware<any, any, any, any>> = [];
-
   const result: RouteResult = {
     success: false,
     path,
@@ -50,7 +45,7 @@ export const route = (
     | QuiverFunction<any, any, any>
     | QuiverRouter<any, any, any> = router;
 
-  middlewares.push(next.middleware);
+  result.middlewares.push(next.middleware);
 
   for (const segment of path) {
     if (next.type === "QUIVER_FUNCTION") {
@@ -72,7 +67,7 @@ export const route = (
     result.matched.push(segment);
 
     if (next.type === "QUIVER_ROUTER") {
-      middlewares.push(next.middleware);
+      result.middlewares.push(next.middleware);
     }
   }
 
