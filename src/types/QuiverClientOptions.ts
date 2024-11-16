@@ -7,6 +7,10 @@ import { QuiverUrl } from "./QuiverUrl.js";
 
 export type QuiverClientOptions = {
   timeoutMs?: number;
+  xmtp?: {
+    startOnCall?: boolean;
+    onStartError?: (error: unknown) => void;
+  };
   logs?: {
     onSendingRequest?: (req: QuiverRequest) => void;
     onSendError?: (req: QuiverRequest, err: unknown) => void;

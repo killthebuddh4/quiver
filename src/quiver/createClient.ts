@@ -25,6 +25,24 @@ export const createClient = <
     url: QuiverUrl,
     args: any[],
   ): Promise<QuiverResult<unknown>> => {
+    if (props.options?.xmtp?.startOnCall === false) {
+      throw new Error("Not yet implemented");
+    } else {
+      try {
+        await props.xmtp.start();
+      } catch (error) {
+        props.options?.xmtp?.onStartError?.(error);
+
+        return {
+          ok: false,
+          error: {
+            code: "XMTP_STARTUP_ERROR",
+            message: "Failed to start xmtp",
+          },
+        };
+      }
+    }
+
     const request = {
       arguments: args,
     };
@@ -45,8 +63,6 @@ export const createClient = <
     let sent: Awaited<ReturnType<QuiverXmtp["publish"]>>;
     try {
       props.options?.logs?.onSendingRequest?.(request);
-
-      await props.xmtp.start();
 
       sent = await props.xmtp.publish({
         conversation: {

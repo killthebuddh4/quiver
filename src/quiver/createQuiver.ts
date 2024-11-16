@@ -9,11 +9,25 @@ import { createFunction } from "./createFunction.js";
 import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
+import { QuiverXmtp } from "../types/QuiverXmtp.js";
 
-export const createQuiver = () => {
-  const xmtp = createXmtp();
+export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
+  /* TODO. We need to design the XMTP initialization API. See dev notes from
+   * 2024-11-16. */
+  let xmtp: QuiverXmtp;
+  if (options?.xmtp !== undefined) {
+    xmtp = options.xmtp;
+  } else {
+    xmtp = createXmtp();
+  }
 
-  xmtp.start();
+  (async () => {
+    try {
+      await xmtp.start();
+    } catch (err) {
+      throw err;
+    }
+  })();
 
   return {
     address: xmtp.signer.address,

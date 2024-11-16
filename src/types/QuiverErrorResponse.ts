@@ -8,7 +8,7 @@ export type QuiverErrorResponse = {
   metadata?: Record<string, unknown>;
 };
 
-type XmtpError = "XMTP_NETWORK_ERROR";
+type XmtpError = "XMTP_NETWORK_ERROR" | "XMTP_STARTUP_ERROR";
 
 type ClientError =
   | "CLIENT_ERROR"

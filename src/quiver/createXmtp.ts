@@ -10,13 +10,20 @@ import { QuiverXmtp } from "../types/QuiverXmtp.js";
 export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
   const state = {
     signer: (() => {
+      let signer;
       if (options?.init?.signer !== undefined) {
-        return options.init.signer;
+        signer = options.init.signer;
       } else if (options?.init?.key !== undefined) {
-        return new Wallet(options.init.key);
+        signer = new Wallet(options.init.key);
       } else {
-        return Wallet.createRandom();
+        signer = Wallet.createRandom();
       }
+
+      if (options?.logs?.create?.onSignerCreated !== undefined) {
+        options.logs.create.onSignerCreated(signer);
+      }
+
+      return signer;
     })(),
     xmtp: undefined,
     stream: undefined,
@@ -159,11 +166,11 @@ export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
     try {
       const sent = await conversation.send(args.content);
 
-      options?.logs?.pubsub?.onSentMessage?.(sent);
+      options?.logs?.pubsub?.onPublished?.(sent);
 
       return sent;
     } catch (err) {
-      options?.logs?.pubsub?.onSendMessageError?.(args.content, err);
+      options?.logs?.pubsub?.onPublishError?.(args.content, err);
 
       throw err;
     }

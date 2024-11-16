@@ -29,12 +29,12 @@ export type QuiverXmtpOptions = {
       onSubscribe?: () => void;
       onUnsubscribe?: () => void;
       onPublishing?: (conversation: Conversation, content: string) => void;
-      onSentMessage?: (message: Message) => void;
+      onPublished?: (message: Message) => void;
       onCreateConversationError?: (
         conversation: Conversation,
         error: unknown,
       ) => void;
-      onSendMessageError?: (content: unknown, error: unknown) => void;
+      onPublishError?: (content: unknown, error: unknown) => void;
     };
   };
   throwOnHandlerError?: boolean;
