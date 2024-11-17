@@ -22,7 +22,7 @@ describe("router", () => {
       }),
     );
 
-    router.use("/", route);
+    router.router("/", route);
   });
 
   it("invalid routes result in type errors", () => {
@@ -39,7 +39,7 @@ describe("router", () => {
     );
 
     // @ts-expect-error
-    router.use("/", route);
+    router.router("/", route);
   });
 
   it("router.use(route) yields the expected CtxIn type", () => {
@@ -55,7 +55,7 @@ describe("router", () => {
       }),
     );
 
-    const routed = router.use("/", route);
+    const routed = router.router("/", route);
 
     type Expected = { user: string; token: string };
     type Actual = RouterCtxIn<typeof routed>;
@@ -75,7 +75,7 @@ describe("router", () => {
       }),
     );
 
-    const routed = router.use("/", route);
+    const routed = router.router("/", route);
 
     type Expected = { password: string };
     type Actual = RouterCtxOut<typeof routed>;
@@ -95,7 +95,7 @@ describe("router", () => {
       }),
     );
 
-    const routed = router.use("/", route);
+    const routed = router.router("/", route);
 
     type Expected = { password: string; token: string; user: string };
     type Actual = Resolve<

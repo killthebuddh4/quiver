@@ -13,7 +13,7 @@ describe("routing works", () => {
   });
 
   it("single layer, single route matches valid routes", function () {
-    const router = q.router(mw).bind("a", fn);
+    const router = q.router(mw).function("a", fn);
 
     const match = route(["a"], router);
 
@@ -23,7 +23,7 @@ describe("routing works", () => {
   });
 
   it("single layer, single route does not match invalid routes", function () {
-    const router = q.router(mw).bind("a", fn);
+    const router = q.router(mw).function("a", fn);
 
     const match = route(["b"], router);
 
@@ -33,7 +33,7 @@ describe("routing works", () => {
   });
 
   it("single layer, multiple routes matches valid routes", function () {
-    const router = q.router(mw).bind("a", fn).bind("b", fn);
+    const router = q.router(mw).function("a", fn).function("b", fn);
 
     const aMatch = route(["a"], router);
 
@@ -49,8 +49,8 @@ describe("routing works", () => {
   });
 
   it("multi layer, single route matches valid routes", function () {
-    const second = q.router(mw).bind("a", fn);
-    const first = q.router(mw).use("second", second);
+    const second = q.router(mw).function("a", fn);
+    const first = q.router(mw).router("second", second);
 
     const match = route(["second", "a"], first);
 
@@ -61,8 +61,8 @@ describe("routing works", () => {
   });
 
   it("multi layer, single route does not match invalid routes", function () {
-    const second = q.router(mw).bind("a", fn);
-    const first = q.router(mw).use("second", second);
+    const second = q.router(mw).function("a", fn);
+    const first = q.router(mw).router("second", second);
 
     const match = route(["second", "b"], first);
 

@@ -26,13 +26,13 @@ export const createRouter = <
 ): QuiverRouter<CtxIn, CtxOut, Routes> => {
   const type = "QUIVER_ROUTER" as const;
 
-  const next = (path: string) => {
+  const route = (path: string) => {
     return routes[path];
   };
 
-  const use = <P extends string, R>(
+  const useRouter = <P extends string, R>(
     path: P,
-    route: RouteableRoute<QuiverRouter<CtxIn, CtxOut, any>, R>,
+    router: RouteableRoute<QuiverRouter<CtxIn, CtxOut, any>, R>,
   ) => {
     return createRouter<
       Resolve<PipedCtxIn<CtxIn, CtxOut, RouterCtxIn<R>>>,
@@ -45,12 +45,12 @@ export const createRouter = <
       middleware as any,
       {
         ...(routes || {}),
-        [path]: route,
+        [path]: router,
       } as any,
     ) as any;
   };
 
-  const bind = <P extends string, R>(
+  const useFunction = <P extends string, R>(
     path: P,
     route: RouteableFunction<QuiverRouter<CtxIn, CtxOut, any>, R>,
   ) => {
@@ -75,9 +75,9 @@ export const createRouter = <
       type,
       middleware,
       routes,
-      next,
-      use,
-      bind,
+      route: route,
+      router: useRouter,
+      function: useFunction,
       listen,
     });
 
@@ -90,5 +90,13 @@ export const createRouter = <
     };
   };
 
-  return { type, middleware, routes, next, use, bind, listen };
+  return {
+    type,
+    middleware,
+    routes,
+    route,
+    router: useRouter,
+    function: useFunction,
+    listen,
+  };
 };

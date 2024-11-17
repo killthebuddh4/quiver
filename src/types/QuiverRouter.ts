@@ -23,11 +23,11 @@ export interface QuiverRouter<
 
   routes: Routes;
 
-  next: (
+  route: (
     path: string,
   ) => QuiverRouter<any, any, any> | QuiverFunction<any, any, any> | undefined;
 
-  use: <P extends string, Route>(
+  router: <P extends string, Route>(
     path: P,
     route: RouteableRoute<QuiverRouter<CtxIn, CtxOut, any>, Route>,
   ) => QuiverRouter<
@@ -40,7 +40,7 @@ export interface QuiverRouter<
     >
   >;
 
-  bind: <P extends string, Route>(
+  function: <P extends string, Route>(
     path: P,
     route: RouteableFunction<QuiverRouter<CtxIn, CtxOut, any>, Route>,
   ) => QuiverRouter<

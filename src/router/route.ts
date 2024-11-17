@@ -55,7 +55,7 @@ export const route = (
       };
     }
 
-    next = next.next(segment);
+    next = next.route(segment);
 
     if (next === undefined) {
       return {

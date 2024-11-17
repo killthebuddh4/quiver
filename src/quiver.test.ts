@@ -14,7 +14,7 @@ describe("quiver end-to-end tests", () => {
       return {};
     });
 
-    const router = backend.router(middleware).bind("hello", hello);
+    const router = backend.router(middleware).function("hello", hello);
 
     router.listen("test");
 
@@ -50,7 +50,7 @@ describe("quiver end-to-end tests", () => {
       return {};
     });
 
-    const router = backend.router(middleware).bind("a", a).bind("b", b);
+    const router = backend.router(middleware).function("a", a).function("b", b);
 
     router.listen("test");
 
@@ -81,7 +81,7 @@ describe("quiver end-to-end tests", () => {
     }
   });
 
-  it.only("multiple layers of routes works", async function () {
+  it("multiple layers of routes works", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();
@@ -102,13 +102,13 @@ describe("quiver end-to-end tests", () => {
       return {};
     });
 
-    const second = backend.router(middleware).bind("c", c);
+    const second = backend.router(middleware).function("c", c);
 
     const router = backend
       .router(middleware)
-      .bind("a", a)
-      .bind("b", b)
-      .use("second", second);
+      .function("a", a)
+      .function("b", b)
+      .router("second", second);
 
     router.listen("test");
 

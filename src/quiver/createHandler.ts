@@ -8,7 +8,6 @@ import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
 import { route } from "../router/route.js";
 
