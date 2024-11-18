@@ -4,13 +4,13 @@ import { QuiverClientOptions } from "./QuiverClientOptions.js";
 import { QuiverResult } from "./QuiverResult.js";
 
 export type QuiverClient<
-  Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+  Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any>,
 > = TypedClient<Server>;
 
 type TypedClient<
-  Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+  Server extends QuiverRouter<any, any, any> | QuiverFunction<any, any>,
 > =
-  Server extends QuiverFunction<any, any, infer Func>
+  Server extends QuiverFunction<any, infer Func>
     ? Func extends (...args: infer Args) => infer Ret
       ? (
           ...args: [...Args, options?: QuiverClientOptions]

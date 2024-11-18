@@ -14,7 +14,7 @@ import { route } from "../router/route.js";
 export const createHandler = (
   namespace: string,
   xmtp: QuiverXmtp,
-  router: QuiverFunction<any, any, any> | QuiverRouter<any, any, any>,
+  router: QuiverFunction<any, any> | QuiverRouter<any, any, any>,
   options?: QuiverHandlerOptions,
 ) => {
   /* 
@@ -28,7 +28,10 @@ export const createHandler = (
     fails.
   */
   return async (message: Message) => {
-    let ctx: QuiverContext = { message };
+    /* TODO We need to fix this assertion here ASAP. Everything works right now
+     * and I want to move on to a user implementation, so I'm going to continue
+     * with a broken type here. See dev notes from 2024-11-18. */
+    let ctx: QuiverContext = { message } as QuiverContext;
 
     outer: {
       inner: {

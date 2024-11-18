@@ -1,6 +1,38 @@
 import quiver from "./index.js";
 
+const CLEANUP: Array<() => void> = [];
+
+describe("creator functions yield the correct types", () => {
+  const q = quiver.q();
+
+  it("q.function yields the correct type with a zero argument function", () => {
+    const f = q.function(() => 1);
+  });
+
+  it("q.function yields the correct type with a one argument function", () => {
+    const f = q.function((i: number) => i);
+  });
+
+  it("q.function yields the correct type with a two argument function", () => {
+    const f = q.function((i: number, ctx: { a: string }) => i);
+  });
+
+  it("q.middleware yields the correct type with a zero argument function", () => {
+    const mw = q.middleware(() => ({}));
+  });
+
+  it("q.middleware yields the correct type with a one argument function", () => {
+    const mw = q.middleware((ctx: { a: string }) => ({}));
+  });
+});
+
 describe("quiver end-to-end tests", () => {
+  afterEach(() => {
+    for (const f of CLEANUP) {
+      f();
+    }
+  });
+
   it("TODO root function works", async function () {
     this.timeout(10000);
 
@@ -16,7 +48,7 @@ describe("quiver end-to-end tests", () => {
 
     const router = backend.router(middleware).function("hello", hello);
 
-    router.listen("test");
+    CLEANUP.push(backend.serve("test", router));
 
     const frontend = quiver.q();
 

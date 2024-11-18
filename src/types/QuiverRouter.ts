@@ -13,7 +13,7 @@ export interface QuiverRouter<
   Routes extends {
     [key: string]:
       | QuiverRouter<any, any, any>
-      | QuiverFunction<any, any, any>
+      | QuiverFunction<any, any>
       | undefined;
   },
 > {
@@ -25,7 +25,7 @@ export interface QuiverRouter<
 
   route: (
     path: string,
-  ) => QuiverRouter<any, any, any> | QuiverFunction<any, any, any> | undefined;
+  ) => QuiverRouter<any, any, any> | QuiverFunction<any, any> | undefined;
 
   router: <P extends string, Route>(
     path: P,
@@ -52,6 +52,4 @@ export interface QuiverRouter<
       }
     >
   >;
-
-  listen: (namespace: string) => { stop: () => void };
 }

@@ -7,13 +7,13 @@ type RouteResult = {
   path: string[];
   matched: string[];
   middlewares: Array<QuiverMiddleware<any, any, any, any>>;
-  function: QuiverFunction<any, any, any> | null;
+  function: QuiverFunction<any, any> | null;
   message?: string;
 };
 
 export const route = (
   path: string[],
-  router: QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
+  router: QuiverRouter<any, any, any> | QuiverFunction<any, any>,
 ): RouteResult => {
   const result: RouteResult = {
     success: false,
@@ -40,10 +40,8 @@ export const route = (
     return result;
   }
 
-  let next:
-    | undefined
-    | QuiverFunction<any, any, any>
-    | QuiverRouter<any, any, any> = router;
+  let next: undefined | QuiverFunction<any, any> | QuiverRouter<any, any, any> =
+    router;
 
   result.middlewares.push(next.middleware);
 

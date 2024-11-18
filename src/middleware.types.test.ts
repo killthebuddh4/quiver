@@ -9,6 +9,8 @@ import { SatisfiableCtx } from "./types/middleware/SatisfiableCtx.js";
 import { PipedCtxIn } from "./types/middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "./types/middleware/PipedCtxOut.js";
 import { Resolve } from "./types/util/Resolve.js";
+import { QuiverUrl } from "./types/QuiverUrl.js";
+import { RootCtx } from "./types/middleware/RootCtx.js";
 
 describe("ComplementCtx works as expected", () => {
   it("works when the complement is non-empty", () => {
@@ -16,6 +18,7 @@ describe("ComplementCtx works as expected", () => {
     type S = { b: string };
     type Expected = { a: string };
     type Actual = Resolve<ComplementCtx<U, S>>;
+    type Test = Expect<Equal<Actual, Expected>>;
   });
 
   it("works when the complement is empty", () => {
@@ -23,6 +26,48 @@ describe("ComplementCtx works as expected", () => {
     type S = { a: string; b: string };
     type Expected = {};
     type Actual = Resolve<ComplementCtx<U, S>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when the subset is empty", () => {
+    type U = { a: string };
+    type S = undefined;
+    type Expected = { a: string };
+    type Actual = Resolve<ComplementCtx<U, S>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+});
+
+describe("RootCtx works as expected", () => {
+  it("works when the generic's dependencies are all satisfied", () => {
+    type Ctx = {
+      url: QuiverUrl;
+    };
+
+    type Actual = Resolve<RootCtx<Ctx>>;
+    type Expected = 1;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when the generic has some unsatisfied dependency", () => {
+    type Ctx = {
+      url: QuiverUrl;
+      user: string;
+    };
+
+    type Actual = Resolve<RootCtx<Ctx>>;
+    type Expected = 2;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when the generic has mismatched dependencies", () => {
+    type Ctx = {
+      url: string;
+    };
+
+    type Actual = Resolve<RootCtx<Ctx>>;
+    type Expected = 2;
+    type Test = Expect<Equal<Actual, Expected>>;
   });
 });
 

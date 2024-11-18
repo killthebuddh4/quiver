@@ -10,6 +10,8 @@ import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
+import { RootRouter } from "../types/router/RootRouter.js";
+import { serve } from "../router/serve.js";
 
 export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
   /* TODO. We need to design the XMTP initialization API. See dev notes from
@@ -32,6 +34,10 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
   return {
     address: xmtp.signer.address,
 
+    serve: <Router>(namespace: string, router: RootRouter<Router>) => {
+      return serve(namespace, xmtp, router);
+    },
+
     router: <Mw extends QuiverMiddleware<any, any, any, any>>(mw: Mw) => {
       return createRouter<
         Mw extends QuiverMiddleware<infer I, any, any, any> ? I : never,
@@ -42,7 +48,11 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
 
     middleware: <F extends (ctx: any) => any>(fn: F) => {
       return createMiddleware<
-        Resolve<Parameters<typeof fn>[0]>,
+        Resolve<
+          Parameters<typeof fn>[0] extends undefined
+            ? Record<string, any>
+            : Parameters<typeof fn>[0]
+        >,
         Resolve<ReturnType<F>>,
         any,
         any
@@ -50,20 +60,10 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
     },
 
     function: <F extends (i: any, ctx: any) => any>(func: F) => {
-      return createFunction<
-        F extends (i: any, ctx: infer CtxIn) => { o: any; ctx: any }
-          ? CtxIn
-          : never,
-        F extends (i: any, ctx: any) => { o: any; ctx: infer CtxOut }
-          ? CtxOut
-          : never,
-        F
-      >(func);
+      return createFunction<F>(func);
     },
 
-    client: <
-      R extends QuiverRouter<any, any, any> | QuiverFunction<any, any, any>,
-    >(
+    client: <R extends QuiverRouter<any, any, any> | QuiverFunction<any, any>>(
       namespace: string,
       address: string,
       options?: QuiverClientOptions,

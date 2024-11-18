@@ -6,7 +6,6 @@ import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
 import { RouterCtxIn } from "../types/router/RouterCtxIn.js";
 import { RouteableRoute } from "../types/router/RouteableRoute.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
-import { createHandler } from "./createHandler.js";
 import { RouteableFunction } from "../types/router/RouteableFunction.js";
 import { FunctionCtxIn } from "../types/router/FunctionCtxIn.js";
 
@@ -16,7 +15,7 @@ export const createRouter = <
   Routes extends {
     [key: string]:
       | QuiverRouter<any, any, any>
-      | QuiverFunction<any, any, any>
+      | QuiverFunction<any, any>
       | undefined;
   },
 >(
@@ -37,9 +36,7 @@ export const createRouter = <
     return createRouter<
       Resolve<PipedCtxIn<CtxIn, CtxOut, RouterCtxIn<R>>>,
       CtxOut,
-      Routes & {
-        [key in P]: R;
-      }
+      Routes & { [key in P]: R }
     >(
       xmtp,
       middleware as any,
@@ -57,9 +54,7 @@ export const createRouter = <
     return createRouter<
       Resolve<PipedCtxIn<CtxIn, CtxOut, FunctionCtxIn<R>>>,
       CtxOut,
-      Routes & {
-        [key in P]: R;
-      }
+      Routes & { [key in P]: R }
     >(
       xmtp,
       middleware as any,
@@ -70,26 +65,6 @@ export const createRouter = <
     ) as any;
   };
 
-  const listen = (namespace: string) => {
-    const handler = createHandler(namespace, xmtp, {
-      type,
-      middleware,
-      routes,
-      route: route,
-      router: useRouter,
-      function: useFunction,
-      listen,
-    });
-
-    const sub = xmtp.subscribe(handler);
-
-    return {
-      stop: () => {
-        sub.then((s) => s.unsubscribe());
-      },
-    };
-  };
-
   return {
     type,
     middleware,
@@ -97,6 +72,5 @@ export const createRouter = <
     route,
     router: useRouter,
     function: useFunction,
-    listen,
   };
 };
