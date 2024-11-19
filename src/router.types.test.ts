@@ -9,14 +9,18 @@ import { RouterCtxOut } from "./types/router/RouterCtxOut.js";
 describe("router.router types work", () => {
   const q = quiver.q();
 
+  after(() => {
+    q.kill();
+  });
+
   it("valid routes do not result in type errors", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
     );
 
-    const route = q.router(
+    const route = q.router().middleware(
       q.middleware((ctx: { password: string }) => {
         return {};
       }),
@@ -26,13 +30,13 @@ describe("router.router types work", () => {
   });
 
   it("invalid routes result in type errors", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
     );
 
-    const route = q.router(
+    const route = q.router().middleware(
       q.middleware((ctx: { password: number }) => {
         return {};
       }),
@@ -43,13 +47,13 @@ describe("router.router types work", () => {
   });
 
   it("router.router(route) yields the expected CtxIn type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
     );
 
-    const route = q.router(
+    const route = q.router().middleware(
       q.middleware((ctx: { token: string }) => {
         return {};
       }),
@@ -63,13 +67,13 @@ describe("router.router types work", () => {
   });
 
   it("router.router(route) yields the expected CtxOut type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
     );
 
-    const route = q.router(
+    const route = q.router().middleware(
       q.middleware((ctx: { token: string }) => {
         return {};
       }),
@@ -83,13 +87,13 @@ describe("router.router types work", () => {
   });
 
   it("router.router(route) yields the expected ResultCtx type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
     );
 
-    const route = q.router(
+    const route = q.router().middleware(
       q.middleware((ctx: { token: string }) => {
         return {};
       }),
@@ -108,8 +112,12 @@ describe("router.router types work", () => {
 describe("router.function types work", () => {
   const q = quiver.q();
 
+  after(() => {
+    q.kill();
+  });
+
   it("valid routes do not result in type errors", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
@@ -121,7 +129,7 @@ describe("router.function types work", () => {
   });
 
   it("invalid routes result in type errors", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
@@ -134,7 +142,7 @@ describe("router.function types work", () => {
   });
 
   it("router.function(route) yields the expected CtxIn type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
@@ -152,7 +160,7 @@ describe("router.function types work", () => {
   });
 
   it("router.function(route) yields the expected CtxOut type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),
@@ -170,7 +178,7 @@ describe("router.function types work", () => {
   });
 
   it("router.function(route) yields the expected ResultCtx type", () => {
-    const router = q.router(
+    const router = q.router().middleware(
       q.middleware((ctx: { user: string }) => {
         return { password: "password" };
       }),

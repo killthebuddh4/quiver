@@ -1,5 +1,5 @@
 import { QuiverFunction } from "../types/QuiverFunction.js";
-import { InCtx } from "../types/function/InCtx.js";
+import { InCtx } from "../types/handler/InCtx.js";
 
 export const createFunction = <Func extends (i: any, ctx: any) => any>(
   func: Func,

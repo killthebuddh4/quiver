@@ -2,34 +2,10 @@ import quiver from "./index.js";
 
 const CLEANUP: Array<() => void> = [];
 
-describe("creator functions yield the correct types", () => {
-  const q = quiver.q();
-
-  it("q.function yields the correct type with a zero argument function", () => {
-    const f = q.function(() => 1);
-  });
-
-  it("q.function yields the correct type with a one argument function", () => {
-    const f = q.function((i: number) => i);
-  });
-
-  it("q.function yields the correct type with a two argument function", () => {
-    const f = q.function((i: number, ctx: { a: string }) => i);
-  });
-
-  it("q.middleware yields the correct type with a zero argument function", () => {
-    const mw = q.middleware(() => ({}));
-  });
-
-  it("q.middleware yields the correct type with a one argument function", () => {
-    const mw = q.middleware((ctx: { a: string }) => ({}));
-  });
-});
-
-describe("quiver end-to-end tests", () => {
-  afterEach(() => {
-    for (const f of CLEANUP) {
-      f();
+describe("end-to-end tests", () => {
+  after(() => {
+    for (const cleanup of CLEANUP) {
+      cleanup();
     }
   });
 
@@ -38,19 +14,19 @@ describe("quiver end-to-end tests", () => {
 
     const backend = quiver.q();
 
+    CLEANUP.push(() => backend.kill());
+
     const hello = backend.function(() => {
       return "Hello, World!";
     });
 
-    const middleware = backend.middleware(() => {
-      return {};
-    });
+    const router = backend.router().function("hello", hello);
 
-    const router = backend.router(middleware).function("hello", hello);
-
-    CLEANUP.push(backend.serve("test", router));
+    backend.serve("test", router);
 
     const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
 
     const client = frontend.client<typeof router>("test", backend.address);
 
@@ -70,6 +46,8 @@ describe("quiver end-to-end tests", () => {
 
     const backend = quiver.q();
 
+    CLEANUP.push(() => backend.kill());
+
     const a = backend.function(() => {
       return "A";
     });
@@ -78,15 +56,13 @@ describe("quiver end-to-end tests", () => {
       return "B";
     });
 
-    const middleware = backend.middleware(() => {
-      return {};
-    });
+    const router = backend.router().function("a", a).function("b", b);
 
-    const router = backend.router(middleware).function("a", a).function("b", b);
-
-    router.listen("test");
+    backend.serve("test", router);
 
     const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
 
     const client = frontend.client<typeof router>("test", backend.address);
 
@@ -118,6 +94,8 @@ describe("quiver end-to-end tests", () => {
 
     const backend = quiver.q();
 
+    CLEANUP.push(() => backend.kill());
+
     const a = backend.function(() => {
       return "A";
     });
@@ -130,21 +108,19 @@ describe("quiver end-to-end tests", () => {
       return "C";
     });
 
-    const middleware = backend.middleware(() => {
-      return {};
-    });
-
-    const second = backend.router(middleware).function("c", c);
+    const second = backend.router().function("c", c);
 
     const router = backend
-      .router(middleware)
+      .router()
       .function("a", a)
       .function("b", b)
       .router("second", second);
 
-    router.listen("test");
+    backend.serve("test", router);
 
     const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
 
     const client = frontend.client<typeof router>("test", backend.address);
 

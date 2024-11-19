@@ -7,7 +7,9 @@ import { RouterCtxIn } from "../types/router/RouterCtxIn.js";
 import { RouteableRoute } from "../types/router/RouteableRoute.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { RouteableFunction } from "../types/router/RouteableFunction.js";
-import { FunctionCtxIn } from "../types/router/FunctionCtxIn.js";
+import { InCtx as FnInCtx } from "../types/function/InCtx.js";
+import { InCtx as MwInCtx } from "../types/middleware/InCtx.js";
+import { OutCtx as MwOutCtx } from "../types/middleware/OutCtx.js";
 
 export const createRouter = <
   CtxIn,
@@ -20,13 +22,23 @@ export const createRouter = <
   },
 >(
   xmtp: QuiverXmtp,
-  middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>,
+  mw: QuiverMiddleware<CtxIn, CtxOut, any, any>,
   routes: Routes,
 ): QuiverRouter<CtxIn, CtxOut, Routes> => {
   const type = "QUIVER_ROUTER" as const;
 
   const route = (path: string) => {
     return routes[path];
+  };
+
+  const useMiddleware = <Mw extends QuiverMiddleware<any, any, any, any>>(
+    mw: Mw,
+  ) => {
+    return createRouter<MwInCtx<Mw>, MwOutCtx<Mw>, Routes>(
+      xmtp,
+      mw,
+      routes,
+    ) as any;
   };
 
   const useRouter = <P extends string, R>(
@@ -39,7 +51,7 @@ export const createRouter = <
       Routes & { [key in P]: R }
     >(
       xmtp,
-      middleware as any,
+      mw as any,
       {
         ...(routes || {}),
         [path]: router,
@@ -52,12 +64,12 @@ export const createRouter = <
     route: RouteableFunction<QuiverRouter<CtxIn, CtxOut, any>, R>,
   ) => {
     return createRouter<
-      Resolve<PipedCtxIn<CtxIn, CtxOut, FunctionCtxIn<R>>>,
+      Resolve<PipedCtxIn<CtxIn, CtxOut, FnInCtx<R>>>,
       CtxOut,
       Routes & { [key in P]: R }
     >(
       xmtp,
-      middleware as any,
+      mw as any,
       {
         ...(routes || {}),
         [path]: route,
@@ -67,10 +79,11 @@ export const createRouter = <
 
   return {
     type,
-    middleware,
+    mw: mw,
     routes,
     route,
     router: useRouter,
     function: useFunction,
+    middleware: useMiddleware,
   };
 };

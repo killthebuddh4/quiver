@@ -2,8 +2,13 @@
  * than the Rhs type. Note that "lhs can be piped to rhs" does not mean Lhs
  * satisfies rhs, it just means that lhs does not contradict rhs. */
 
-export type PipeableCtx<Lhs, Rhs> = {
-  [K in keyof Lhs & keyof Rhs]: Lhs[K] extends Rhs[K] ? 1 : 2;
-}[keyof Lhs & keyof Rhs] extends 1
+export type PipeableCtx<ResultCtx, RhsCtxIn> = RhsCtxIn extends undefined
   ? 1
-  : 2;
+  : ResultCtx extends undefined
+    ? 2
+    : {
+          [K in keyof ResultCtx &
+            keyof RhsCtxIn]: ResultCtx[K] extends RhsCtxIn[K] ? 1 : 2;
+        }[keyof ResultCtx & keyof RhsCtxIn] extends 1
+      ? 1
+      : 2;

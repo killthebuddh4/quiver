@@ -6,6 +6,8 @@ import { RouterCtxIn } from "./router/RouterCtxIn.js";
 import { RouteableRoute } from "./router/RouteableRoute.js";
 import { FunctionCtxIn } from "./router/FunctionCtxIn.js";
 import { RouteableFunction } from "./router/RouteableFunction.js";
+import { InCtx } from "./middleware/InCtx.js";
+import { OutCtx } from "./middleware/OutCtx.js";
 
 export interface QuiverRouter<
   CtxIn,
@@ -19,7 +21,7 @@ export interface QuiverRouter<
 > {
   type: "QUIVER_ROUTER";
 
-  middleware: QuiverMiddleware<CtxIn, CtxOut, any, any>;
+  mw: QuiverMiddleware<CtxIn, CtxOut, any, any>;
 
   routes: Routes;
 
@@ -52,4 +54,8 @@ export interface QuiverRouter<
       }
     >
   >;
+
+  middleware: <Mw extends QuiverMiddleware<any, any, any, any>>(
+    mw: Mw,
+  ) => QuiverRouter<InCtx<Mw>, OutCtx<Mw>, Routes>;
 }

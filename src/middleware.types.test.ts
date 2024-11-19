@@ -1,39 +1,49 @@
 import { Expect } from "./types/test/Expect.js";
-import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
 import { Equal } from "./types/test/Equal.js";
 import { ResultCtx } from "./types/middleware/ResultCtx.js";
-import { ComplementCtx } from "./types/middleware/ComplementCtx.js";
+import { RemainderCtx } from "./types/middleware/RemainderCtx.js";
 import { PipeableCtx } from "./types/middleware/PipeableCtx.js";
 import { DisjointCtx } from "./types/middleware/DisjointCtx.js";
-import { SatisfiableCtx } from "./types/middleware/SatisfiableCtx.js";
+import { ExtendableCtx } from "./types/middleware/ExtendableCtx.js";
 import { PipedCtxIn } from "./types/middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "./types/middleware/PipedCtxOut.js";
+import { ExtendedCtxIn } from "./types/middleware/ExtendedCtxIn.js";
 import { Resolve } from "./types/util/Resolve.js";
 import { QuiverUrl } from "./types/QuiverUrl.js";
 import { RootCtx } from "./types/middleware/RootCtx.js";
+import { ComposedCtx } from "./types/middleware/ComposedCtx.js";
+import { ExtendedCtxOut } from "./types/middleware/ExtendedCtxOut.js";
 
-describe("ComplementCtx works as expected", () => {
-  it("works when the complement is non-empty", () => {
+describe("RemainderCtx works as expected", () => {
+  it("works when the remainder is non-empty", () => {
     type U = { a: string; b: string };
     type S = { b: string };
     type Expected = { a: string };
-    type Actual = Resolve<ComplementCtx<U, S>>;
+    type Actual = Resolve<RemainderCtx<U, S>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 
-  it("works when the complement is empty", () => {
+  it("works when the remainder is empty", () => {
     type U = { a: string; b: string };
     type S = { a: string; b: string };
-    type Expected = {};
-    type Actual = Resolve<ComplementCtx<U, S>>;
+    type Expected = undefined;
+    type Actual = Resolve<RemainderCtx<U, S>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 
-  it("works when the subset is empty", () => {
+  it("works when the subset is undefined", () => {
     type U = { a: string };
     type S = undefined;
     type Expected = { a: string };
-    type Actual = Resolve<ComplementCtx<U, S>>;
+    type Actual = Resolve<RemainderCtx<U, S>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when the superset is undefined", () => {
+    type U = undefined;
+    type S = { a: string };
+    type Expected = { a: string };
+    type Actual = Resolve<RemainderCtx<U, S>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 });
@@ -133,12 +143,12 @@ describe("ResultCtx type works as expected", () => {
   });
 });
 
-describe("SatisfiableCtx works as expected", () => {
+describe("ExtendableCtx works as expected", () => {
   it("works when the contexts are disjoint", () => {
     type A = { a: number };
     type B = { b: string };
     type Expected = 1;
-    type Actual = Resolve<SatisfiableCtx<A, B>>;
+    type Actual = Resolve<ExtendableCtx<A, B>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 
@@ -146,7 +156,7 @@ describe("SatisfiableCtx works as expected", () => {
     type A = { a: number };
     type B = { a: 10 };
     type Expected = 1;
-    type Actual = Resolve<SatisfiableCtx<A, B>>;
+    type Actual = Resolve<ExtendableCtx<A, B>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 
@@ -154,7 +164,67 @@ describe("SatisfiableCtx works as expected", () => {
     type A = { a: number };
     type B = { a: string };
     type Expected = 2;
-    type Actual = Resolve<SatisfiableCtx<A, B>>;
+    type Actual = Resolve<ExtendableCtx<A, B>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+});
+
+describe("ExtendedCtxIn works as expected", () => {
+  it("works when lhs and rhs are both defined", () => {
+    type LhsCtxIn = { a: number; b: string };
+    type RhsCtxIn = { c: number; d: string };
+    type Expected = { a: number; b: string; c: number; d: string };
+    type Actual = Resolve<ExtendedCtxIn<LhsCtxIn, RhsCtxIn>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when lhs is undefined", () => {
+    type LhsCtxIn = undefined;
+    type RhsCtxIn = { c: number; d: string };
+    type Expected = { c: number; d: string };
+    type Actual = Resolve<ExtendedCtxIn<LhsCtxIn, RhsCtxIn>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when rhs is undefined", () => {
+    type LhsCtxIn = { a: number; b: string };
+    type RhsCtxIn = undefined;
+    type Expected = { a: number; b: string };
+    type Actual = Resolve<ExtendedCtxIn<LhsCtxIn, RhsCtxIn>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+});
+
+describe("ExtendedCtxOut works as expected", () => {
+  it("works when lhs and rhs are both defined", () => {
+    type LhsCtxOut = { a: number; b: string };
+    type RhsCtxOut = { c: number; d: string };
+    type Expected = { a: number; b: string; c: number; d: string };
+    type Actual = Resolve<ExtendedCtxOut<LhsCtxOut, RhsCtxOut>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when lhs is undefined", () => {
+    type LhsCtxOut = undefined;
+    type RhsCtxOut = { c: number; d: string };
+    type Expected = { c: number; d: string };
+    type Actual = Resolve<ExtendedCtxOut<LhsCtxOut, RhsCtxOut>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when rhs is undefined", () => {
+    type LhsCtxOut = { a: number; b: string };
+    type RhsCtxOut = undefined;
+    type Expected = { a: number; b: string };
+    type Actual = Resolve<ExtendedCtxIn<LhsCtxOut, RhsCtxOut>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when both are undefined", () => {
+    type LhsCtxOut = undefined;
+    type RhsCtxOut = undefined;
+    type Expected = undefined;
+    type Actual = Resolve<ExtendedCtxOut<LhsCtxOut, RhsCtxOut>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 });
@@ -193,6 +263,48 @@ describe("PipedCtxOut works as expected", () => {
     type RhsCtxOut = { b: object; c: null };
     type Expected = { a: number; b: object; c: null };
     type Actual = Resolve<PipedCtxOut<LhsCtxOut, RhsCtxOut>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+});
+
+describe("ComposedCtx works as expected", () => {
+  it("works when the contexts are disjoint", () => {
+    type A = { a: number };
+    type B = { b: string };
+    type Expected = { a: number; b: string };
+    type Actual = Resolve<ComposedCtx<A, B>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when the contexts are not disjoint", () => {
+    type A = { a: number };
+    type B = { a: number };
+    type Expected = { a: number };
+    type Actual = Resolve<ComposedCtx<A, B>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when lhs is undefined", () => {
+    type A = undefined;
+    type B = { b: string };
+    type Expected = { b: string };
+    type Actual = Resolve<ComposedCtx<A, B>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when rhs is undefined", () => {
+    type A = { a: number };
+    type B = undefined;
+    type Expected = { a: number };
+    type Actual = Resolve<ComposedCtx<A, B>>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("works when both are undefined", () => {
+    type A = undefined;
+    type B = undefined;
+    type Expected = undefined;
+    type Actual = Resolve<ComposedCtx<A, B>>;
     type Test = Expect<Equal<Actual, Expected>>;
   });
 });

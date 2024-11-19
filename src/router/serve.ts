@@ -12,6 +12,9 @@ export const serve = (
   const sub = xmtp.subscribe(handler);
 
   return () => {
-    sub.then((s) => s.unsubscribe());
+    sub.then((s) => {
+      console.log(`unsubscribing from xmtp with address ${xmtp.address}`);
+      s.unsubscribe();
+    });
   };
 };

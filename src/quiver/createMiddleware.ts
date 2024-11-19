@@ -6,6 +6,7 @@ import { PipedCtxIn } from "../types/middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "../types/middleware/PipedCtxOut.js";
 import { InCtx } from "../types/middleware/InCtx.js";
 import { OutCtx } from "../types/middleware/OutCtx.js";
+import { ExtendedCtxIn } from "../types/middleware/ExtendedCtxIn.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handler: (ctx: any) => any,
@@ -23,7 +24,7 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     };
 
     return createMiddleware<
-      Resolve<CtxIn & InCtx<Next>>,
+      Resolve<ExtendedCtxIn<CtxIn, InCtx<Next>>>,
       Resolve<CtxOut & OutCtx<Next>>,
       CtxExitIn,
       CtxExitOut

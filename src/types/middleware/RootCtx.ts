@@ -4,4 +4,8 @@ import { QuiverContext } from "../QuiverContext.js";
  * middleware must not depend on any values that aren't provided by the default
  * QuiverContext. */
 
-export type RootCtx<Ctx> = QuiverContext extends Ctx ? 1 : 2;
+export type RootCtx<CtxIn> = CtxIn extends undefined
+  ? 1
+  : QuiverContext extends CtxIn
+    ? 1
+    : 2;

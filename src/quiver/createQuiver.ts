@@ -34,26 +34,26 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
   return {
     address: xmtp.signer.address,
 
+    kill: () => {
+      return xmtp.stop();
+    },
+
     serve: <Router>(namespace: string, router: RootRouter<Router>) => {
       return serve(namespace, xmtp, router);
     },
 
-    router: <Mw extends QuiverMiddleware<any, any, any, any>>(mw: Mw) => {
-      return createRouter<
-        Mw extends QuiverMiddleware<infer I, any, any, any> ? I : never,
-        Mw extends QuiverMiddleware<any, infer O, any, any> ? O : never,
-        {}
-      >(xmtp, mw, {});
+    router: () => {
+      return createRouter<undefined, undefined, {}>(
+        xmtp,
+        createMiddleware(() => {}),
+        {},
+      );
     },
 
     middleware: <F extends (ctx: any) => any>(fn: F) => {
       return createMiddleware<
-        Resolve<
-          Parameters<typeof fn>[0] extends undefined
-            ? Record<string, any>
-            : Parameters<typeof fn>[0]
-        >,
-        Resolve<ReturnType<F>>,
+        Resolve<Parameters<typeof fn>[0]>,
+        Resolve<ReturnType<F> extends void ? undefined : ReturnType<F>>,
         any,
         any
       >(fn);

@@ -64,7 +64,9 @@ export const createXmtp = (options?: QuiverXmtpOptions): QuiverXmtp => {
       }
 
       try {
-        state.xmtp = await Client.create(state.signer);
+        state.xmtp = await Client.create(state.signer, {
+          env: options?.init?.env ?? "dev",
+        });
       } catch (err) {
         options?.logs?.start?.onStartXmtpError?.(err);
 

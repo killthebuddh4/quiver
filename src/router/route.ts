@@ -43,7 +43,7 @@ export const route = (
   let next: undefined | QuiverFunction<any, any> | QuiverRouter<any, any, any> =
     router;
 
-  result.middlewares.push(next.middleware);
+  result.middlewares.push(next.mw);
 
   for (const segment of path) {
     if (next.type === "QUIVER_FUNCTION") {
@@ -65,7 +65,7 @@ export const route = (
     result.matched.push(segment);
 
     if (next.type === "QUIVER_ROUTER") {
-      result.middlewares.push(next.middleware);
+      result.middlewares.push(next.mw);
     }
   }
 

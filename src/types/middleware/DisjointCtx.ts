@@ -2,4 +2,10 @@
  * quirk (pronounced "wart") in TypeScript where A & B is not guaranteed to yield
  * never even when it is not satisfiable. */
 
-export type DisjointCtx<A, B> = Extract<keyof A, keyof B> extends never ? 1 : 2;
+export type DisjointCtx<LhsCtxIn, RhsCtxIn> = LhsCtxIn extends undefined
+  ? 1
+  : RhsCtxIn extends undefined
+    ? 1
+    : Extract<keyof LhsCtxIn, keyof RhsCtxIn> extends never
+      ? 1
+      : 2;
