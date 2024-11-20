@@ -26,14 +26,44 @@
 
 ## Overview
 
-`quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC library powered by [XMTP](https://xmtp.org) (and inspired by [trpc](https://trpc.io)).
+`quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by [XMTP](https://xmtp.org).
+
+## Quickstart
+
+First install `quiver`:
+
+`npm install @killthebuddha/quiver` or `yarn add @killthebuddha/quiver` or `pnpm add @killthebuddha/quiver`
+
+
+Then deploy a function:
+
+```JavaScript
+
+// server.ts
+
+import quiver from "@killthebuddha/quiver";
+import { xmtp } from "./xmtp.ts";
+
+const q = quiver.q();
+
+console.log(`Running quiver at ${q.address}`)
+
+q.serve("hello", () => "hello, world!");
+
+
+
+
+
+
+
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Quickstart](#quickstart)
 - [Table of Contents](#table-of-contents)
 - [Install](#install)
-- [Quickstart](#quickstart)
+- [Quickstart](#quickstart-1)
 - [Examples](#examples)
 - [API Reference](#api-reference)
     - [`Quiver`](#quiver)

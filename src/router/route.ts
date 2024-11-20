@@ -7,13 +7,13 @@ type RouteResult = {
   path: string[];
   matched: string[];
   middlewares: Array<QuiverMiddleware<any, any, any, any>>;
-  function: QuiverFunction<any, any> | null;
+  function: ((i: any, ctx: any) => any) | null;
   message?: string;
 };
 
 export const route = (
   path: string[],
-  router: QuiverRouter<any, any, any> | QuiverFunction<any, any>,
+  router: QuiverRouter<any, any, any> | QuiverFunction<any>,
 ): RouteResult => {
   const result: RouteResult = {
     success: false,
@@ -23,30 +23,25 @@ export const route = (
     function: null,
   };
 
-  if (router.type === "QUIVER_FUNCTION") {
-    if (path.length > 0) {
-      return result;
-    }
-
-    return {
-      ...result,
-      success: true,
-      function: router,
-      message: "Root is function but path has segments",
-    };
-  }
-
   if (path.length === 0) {
-    return result;
+    if (typeof router === "function") {
+      return {
+        ...result,
+        success: true,
+        function: router,
+      };
+    }
   }
 
-  let next: undefined | QuiverFunction<any, any> | QuiverRouter<any, any, any> =
+  let next: undefined | QuiverFunction<any> | QuiverRouter<any, any, any> =
     router;
 
-  result.middlewares.push(next.mw);
+  if (typeof next !== "function") {
+    result.middlewares.push(next.mw);
+  }
 
   for (const segment of path) {
-    if (next.type === "QUIVER_FUNCTION") {
+    if (typeof next === "function") {
       return {
         ...result,
         message: `Arrived at leaf but path has more segments`,
@@ -64,15 +59,23 @@ export const route = (
 
     result.matched.push(segment);
 
-    if (next.type === "QUIVER_ROUTER") {
+    if (typeof next !== "function") {
       result.middlewares.push(next.mw);
     }
   }
 
-  if (next.type === "QUIVER_ROUTER") {
+  if (typeof next !== "function") {
+    if (typeof next.routes["/"] !== "function") {
+      return {
+        ...result,
+        message: `Expected function at leaf but got router`,
+      };
+    }
+
     return {
       ...result,
-      message: `Expected function at leaf but got router`,
+      success: true,
+      function: next.routes["/"],
     };
   }
 

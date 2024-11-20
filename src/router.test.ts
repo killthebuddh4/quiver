@@ -8,16 +8,8 @@ describe("routing works", () => {
     q.kill();
   });
 
-  const mw = q.middleware(() => {
-    return {};
-  });
-
-  const fn = q.function(() => {
-    return null;
-  });
-
   it("single layer, single route matches valid routes", function () {
-    const router = q.router().function("a", fn);
+    const router = q.router().function("a", () => null);
 
     const match = route(["a"], router);
 
@@ -27,7 +19,7 @@ describe("routing works", () => {
   });
 
   it("single layer, single route does not match invalid routes", function () {
-    const router = q.router().function("a", fn);
+    const router = q.router().function("a", () => null);
 
     const match = route(["b"], router);
 
@@ -37,7 +29,10 @@ describe("routing works", () => {
   });
 
   it("single layer, multiple routes matches valid routes", function () {
-    const router = q.router().function("a", fn).function("b", fn);
+    const router = q
+      .router()
+      .function("a", () => null)
+      .function("b", () => null);
 
     const aMatch = route(["a"], router);
 
@@ -53,7 +48,7 @@ describe("routing works", () => {
   });
 
   it("multi layer, single route matches valid routes", function () {
-    const second = q.router().function("a", fn);
+    const second = q.router().function("a", () => null);
     const first = q.router().router("second", second);
 
     const match = route(["second", "a"], first);
@@ -65,13 +60,34 @@ describe("routing works", () => {
   });
 
   it("multi layer, single route does not match invalid routes", function () {
-    const second = q.router().function("a", fn);
+    const second = q.router().function("a", () => null);
     const first = q.router().router("second", second);
 
     const match = route(["second", "b"], first);
 
     if (match.success) {
       throw new Error("Expected match to be unsuccessful");
+    }
+  });
+
+  it("root route in root layer works", function () {
+    const router = q.router().function("/", () => null);
+
+    const match = route([], router);
+
+    if (!match.success) {
+      throw new Error("Expected match to be successful");
+    }
+  });
+
+  it("root route in nested layer works", function () {
+    const second = q.router().function("/", () => "Hello, World!");
+    const router = q.router().router("second", second);
+
+    const match = route(["second"], router);
+
+    if (!match.success) {
+      throw new Error("Expected match to be successful");
     }
   });
 });

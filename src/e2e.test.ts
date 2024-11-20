@@ -1,4 +1,5 @@
 import quiver from "./index.js";
+import { QuiverResult } from "./types/QuiverResult.js";
 
 const CLEANUP: Array<() => void> = [];
 
@@ -9,18 +10,42 @@ describe("end-to-end tests", () => {
     }
   });
 
-  it("TODO root function works", async function () {
+  it("q.serve works with a function", async function () {
+    this.timeout(10000);
+
+    const backend = quiver.q();
+
+    CLEANUP.push(backend.serve("test", () => "hello, world!"));
+
+    const frontend = quiver.q();
+
+    const client = frontend.client<() => "hello, world!">(
+      "test",
+      backend.address,
+    );
+
+    const res = (await client()) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (res.data !== "hello, world!") {
+      throw new Error(`Expected "hello, world!", got ${res.data}`);
+    }
+  });
+
+  it("root handler in root works", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();
 
     CLEANUP.push(() => backend.kill());
 
-    const hello = backend.function(() => {
-      return "Hello, World!";
-    });
-
-    const router = backend.router().function("hello", hello);
+    const router = backend
+      .router()
+      .function("/", () => "Hello, World!")
+      .function("a", () => "A");
 
     backend.serve("test", router);
 
@@ -30,14 +55,48 @@ describe("end-to-end tests", () => {
 
     const client = frontend.client<typeof router>("test", backend.address);
 
-    const response = await client.hello(undefined);
+    const response = await client();
 
     if (!response.ok) {
+      console.error(response);
       throw new Error("Response not ok");
     }
 
     if (response.data !== "Hello, World!") {
-      throw new Error(`Expected "Hello, World!", got ${response.data}`);
+      throw new Error(`Unexpected response.data`);
+    }
+
+    const aResponse = (await client.a()) as QuiverResult<any>;
+
+    if (!aResponse.ok) {
+      console.error(aResponse);
+      throw new Error("aResponse not ok");
+    }
+  });
+
+  it("root handler in nested layer works", async function () {
+    this.timeout(10000);
+
+    const backend = quiver.q();
+
+    const second = backend.router().function("/", () => "Hello, World!");
+
+    const router = backend.router().router("second", second);
+
+    CLEANUP.push(backend.serve("test", router));
+
+    const frontend = quiver.q();
+
+    const client = frontend.client<typeof router>("test", backend.address);
+
+    const res = (await client.second()) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (res.data !== "Hello, World!") {
+      throw new Error(`Expected "hello, world!", got ${res.data}`);
     }
   });
 
@@ -48,15 +107,10 @@ describe("end-to-end tests", () => {
 
     CLEANUP.push(() => backend.kill());
 
-    const a = backend.function(() => {
-      return "A";
-    });
-
-    const b = backend.function(() => {
-      return "B";
-    });
-
-    const router = backend.router().function("a", a).function("b", b);
+    const router = backend
+      .router()
+      .function("a", () => "A")
+      .function("b", () => "B");
 
     backend.serve("test", router);
 
@@ -66,7 +120,7 @@ describe("end-to-end tests", () => {
 
     const client = frontend.client<typeof router>("test", backend.address);
 
-    const aResponse = await client.a();
+    const aResponse = (await client.a()) as QuiverResult<any>;
 
     if (!aResponse.ok) {
       console.error(aResponse);
@@ -77,7 +131,7 @@ describe("end-to-end tests", () => {
       throw new Error(`Expected "A", got ${aResponse.data}`);
     }
 
-    const bResponse = await client.b();
+    const bResponse = (await client.b()) as QuiverResult<any>;
 
     if (!bResponse.ok) {
       console.error(bResponse);
@@ -96,24 +150,12 @@ describe("end-to-end tests", () => {
 
     CLEANUP.push(() => backend.kill());
 
-    const a = backend.function(() => {
-      return "A";
-    });
-
-    const b = backend.function(() => {
-      return "B";
-    });
-
-    const c = backend.function(() => {
-      return "C";
-    });
-
-    const second = backend.router().function("c", c);
+    const second = backend.router().function("c", () => "C");
 
     const router = backend
       .router()
-      .function("a", a)
-      .function("b", b)
+      .function("a", () => "A")
+      .function("b", () => "B")
       .router("second", second);
 
     backend.serve("test", router);
@@ -124,7 +166,7 @@ describe("end-to-end tests", () => {
 
     const client = frontend.client<typeof router>("test", backend.address);
 
-    const aResponse = await client.a(undefined);
+    const aResponse = (await client.a()) as QuiverResult<any>;
 
     if (!aResponse.ok) {
       throw new Error("aResponse not ok");
@@ -134,7 +176,7 @@ describe("end-to-end tests", () => {
       throw new Error(`Expected "A", got ${aResponse.data}`);
     }
 
-    const bResponse = await client.b(undefined);
+    const bResponse = (await client.b()) as QuiverResult<any>;
 
     if (!bResponse.ok) {
       throw new Error("bResponse not ok");
@@ -144,7 +186,7 @@ describe("end-to-end tests", () => {
       throw new Error(`Expected "B", got ${bResponse.data}`);
     }
 
-    const cResponse = await client.second.c(undefined);
+    const cResponse = (await client.second.c()) as QuiverResult<any>;
 
     if (!cResponse.ok) {
       console.error(cResponse);

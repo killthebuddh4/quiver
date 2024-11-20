@@ -11,6 +11,7 @@
     "dev": "tsc --watch --preserveWatchOutput",
     "test": "mocha build/**/*.test.js",
     "test:e2e": "mocha build/**/e2e.test.js",
+    "test:router": "mocha build/**/router.test.js",
     "lint": "eslint .",
     "format": "prettier --check .",
     "types": "tsc --noEmit",

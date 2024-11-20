@@ -7,8 +7,8 @@ import { ResultCtx } from "../middleware/ResultCtx.js";
 
 export type RouteableFunction<Router, Route> =
   Router extends QuiverRouter<infer RouterCtxIn, infer RouterCtxOut, any>
-    ? Route extends QuiverFunction<infer RouteCtxIn, any>
-      ? PipeableCtx<ResultCtx<RouterCtxIn, RouterCtxOut>, RouteCtxIn> extends 1
+    ? Route extends (...args: infer Args) => any
+      ? PipeableCtx<ResultCtx<RouterCtxIn, RouterCtxOut>, Args[1]> extends 1
         ? Route
         : never
       : never

@@ -13,7 +13,7 @@ import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { QuiverResult } from "../types/QuiverResult.js";
 
 export const createClient = <
-  Router extends QuiverRouter<any, any, any> | QuiverFunction<any, any>,
+  Router extends QuiverRouter<any, any, any> | QuiverFunction<any>,
 >(props: {
   xmtp: QuiverXmtp;
   server: { address: string; namespace: string };

@@ -9,12 +9,12 @@ import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
-import { route } from "../router/route.js";
+import { route } from "./route.js";
 
 export const createHandler = (
   namespace: string,
   xmtp: QuiverXmtp,
-  router: QuiverFunction<any, any> | QuiverRouter<any, any, any>,
+  router: QuiverRouter<any, any, any> | QuiverFunction<any>,
   options?: QuiverHandlerOptions,
 ) => {
   /* 
@@ -145,7 +145,7 @@ export const createHandler = (
           break inner;
         }
 
-        ctx.function = match.function.func;
+        ctx.function = match.function;
 
         options?.logs?.onMatchedFunction?.(ctx);
 

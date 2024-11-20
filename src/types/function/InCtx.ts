@@ -1,4 +1,1 @@
-import { QuiverFunction } from "../QuiverFunction.js";
-
-export type InCtx<F> =
-  F extends QuiverFunction<infer CtxIn, any> ? CtxIn : never;
+export type InCtx<F> = F extends (...args: infer Args) => any ? Args[1] : never;

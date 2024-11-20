@@ -1,17 +1,16 @@
 import { createClient } from "./createClient.js";
 import { createXmtp } from "./createXmtp.js";
-import { createRouter } from "./createRouter.js";
-import { createMiddleware } from "./createMiddleware.js";
+import { createRouter } from "../router/createRouter.js";
+import { createMiddleware } from "../middleware/createMiddleware.js";
 import { QuiverClient } from "../types/QuiverClient.js";
 import { QuiverClientOptions } from "../types/QuiverClientOptions.js";
 import { Resolve } from "../types/util/Resolve.js";
-import { createFunction } from "./createFunction.js";
-import { QuiverMiddleware } from "../types/QuiverMiddleware.js";
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { RootRouter } from "../types/router/RootRouter.js";
 import { serve } from "../router/serve.js";
+import { RootFn } from "../types/function/RootFn.js";
 
 export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
   /* TODO. We need to design the XMTP initialization API. See dev notes from
@@ -38,8 +37,11 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
       return xmtp.stop();
     },
 
-    serve: <Router>(namespace: string, router: RootRouter<Router>) => {
-      return serve(namespace, xmtp, router);
+    serve: <Root extends QuiverRouter<any, any, any> | QuiverFunction<any>>(
+      namespace: string,
+      root: RootRouter<Root> | RootFn<Root>,
+    ) => {
+      return serve(namespace, xmtp, root);
     },
 
     router: () => {
@@ -59,11 +61,7 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
       >(fn);
     },
 
-    function: <F extends (i: any, ctx: any) => any>(func: F) => {
-      return createFunction<F>(func);
-    },
-
-    client: <R extends QuiverRouter<any, any, any> | QuiverFunction<any, any>>(
+    client: <R extends QuiverRouter<any, any, any> | QuiverFunction<any>>(
       namespace: string,
       address: string,
       options?: QuiverClientOptions,

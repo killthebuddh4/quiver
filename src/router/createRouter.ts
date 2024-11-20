@@ -17,7 +17,7 @@ export const createRouter = <
   Routes extends {
     [key: string]:
       | QuiverRouter<any, any, any>
-      | QuiverFunction<any, any>
+      | QuiverFunction<any>
       | undefined;
   },
 >(
@@ -59,7 +59,7 @@ export const createRouter = <
     ) as any;
   };
 
-  const useFunction = <P extends string, R>(
+  const useFunction = <P extends string, R extends QuiverFunction<any>>(
     path: P,
     route: RouteableFunction<QuiverRouter<CtxIn, CtxOut, any>, R>,
   ) => {

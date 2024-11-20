@@ -16,15 +16,14 @@ describe("quiver.q works as expected", () => {
 
   describe("q.function works as expected", () => {
     it("zero argument functions yield the expected types", () => {
-      const f = q.function(() => 1);
-
+      const f = () => 1;
       type Actual = FnInCtx<typeof f>;
       type Expected = undefined;
       type Test = Expect<Equal<Actual, Expected>>;
     });
 
     it("one argument functions yield the expected type", () => {
-      const f = q.function((i: number) => i);
+      const f = (i: number) => i;
 
       type Actual = FnInCtx<typeof f>;
       type Expected = undefined;
@@ -32,7 +31,7 @@ describe("quiver.q works as expected", () => {
     });
 
     it("two argument functions yield the expected type", () => {
-      const f = q.function((i: number, ctx: { a: string }) => i);
+      const f = (i: number, ctx: { a: string }) => i;
 
       type Actual = FnInCtx<typeof f>;
       type Expected = { a: string };
