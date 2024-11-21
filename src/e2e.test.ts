@@ -10,19 +10,44 @@ describe("end-to-end tests", () => {
     }
   });
 
+  it("q.serve works with a manual XMTP init", async function () {
+    this.timeout(10000);
+
+    const xmtp = quiver.x();
+
+    const backend = quiver.q({ xmtp });
+
+    CLEANUP.push(() => backend.kill());
+
+    backend.serve(() => "hello, world!");
+
+    const frontend = quiver.q();
+
+    const client = frontend.client<() => "hello, world!">(xmtp.address);
+
+    const res = (await client()) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (res.data !== "hello, world!") {
+      throw new Error(`Expected "hello, world!", got ${res.data}`);
+    }
+  });
+
   it("q.serve works with a function", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();
 
-    CLEANUP.push(backend.serve("test", () => "hello, world!"));
+    CLEANUP.push(() => backend.kill());
+
+    backend.serve(() => "hello, world!");
 
     const frontend = quiver.q();
 
-    const client = frontend.client<() => "hello, world!">(
-      "test",
-      backend.address,
-    );
+    const client = frontend.client<() => "hello, world!">(backend.address);
 
     const res = (await client()) as QuiverResult<any>;
 
@@ -47,13 +72,13 @@ describe("end-to-end tests", () => {
       .function("/", () => "Hello, World!")
       .function("a", () => "A");
 
-    backend.serve("test", router);
+    backend.serve(router);
 
     const frontend = quiver.q();
 
     CLEANUP.push(() => frontend.kill());
 
-    const client = frontend.client<typeof router>("test", backend.address);
+    const client = frontend.client<typeof router>(backend.address);
 
     const response = await client();
 
@@ -79,15 +104,19 @@ describe("end-to-end tests", () => {
 
     const backend = quiver.q();
 
+    CLEANUP.push(() => backend.kill());
+
     const second = backend.router().function("/", () => "Hello, World!");
 
     const router = backend.router().router("second", second);
 
-    CLEANUP.push(backend.serve("test", router));
+    backend.serve(router);
 
     const frontend = quiver.q();
 
-    const client = frontend.client<typeof router>("test", backend.address);
+    CLEANUP.push(() => frontend.kill());
+
+    const client = frontend.client<typeof router>(backend.address);
 
     const res = (await client.second()) as QuiverResult<any>;
 
@@ -112,13 +141,13 @@ describe("end-to-end tests", () => {
       .function("a", () => "A")
       .function("b", () => "B");
 
-    backend.serve("test", router);
+    backend.serve(router);
 
     const frontend = quiver.q();
 
     CLEANUP.push(() => frontend.kill());
 
-    const client = frontend.client<typeof router>("test", backend.address);
+    const client = frontend.client<typeof router>(backend.address);
 
     const aResponse = (await client.a()) as QuiverResult<any>;
 
@@ -158,13 +187,13 @@ describe("end-to-end tests", () => {
       .function("b", () => "B")
       .router("second", second);
 
-    backend.serve("test", router);
+    backend.serve(router);
 
     const frontend = quiver.q();
 
     CLEANUP.push(() => frontend.kill());
 
-    const client = frontend.client<typeof router>("test", backend.address);
+    const client = frontend.client<typeof router>(backend.address);
 
     const aResponse = (await client.a()) as QuiverResult<any>;
 

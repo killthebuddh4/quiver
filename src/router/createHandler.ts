@@ -12,7 +12,6 @@ import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
 import { route } from "./route.js";
 
 export const createHandler = (
-  namespace: string,
   xmtp: QuiverXmtp,
   router: QuiverRouter<any, any, any> | QuiverFunction<any>,
   options?: QuiverHandlerOptions,
@@ -63,23 +62,6 @@ export const createHandler = (
         ctx.url = url.value;
 
         options?.logs?.onParsedUrl?.(ctx);
-
-        /* ************************************************************************
-         *
-         * NAMESPACE
-         *
-         * ***********************************************************************/
-
-        if (ctx.url.namespace !== namespace) {
-          ctx.exit = {
-            code: "NAMESPACE_MISMATCH",
-            message: `Namespace mismatch: ${ctx.url.namespace} !== ${namespace}`,
-          };
-
-          break outer;
-        }
-
-        options?.logs?.onMatchedNamespace?.(ctx);
 
         /* ************************************************************************
          *
@@ -257,11 +239,7 @@ export const createHandler = (
             break reply;
           }
 
-          const responseUrl = getResponseUrl(
-            xmtp.signer.address,
-            namespace,
-            ctx.url.path,
-          );
+          const responseUrl = getResponseUrl(xmtp.signer.address, ctx.url.path);
 
           try {
             const sent = await xmtp.publish({
@@ -325,11 +303,7 @@ export const createHandler = (
             break reply;
           }
 
-          const responseUrl = getResponseUrl(
-            xmtp.signer.address,
-            namespace,
-            ctx.url.path,
-          );
+          const responseUrl = getResponseUrl(xmtp.signer.address, ctx.url.path);
 
           try {
             const sent = await xmtp.publish({

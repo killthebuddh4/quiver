@@ -4,11 +4,10 @@ import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { createHandler } from "./createHandler.js";
 
 export const serve = (
-  namespace: string,
   xmtp: QuiverXmtp,
   root: QuiverRouter<any, any, any> | QuiverFunction<any>,
 ) => {
-  const handler = createHandler(namespace, xmtp, root);
+  const handler = createHandler(xmtp, root);
 
   const sub = xmtp.subscribe(handler);
 

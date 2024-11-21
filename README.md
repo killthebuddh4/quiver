@@ -26,7 +26,7 @@
 
 ## Overview
 
-`quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by [XMTP](https://xmtp.org).
+`quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by the [XMTP](https://xmtp.org) messaging protocol.
 
 ## Quickstart
 
@@ -44,7 +44,10 @@ import { hello } from "./hello.js";
 import { xmtp } from "./xmtp.js";
 
 const q = quiver.q();
-q.serve("answer", () => 42);
+
+console.log(`Server running at ${q.address}`)
+
+q.serve(() => 42);
 ```
 
 3. Call the function.
@@ -55,7 +58,9 @@ q.serve("answer", () => 42);
 import quiver from "@killthebuddha/quiver";
 
 const q = quiver.q();
-const client = q.client("answer", "0xYourAddress");
+
+const client = q.client(process.env.SERVER_ADDRESS);
+
 const answer = await client();
 console.log(answer.data); // 42
 ```
@@ -68,13 +73,16 @@ And that's it 🎉, you've just __deployed a service to the internet, and called
 - [Quickstart](#quickstart)
 - [Table of Contents](#table-of-contents)
 - [Features](#features)
+- [User Guide](#user-guide)
+  - [Parameters](#parameters)
+  - [Routers](#routers)
+  - [TypeScript!](#typescript)
 - [API Reference](#api-reference)
-    - [`QuiverClient`](#quiverclient)
-    - [`QuiverRouter`](#quiverrouter)
-    - [`QuiverMiddleware`](#quivermiddleware)
-    - [`QuiverProvider`](#quiverprovider)
-    - [Off-the-Shelf Middlewares](#off-the-shelf-middlewares)
-- [Example Usage](#example-usage)
+  - [`QuiverClient`](#quiverclient)
+  - [`QuiverRouter`](#quiverrouter)
+  - [`QuiverMiddleware`](#quivermiddleware)
+  - [`QuiverProvider`](#quiverprovider)
+- [Off-the-Shelf Middlewares](#off-the-shelf-middlewares)
 - [Advanced Examples](#advanced-examples)
 - [Under the Hood](#under-the-hood)
 - [Roadmap](#roadmap)
@@ -90,17 +98,196 @@ And that's it 🎉, you've just __deployed a service to the internet, and called
 - __End-to-End Encryption__
 - __Dead-Simple__
 
+## User Guide
+
+`quiver` lets you rapidly build secure client/server applications. The simplest possible example server is just a function with no arguments:
+
+```JavaScript
+// server.ts
+
+import quiver from "@killthebuddha/quiver";
+
+const q = quiver.q();
+
+q.serve(() => 42);
+```
+
+In the above example, an XMTP network client is created inside the call to `quiver.q()`. This means that your server is listening to a random address. You'll probably want to re-use the same address. You can do this by manually initializing the XMTP client:
+
+```JavaScript
+// server.ts
+
+import quiver from "@killthebuddha/quiver";
+
+const xmtp = quiver.x({ init: { key: process.env.XMTP_SECRET_KEY } });
+
+const q = quiver.q({ xmtp });
+
+q.serve(() => 42);
+```
+
+Now the server will be running at whatever address corresponds to your `XMTP_SECRET_KEY`, and you can call it:
+
+```JavaScript
+// client.ts
+
+import quiver from "@killthebuddha/quiver";
+
+const quiver = quiver.q();
+
+const client = quiver.client(process.env.SERVER_ADDRESS);
+
+const answer = await client(); // { data: 42 }
+```
+
+Now let's move on to slightly more complex examples.
+
+### Parameters
+
+A `QuiverFunction` can take parameters in the form of an object:
+
+```JavaScript
+
+// server.ts
+
+import quiver from "@killthebuddha/quiver";
+
+const q = quiver.q();
+
+q.serve(({ name }) => `Hello, ${name}!`);
+```
+
+And the client can call this function, passing in an argument:
+
+```JavaScript
+
+// client.ts
+
+import quiver from "@killthebuddha/quiver";
+
+const client = quiver.client(process.env.SERVER_ADDRESS);
+
+const answer = await client({ name: "Alice" }); // { data: "Hello, Alice!" }
+```
+
+### Routers
+
+You'll probably want to serve more than just a single function. You can do this by using a `QuiverRouter` using the fluent-style builder API:
+
+```JavaScript
+// server.ts
+
+import { q } from "./q";
+
+const router = q.router()
+  .function("a", () => "a")
+  .function("b", () => "b")
+
+q.serve(router);
+```
+
+And your client can call these functions:
+
+```JavaScript
+// client.ts
+
+import { q } from "./q";
+
+const client = q.client(process.env.SERVER_ADDRESS);
+
+const a = await client.a(); // { data: "a" }
+const b = await client.b(); // { data: "b" }
+```
+
+Routers can of course be nested:
+
+```JavaScript
+// router.ts
+
+import { q } from "./q";
+
+const hello = q.router()
+  .function("a", (: { name: string }) => "hello from a")
+  .function("b", () => "hello from b")
+
+const goodbye = q.router()
+  .function("a", () => "goodbye from a")
+  .function("b", () => "goodbye from b")
+
+export const router = q.router()
+  .router("hello", hello)
+  .router("goodbye", goodbye)
+
+```
+
+And the client:
+
+```JavaScript
+
+// client.ts
+
+import { q } from "./q";
+
+const client = q.client(process.env.SERVER_ADDRESS);
+
+await client.hello.a(); // { data: "hello from a" }
+await client.hello.b(); // { data: "hello from b" }
+await client.goodbye.a(); // { data: "goodbye from a" }
+await client.goodbye.b(); // { data: "goodbye from b" }
+```
+
+### TypeScript!
+
+Everything you've seen so far becomes fully type-safe with one simple addition: you must provide your backend's type to the client. Thankfully, this is super easy:
+
+```TypeScript
+
+// router.ts
+
+import { q } from "./q";
+
+const router = q.router()
+  .function("a", (i: { name: string }) => `hello, ${i.name}`)
+  .function("b", () => "hello from b")
+
+// Export the type of the router
+
+export type Router = typeof router;
+
+q.serve(router);
+
+```
+
+And pass the Router type to your client:
+
+```TypeScript
+
+// client.ts
+
+import type { Router } from "./router";
+import { q } from "./q";
+
+// Notice the generic here.
+
+const client = q.client<Router>(process.env.SERVER_ADDRESS);
+
+```
+
+Now your client is type-safe! If you try to call a function that doesn't exist, you'll get a TypeScript error, if you pass the wrong arguments, you'll get a TypeScript error, and the return value's `data` field will be correctly typed!
+
+__TODO: a gif of this in action!__
+
 ## API Reference
 
-#### `QuiverClient`
+### `QuiverClient`
 
-#### `QuiverRouter`
+### `QuiverRouter`
 
-#### `QuiverMiddleware`
+### `QuiverMiddleware`
 
-#### `QuiverProvider`
+### `QuiverProvider`
 
-#### Off-the-Shelf Middlewares
+## Off-the-Shelf Middlewares
 
 From the `quiver` team:
 
@@ -110,7 +297,6 @@ From the community:
 
 __TODO__
 
-## Example Usage
 
 ## Advanced Examples
 

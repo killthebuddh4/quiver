@@ -18,15 +18,15 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
 
   const segments = url.split("/");
 
-  if (segments.length < 5) {
+  if (segments.length < 4) {
     return {
       ok: false,
       code: "INVALID_NUMBER_OF_SEGMENTS",
-      reason: `Expected at least 5 segments, got ${segments.length}`,
+      reason: `Expected at least 4 segments, got ${segments.length}`,
     };
   }
 
-  const [quiver, version, channel, address, namespace, ...path] = segments;
+  const [quiver, version, channel, address, ...path] = segments;
 
   if (quiver !== QUIVER) {
     return {
@@ -65,14 +65,6 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
     };
   }
 
-  if (typeof namespace !== "string") {
-    return {
-      ok: false,
-      code: "INVALID_NAMESPACE_SEGMENT",
-      reason: `Expected string, got ${typeof namespace}`,
-    };
-  }
-
   return {
     ok: true,
     value: {
@@ -80,7 +72,6 @@ export const parseQuiverUrl = (message: Message): Maybe<QuiverUrl> => {
       version,
       channel,
       address,
-      namespace,
       path,
     },
   };

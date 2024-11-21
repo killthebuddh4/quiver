@@ -38,10 +38,9 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
     },
 
     serve: <Root extends QuiverRouter<any, any, any> | QuiverFunction<any>>(
-      namespace: string,
       root: RootRouter<Root> | RootFn<Root>,
     ) => {
-      return serve(namespace, xmtp, root);
+      return serve(xmtp, root);
     },
 
     router: () => {
@@ -62,13 +61,12 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
     },
 
     client: <R extends QuiverRouter<any, any, any> | QuiverFunction<any>>(
-      namespace: string,
       address: string,
       options?: QuiverClientOptions,
     ) => {
       return createClient({
         xmtp,
-        server: { namespace, address },
+        server: { address },
         options,
       }) as unknown as QuiverClient<R>;
     },

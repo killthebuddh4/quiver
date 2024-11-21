@@ -16,7 +16,7 @@ export const createClient = <
   Router extends QuiverRouter<any, any, any> | QuiverFunction<any>,
 >(props: {
   xmtp: QuiverXmtp;
-  server: { address: string; namespace: string };
+  server: { address: string };
   options?: QuiverClientOptions;
 }): QuiverClient<Router> => {
   const pending = new Map<string, (response: Message) => any>();
@@ -221,16 +221,9 @@ export const createClient = <
 
     received.url = url.value;
 
-    if (received.url.namespace !== props.server.namespace) {
-      props.options?.logs?.onNamespaceMismatch?.(
-        received.message,
-        received.url.namespace,
-      );
-
-      return;
-    }
-
     props.options?.logs?.onParsedUrl?.(received.url);
+
+    // TODO I think we need to make sure the message is a response before continuing.
 
     /* ************************************************************************
      *
@@ -297,12 +290,9 @@ export const createClient = <
     request(received.message);
   };
 
-  // TODO, should we create a subscription for each call? Maybe? That would give
-  // us a way to unsubscribe.
-
   props.xmtp.subscribe(handler);
 
   return proxy(
-    getRequestUrl(props.xmtp.signer.address, props.server.namespace, []),
+    getRequestUrl(props.xmtp.signer.address, []),
   ) as unknown as QuiverClient<Router>;
 };
