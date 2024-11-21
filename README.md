@@ -28,6 +28,8 @@
 
 `quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by the [XMTP](https://xmtp.org) messaging protocol.
 
+![typescript](./static/typescript.gif)
+
 ## Quickstart
 
 1. Install `quiver`.
