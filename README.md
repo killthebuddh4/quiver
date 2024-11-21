@@ -22,13 +22,15 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://github.com/killthebuddh4/fig">fig</a>
   <br />
+  <figure>
+    <img src="./static/typescript.gif" alt="Demo" />
+  </figure>
 </div>
 
 ## Overview
 
 `quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by the [XMTP](https://xmtp.org) messaging protocol.
 
-![typescript](./static/typescript.gif)
 
 ## Quickstart
 
