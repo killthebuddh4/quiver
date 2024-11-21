@@ -10,7 +10,7 @@
 </p>
 
 <div align="center">
-<h2>a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server<br />powered by the <a href="https://xmtp.org">XMTP</a> messaging protocol.<br /></h2>
+<h2>a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server<br />powered by the <a href="https://xmtp.org">XMTP</a> messaging protocol.<br /><br /></h2>
 </div>
 
 <div align="center">
