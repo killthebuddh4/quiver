@@ -22,6 +22,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://github.com/killthebuddh4/fig">fig</a>
   <br />
+  <br />
   <figure>
     <img src="./static/typescript.gif" alt="Demo" />
   </figure>
