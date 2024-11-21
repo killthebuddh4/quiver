@@ -10,6 +10,10 @@
 </p>
 
 <div align="center">
+<h2>a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server<br />powered by the <a href="https://xmtp.org">XMTP</a> messaging protocol.</h2>
+</div>
+
+<div align="center">
   <a href="https://github.com/killthebuddh4/quiver#api-reference">Documentation</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://discord.gg/TODO">Discord</a>
@@ -28,18 +32,13 @@
   </figure>
 </div>
 
-## Overview
-
-`quiver` is a dead-simple 😵, secure 🔐, type-safe 🦄 RPC client and server powered by the [XMTP](https://xmtp.org) messaging protocol.
-
-
 ## Quickstart
-
-1. Install `quiver`.
 
 `npm install @qrpc/quiver` or `yarn add @qrpc/quiver` or `pnpm add @qrpc/quiver`
 
-2. Serve a function.
+1. Serve a function.
+2. Call the function.
+3. That's it!
 
 ```JavaScript
 // server.ts
@@ -49,13 +48,10 @@ import { hello } from "./hello.js";
 import { xmtp } from "./xmtp.js";
 
 const q = quiver.q();
+q.serve(() => 42);
 
 console.log(`Server running at ${q.address}`)
-
-q.serve(() => 42);
 ```
-
-3. Call the function.
 
 ```JavaScript
 // client.ts
@@ -63,18 +59,16 @@ q.serve(() => 42);
 import quiver from "@qrpc/quiver";
 
 const q = quiver.q();
-
 const client = q.client(process.env.SERVER_ADDRESS);
-
 const answer = await client();
+
 console.log(answer.data); // 42
 ```
 
-And that's it 🎉, you've just __deployed a service to the internet, and called that service, in ~10 lines of code!__ To learn more, keep on reading! To see more advanced examples, jump ahead to the [Advanced Examples](#advanced-examples) section.
+That's all there is to it 🎉, you've just _deployed a function to the internet, and called that function, in ~10 lines of code!_ No DNS, AWS, GCP, LOL, or WTF's involved! To learn more, keep on reading! To see more advanced examples, jump ahead to the [Advanced Examples](#advanced-examples) section. If you're wondering where the magic happens, jump to [Under the Hood](#under-the-hood).
 
 ## Table of Contents
 
-- [Overview](#overview)
 - [Quickstart](#quickstart)
 - [Table of Contents](#table-of-contents)
 - [Features](#features)
