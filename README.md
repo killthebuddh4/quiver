@@ -14,7 +14,7 @@
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://discord.gg/TODO">Discord</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
-  <a href="https://www.npmjs.com/package/TODO">npm</a>
+  <a href="https://www.npmjs.com/package/@qrpc/quiver">npm</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
   <a href="https://github.com/killthebuddh4/quiver/issues/new">Issues</a>
   <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
@@ -32,14 +32,14 @@
 
 1. Install `quiver`.
 
-`npm install @killthebuddha/quiver` or `yarn add @killthebuddha/quiver` or `pnpm add @killthebuddha/quiver`
+`npm install @qrpc/quiver` or `yarn add @qrpc/quiver` or `pnpm add @qrpc/quiver`
 
 2. Serve a function.
 
 ```JavaScript
 // server.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 import { hello } from "./hello.js";
 import { xmtp } from "./xmtp.js";
 
@@ -55,7 +55,7 @@ q.serve(() => 42);
 ```JavaScript
 // client.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const q = quiver.q();
 
@@ -65,7 +65,7 @@ const answer = await client();
 console.log(answer.data); // 42
 ```
 
-And that's it 🎉, you've just __deployed a service to the internet, and called that service, in ~10 lines of code!__ For more advanced examples, see the [Example Usage](#example-usage) or [Advanced Examples](#advanced-examples) sections.
+And that's it 🎉, you've just __deployed a service to the internet, and called that service, in ~10 lines of code!__ To learn more, keep on reading! To see more advanced examples, jump ahead to the [Advanced Examples](#advanced-examples) section.
 
 ## Table of Contents
 
@@ -78,6 +78,7 @@ And that's it 🎉, you've just __deployed a service to the internet, and called
   - [Routers](#routers)
   - [TypeScript!](#typescript)
 - [API Reference](#api-reference)
+  - [`Quiver`](#quiver)
   - [`QuiverClient`](#quiverclient)
   - [`QuiverRouter`](#quiverrouter)
   - [`QuiverMiddleware`](#quivermiddleware)
@@ -105,7 +106,7 @@ And that's it 🎉, you've just __deployed a service to the internet, and called
 ```JavaScript
 // server.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const q = quiver.q();
 
@@ -117,7 +118,7 @@ In the above example, an XMTP network client is created inside the call to `quiv
 ```JavaScript
 // server.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const xmtp = quiver.x({ init: { key: process.env.XMTP_SECRET_KEY } });
 
@@ -131,7 +132,7 @@ Now the server will be running at whatever address corresponds to your `XMTP_SEC
 ```JavaScript
 // client.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const quiver = quiver.q();
 
@@ -150,7 +151,7 @@ A `QuiverFunction` can take parameters in the form of an object:
 
 // server.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const q = quiver.q();
 
@@ -163,7 +164,7 @@ And the client can call this function, passing in an argument:
 
 // client.ts
 
-import quiver from "@killthebuddha/quiver";
+import quiver from "@qrpc/quiver";
 
 const client = quiver.client(process.env.SERVER_ADDRESS);
 
@@ -275,9 +276,11 @@ const client = q.client<Router>(process.env.SERVER_ADDRESS);
 
 Now your client is type-safe! If you try to call a function that doesn't exist, you'll get a TypeScript error, if you pass the wrong arguments, you'll get a TypeScript error, and the return value's `data` field will be correctly typed!
 
-__TODO: a gif of this in action!__
-
 ## API Reference
+
+__TODO__
+
+### `Quiver`
 
 ### `QuiverClient`
 
@@ -296,7 +299,6 @@ __TODO__
 From the community:
 
 __TODO__
-
 
 ## Advanced Examples
 
