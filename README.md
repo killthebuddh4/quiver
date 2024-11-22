@@ -44,7 +44,6 @@
 // server.ts
 
 import quiver from "@qrpc/quiver";
-import { hello } from "./hello.js";
 import { xmtp } from "./xmtp.js";
 
 const q = quiver.q();
