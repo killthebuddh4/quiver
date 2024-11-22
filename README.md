@@ -73,9 +73,12 @@ That's all there is to it 🎉, you've just _deployed a function to the internet
 - [Table of Contents](#table-of-contents)
 - [Features](#features)
 - [User Guide](#user-guide)
+  - [Basic Example](#basic-example)
   - [Parameters](#parameters)
   - [Routers](#routers)
   - [TypeScript!](#typescript)
+  - [Middleware](#middleware)
+    - [Merging Middleware](#merging-middleware)
 - [API Reference](#api-reference)
   - [`Quiver`](#quiver)
   - [`QuiverClient`](#quiverclient)
@@ -86,7 +89,6 @@ That's all there is to it 🎉, you've just _deployed a function to the internet
 - [Advanced Examples](#advanced-examples)
 - [Under the Hood](#under-the-hood)
 - [Roadmap](#roadmap)
-- [Community](#community)
 
 ## Features
 
@@ -99,6 +101,8 @@ That's all there is to it 🎉, you've just _deployed a function to the internet
 - __Dead-Simple__
 
 ## User Guide
+
+### Basic Example
 
 `quiver` lets you rapidly build secure client/server applications. The simplest possible example server is just a function with no arguments:
 
@@ -139,8 +143,6 @@ const client = quiver.client(process.env.SERVER_ADDRESS);
 
 const answer = await client(); // { data: 42 }
 ```
-
-Now let's move on to slightly more complex examples.
 
 ### Parameters
 
@@ -275,6 +277,90 @@ const client = q.client<Router>(process.env.SERVER_ADDRESS);
 
 Now your client is type-safe! If you try to call a function that doesn't exist, you'll get a TypeScript error, if you pass the wrong arguments, you'll get a TypeScript error, and the return value's `data` field will be correctly typed!
 
+### Middleware
+
+`quiver` supports a simple but powerful type-safe middleware API. A `QuiverMiddleware` is ultimately a function that reads from and writes to a context object. Here's a couple extremely simple middleware:
+
+```JavaScript
+
+// middleware.ts
+
+import { q } from "./q";
+
+const logger = q.middleware(ctx => {
+  console.log(ctx);
+});
+
+const timestamp = q.middleware(ctx => {
+  return {
+    timestamp: Date.now(),
+  };
+});
+
+```
+
+To use a middleware in your server, you attach it to a `QuiverRouter` or `QuiverFunction`:
+
+```JavaScript
+
+import { logger } from "./middleware";
+
+const router = q.router()
+  .use(logger)
+  .function("a", () => "a")
+  .function("b", () => "b")
+
+```
+
+`quiver`'s middleware system is type-safe. If you try to bind incompatible routes to a router with middleware, you'll get a TypeScript error:
+
+```TypeScript
+
+import { q } from "./q";
+
+const passesAString = q.middleware(ctx => {
+  return {
+    a: "a",
+  };
+});
+
+const needsANumber = (i: undefined, ctx: { a: number }) => {
+  // ...
+}
+
+const router = q.router()
+  .use(passesAString)
+  // Boom! TypeScript error!
+  .function("a", needsANumber)
+
+```
+
+#### Merging Middleware
+
+Middleware can be merged in a type-safe manner using `mw.extend(other)` and `mw.pipe(other)`. `extend` can be thought of as "parallel merge" and `pipe` can be thought of as "sequential merge". Some examples:
+
+```TypeScript
+
+import { q } from "./q";
+
+const a = q.middleware(() => {
+  return { a: Math.random(), };
+});
+
+const b = q.middleware(() => {
+  return { b: Math.random(), };
+});
+
+const sum = q.middleware((ctx: { a: number, b: number }) => {
+  return {
+    sum: ctx.a + ctx.b,
+  };
+});
+
+export const merged = a.extend(b).pipe(sum);
+
+```
+
 ## API Reference
 
 __TODO__
@@ -325,9 +411,6 @@ __TODO__
 
 Right now we're currently on the _path to v0._
 
-If you have a feature (or bugfix) request, don't hesitate to [open an issue](TODO), join the [discord](TODO), or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
+If you have a feature (or bugfix) request, don't hesitate to [open an issue](TODO) or DM [@killthebuddha_](https://x.com/killthebuddha_) on X.
 
-## Community
-
-__TODO__
 

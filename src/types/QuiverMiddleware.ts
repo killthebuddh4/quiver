@@ -5,6 +5,7 @@ import { PipedCtxIn } from "./middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "./middleware/PipedCtxOut.js";
 import { QuiverPipeline } from "./QuiverPipeline.js";
 import { ExtendedCtxIn } from "./middleware/ExtendedCtxIn.js";
+import { ResultCtx } from "./middleware/ResultCtx.js";
 
 type NextCtxIn<Next> =
   Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
