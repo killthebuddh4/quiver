@@ -28,7 +28,7 @@
   <br />
   <br />
   <figure>
-    <img src="./static/typescript-3.gif" alt="Demo" />
+    <img src="./static/typescript.gif" alt="Demo" />
   </figure>
 </div>
 
