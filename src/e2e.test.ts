@@ -98,6 +98,34 @@ describe("end-to-end tests", () => {
     }
   });
 
+  it("q.serve works with a function with props", async function () {
+    this.timeout(10000);
+
+    const backend = quiver.q();
+
+    CLEANUP.push(() => backend.kill());
+
+    backend.serve((props: { name: string }) => `hello, ${props.name}!`);
+
+    const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
+
+    const client = frontend.client<(props: { name: string }) => string>(
+      backend.address,
+    );
+
+    const res = (await client({ name: "world" })) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (res.data !== "hello, world!") {
+      throw new Error(`Expected "hello, world!", got ${res.data}`);
+    }
+  });
+
   it("root handler in root works", async function () {
     this.timeout(10000);
 

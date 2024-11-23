@@ -187,7 +187,7 @@ export const createClient = <
       },
 
       apply: (_1, _2, args) => {
-        return call(url, args);
+        return call(url, args[0] || null);
       },
     });
   };
