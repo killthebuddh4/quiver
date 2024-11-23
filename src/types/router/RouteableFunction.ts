@@ -1,5 +1,4 @@
 import { QuiverRouter } from "../QuiverRouter.js";
-import { QuiverFunction } from "../QuiverFunction.js";
 import { PipeableCtx } from "../middleware/PipeableCtx.js";
 import { ResultCtx } from "../middleware/ResultCtx.js";
 

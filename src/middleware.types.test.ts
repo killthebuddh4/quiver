@@ -13,6 +13,43 @@ import { QuiverUrl } from "./types/QuiverUrl.js";
 import { RootCtx } from "./types/middleware/RootCtx.js";
 import { ComposedCtx } from "./types/middleware/ComposedCtx.js";
 import { ExtendedCtxOut } from "./types/middleware/ExtendedCtxOut.js";
+import { QuiverMiddleware } from "./types/QuiverMiddleware.js";
+import { DeriveableFn } from "./types/middleware/DeriveableFn.js";
+
+describe("DeriveableFn works as expected", () => {
+  it("yeilds the 0 parameter Fn type", () => {
+    type Mw = QuiverMiddleware<undefined, undefined, any, any>;
+    type Fn = () => any;
+    type Expected = Fn;
+    type Actual = DeriveableFn<Mw, Fn>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("yields the 1 parameter Fn type when it's compatible with the middleware", () => {
+    type Mw = QuiverMiddleware<undefined, { a: string }, any, any>;
+    type Fn = (i: number) => any;
+    type Expected = Fn;
+    type Actual = DeriveableFn<Mw, Fn>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("yields the 2 parameter Fn type when it's compatible with the middleware", () => {
+    type Mw = QuiverMiddleware<undefined, { a: string }, any, any>;
+
+    type Fn = (i: undefined, ctx: { a: string }) => any;
+    type Expected = Fn;
+    type Actual = DeriveableFn<Mw, Fn>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+
+  it("yields never when the 2 parameter Fn type is incompatible with the middleware", () => {
+    type Mw = QuiverMiddleware<undefined, { a: string }, any, any>;
+    type Fn = (i: undefined, ctx: { a: number }) => any;
+    type Expected = never;
+    type Actual = DeriveableFn<Mw, Fn>;
+    type Test = Expect<Equal<Actual, Expected>>;
+  });
+});
 
 describe("RemainderCtx works as expected", () => {
   it("works when the remainder is non-empty", () => {

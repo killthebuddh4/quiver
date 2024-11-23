@@ -7,6 +7,9 @@ import { PipedCtxOut } from "../types/middleware/PipedCtxOut.js";
 import { InCtx } from "../types/middleware/InCtx.js";
 import { OutCtx } from "../types/middleware/OutCtx.js";
 import { ExtendedCtxIn } from "../types/middleware/ExtendedCtxIn.js";
+import { DeriveableFn } from "../types/middleware/DeriveableFn.js";
+import { QuiverFunction } from "../types/QuiverFunction.js";
+import { InCtx as FnInCtx } from "../types/function/InCtx.js";
 
 export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
   handler: (ctx: any) => any,
@@ -57,5 +60,20 @@ export const createMiddleware = <CtxIn, CtxOut, CtxExitIn, CtxExitOut>(
     return { ...ctx, ...handler(ctx) };
   };
 
-  return { type, extend, pipe, exec };
+  const _function = <Fn extends (i: any, ctx: any) => any>(
+    fn: DeriveableFn<QuiverMiddleware<CtxIn, CtxOut, any, any>, Fn>,
+  ): QuiverFunction<Resolve<PipedCtxIn<CtxIn, CtxOut, FnInCtx<Fn>>>> => {
+    const wrapped = (i: any, ctx: any) => {
+      const ctxnext = {
+        ...ctx,
+        ...handler({ ...ctx }),
+      };
+
+      return fn(i, ctxnext);
+    };
+
+    return wrapped;
+  };
+
+  return { type, extend, pipe, exec, function: _function };
 };

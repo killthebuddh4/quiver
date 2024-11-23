@@ -3,9 +3,10 @@ import { Resolve } from "./util/Resolve.js";
 import { ExtendingMw } from "./middleware/ExtendingMw.js";
 import { PipedCtxIn } from "./middleware/PipedCtxIn.js";
 import { PipedCtxOut } from "./middleware/PipedCtxOut.js";
-import { QuiverPipeline } from "./QuiverPipeline.js";
 import { ExtendedCtxIn } from "./middleware/ExtendedCtxIn.js";
-import { ResultCtx } from "./middleware/ResultCtx.js";
+import { DeriveableFn } from "./middleware/DeriveableFn.js";
+import { QuiverFunction } from "./QuiverFunction.js";
+import { InCtx as FnInCtx } from "./function/InCtx.js";
 
 type NextCtxIn<Next> =
   Next extends QuiverMiddleware<infer CtxIn, any, any, any> ? CtxIn : never;
@@ -33,6 +34,10 @@ export interface QuiverMiddleware<CtxIn, CtxOut, CtxExitIn, CtxExitOut> {
     CtxExitIn,
     CtxExitOut
   >;
+
+  function: <Fn extends (i: any, ctx: any) => any>(
+    fn: DeriveableFn<QuiverMiddleware<CtxIn, CtxOut, any, any>, Fn>,
+  ) => QuiverFunction<Resolve<PipedCtxIn<CtxIn, CtxOut, FnInCtx<Fn>>>>;
 
   exec: (ctx: any) => any;
 }

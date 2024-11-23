@@ -23,6 +23,8 @@ describe("end-to-end tests", () => {
 
     const frontend = quiver.q();
 
+    CLEANUP.push(() => frontend.kill());
+
     const client = frontend.client<() => "hello, world!">(xmtp.address);
 
     const res = (await client()) as QuiverResult<any>;
@@ -47,6 +49,8 @@ describe("end-to-end tests", () => {
 
     const frontend = quiver.q();
 
+    CLEANUP.push(() => frontend.kill());
+
     const client = frontend.client<() => "hello, world!">(backend.address);
 
     const res = (await client()) as QuiverResult<any>;
@@ -57,6 +61,40 @@ describe("end-to-end tests", () => {
 
     if (res.data !== "hello, world!") {
       throw new Error(`Expected "hello, world!", got ${res.data}`);
+    }
+  });
+
+  it("q.serve works with a middleware-created function", async function () {
+    this.timeout(10000);
+
+    const backend = quiver.q();
+
+    CLEANUP.push(() => backend.kill());
+
+    const f = backend
+      .middleware(() => {
+        return { user: "test-user" };
+      })
+      .function((i: undefined, ctx: { user: string }) => {
+        return `hello, ${ctx.user}!`;
+      });
+
+    backend.serve(f);
+
+    const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
+
+    const client = frontend.client<() => string>(backend.address);
+
+    const res = (await client()) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (res.data !== "hello, test-user!") {
+      throw new Error(`Expected "hello, test-user!", got ${res.data}`);
     }
   });
 
