@@ -1,6 +1,6 @@
 {
   "name": "@qrpc/quiver",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "types": "build/index.d.ts",
   "module": "build/index.js",
