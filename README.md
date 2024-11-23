@@ -71,17 +71,19 @@ That's all there is to it 🎉, you've just _deployed a function to the internet
 - [Quickstart](#quickstart)
 - [Table of Contents](#table-of-contents)
 - [Features](#features)
-- [User Guide](#user-guide)
-  - [Basic Example](#basic-example)
-  - [Parameters](#parameters)
+- [Basic Usage](#basic-usage)
+  - [Functions](#functions)
   - [Routers](#routers)
+  - [Middleware and Context](#middleware-and-context)
   - [TypeScript!](#typescript)
-  - [Middleware](#middleware)
-    - [Merging Middleware](#merging-middleware)
+  - [XMTP Network Client](#xmtp-network-client)
+- [Middleware Guide](#middleware-guide)
+  - [Merging Middleware](#merging-middleware)
 - [API Reference](#api-reference)
   - [`Quiver`](#quiver)
-  - [`QuiverClient`](#quiverclient)
   - [`QuiverRouter`](#quiverrouter)
+  - [`QuiverFunction`](#quiverfunction)
+  - [`QuiverClient`](#quiverclient)
   - [`QuiverMiddleware`](#quivermiddleware)
   - [`QuiverProvider`](#quiverprovider)
 - [Off-the-Shelf Middlewares](#off-the-shelf-middlewares)
@@ -99,11 +101,11 @@ That's all there is to it 🎉, you've just _deployed a function to the internet
 - __End-to-End Encryption__
 - __Dead-Simple__
 
-## User Guide
+## Basic Usage
 
-### Basic Example
+### Functions
 
-`quiver` lets you rapidly build secure client/server applications. The simplest possible example server is just a function with no arguments:
+`quiver` lets you rapidly build secure client/server applications. The simplest server is just a function. A `QuiverFunction` can take 0, 1, or 2 arguments and optionally return a value. We always refer to the first argument as `props` and the second argument as `context`. Here's a simple example without:
 
 ```JavaScript
 // server.ts
@@ -112,10 +114,148 @@ import quiver from "@qrpc/quiver";
 
 const q = quiver.q();
 
-q.serve(() => 42);
+q.serve((props: { a: number, b: number }) => {
+  return add(props);
+});
 ```
 
-In the above example, an XMTP network client is created inside the call to `quiver.q()`. This means that your server is listening to a random address. You'll probably want to re-use the same address. You can do this by manually initializing the XMTP client:
+### Routers
+
+You'll probably want to serve more than just a single function. You can do this by using a `QuiverRouter`. `quiver` provides a type-safe fluent-style builder API for constructing routers. Here's a simple example:
+
+```JavaScript
+// server.ts
+
+import { q } from "./q";
+
+const router = q.router()
+  .function("a", () => "a")
+  .function("b", () => "b")
+
+q.serve(router);
+```
+
+And your client can call these functions:
+
+```JavaScript
+// client.ts
+
+import { q } from "./q";
+
+const client = q.client(process.env.SERVER_ADDRESS);
+
+const a = await client.a(); // { data: "a" }
+const b = await client.b(); // { data: "b" }
+```
+
+Routers can of course be nested into a tree structure. Here's an example:
+
+```JavaScript
+// router.ts
+
+import { q } from "./q";
+
+const hello = q.router()
+  .function("a", () => "hello from a")
+  .function("b", () => "hello from b")
+
+const goodbye = q.router()
+  .function("a", () => "goodbye from a")
+  .function("b", () => "goodbye from b")
+
+export const router = q.router()
+  .router("hello", hello)
+  .router("goodbye", goodbye)
+
+```
+
+And now your client mirrors the structure of the server:
+
+```JavaScript
+
+// client.ts
+
+import { q } from "./q";
+
+const client = q.client(process.env.SERVER_ADDRESS);
+
+await client.hello.a(); // { data: "hello from a" }
+await client.hello.b(); // { data: "hello from b" }
+await client.goodbye.a(); // { data: "goodbye from a" }
+await client.goodbye.b(); // { data: "goodbye from b" }
+```
+
+### Middleware and Context
+
+`quiver` provides a simple but powerful middleware system. A `QuiverMiddleware` is a function that takes 0 or 1 arguments and optionally returns an object. We always refer to the argument as `context`. Here's a simple example:
+
+```JavaScript
+
+// middleware.ts
+
+import { q } from "./q";
+
+const logger = q.middleware(ctx => {
+  console.log(ctx);
+});
+
+```
+
+We can attach middleware to router and functions with `use`:
+
+```JavaScript
+import { q } from "./q";
+import { logger, timestamp } from "./middleware";
+import { fn } from "./fn";
+import { router } from "./router";
+
+const fnWithTimestamp = fn.use(logger);
+const routerWithLogger = router.use(logger);
+const root = routerWithLogger.function("fn", fnWithTimestamp);
+q.serve(root);
+```
+
+When a `quiver` server receives a request, it derives a default context object from the request and then passes it through the server's middleware. More details on this process can be found in the [Middleware](#middleware) section.
+
+### TypeScript!
+
+`quiver`'s entire backend API is fully type-safe by default as long as you annotate all arguments. `quiver`'s client API (`q.client`) is also fully type-safe whenever you provide the backend's type to the client. Here's an example of how to provide the backend's type to the client:
+
+```TypeScript
+
+// router.ts
+
+import { q } from "./q";
+
+const router = q.router()
+  .function("a", (i: { name: string }) => `hello, ${i.name}`)
+  .function("b", () => "hello from b")
+
+// Export the type of the router
+
+export type Router = typeof router;
+
+q.serve(router);
+```
+
+
+```TypeScript
+
+// client.ts
+
+// Import the Router type
+import type { Router } from "./router";
+import { q } from "./q";
+
+// Notice the generic here.
+const client = q.client<Router>(process.env.SERVER_ADDRESS);
+```
+
+Now your client is type-safe! If you try to call a function that doesn't exist, you'll get a TypeScript error, if you pass the wrong arguments, you'll get a TypeScript error, and the return value's `data` field will be correctly typed!
+
+### XMTP Network Client
+
+So far in all the examples, an XMTP network client is created inside our initial call to `quiver.q()`. This means that your server is listening to a random address. You'll probably want to re-use the same address (at least in production). You can do this by manually initializing XMTP and passing it to `quiver`. Here's how:
 
 ```JavaScript
 // server.ts
@@ -143,142 +283,10 @@ const client = quiver.client(process.env.SERVER_ADDRESS);
 const answer = await client(); // { data: 42 }
 ```
 
-### Parameters
+## Middleware Guide
 
-A `QuiverFunction` can take parameters in the form of an object:
+`quiver` supports a simple but powerful type-safe middleware API. A `QuiverMiddleware` is essentially a function that optinally takes a context object and optionally returns a context object. When a middleware takes a context object, we say it "reads" from the context. When a middleware returns a context object, we say it "writes" to the context. We think of it this way because each middleware's return value is merged into the context which it receives.
 
-```JavaScript
-
-// server.ts
-
-import quiver from "@qrpc/quiver";
-
-const q = quiver.q();
-
-q.serve(({ name }) => `Hello, ${name}!`);
-```
-
-And the client can call this function, passing in an argument:
-
-```JavaScript
-
-// client.ts
-
-import quiver from "@qrpc/quiver";
-
-const client = quiver.client(process.env.SERVER_ADDRESS);
-
-const answer = await client({ name: "Alice" }); // { data: "Hello, Alice!" }
-```
-
-### Routers
-
-You'll probably want to serve more than just a single function. You can do this by using a `QuiverRouter` using the fluent-style builder API:
-
-```JavaScript
-// server.ts
-
-import { q } from "./q";
-
-const router = q.router()
-  .function("a", () => "a")
-  .function("b", () => "b")
-
-q.serve(router);
-```
-
-And your client can call these functions:
-
-```JavaScript
-// client.ts
-
-import { q } from "./q";
-
-const client = q.client(process.env.SERVER_ADDRESS);
-
-const a = await client.a(); // { data: "a" }
-const b = await client.b(); // { data: "b" }
-```
-
-Routers can of course be nested:
-
-```JavaScript
-// router.ts
-
-import { q } from "./q";
-
-const hello = q.router()
-  .function("a", (: { name: string }) => "hello from a")
-  .function("b", () => "hello from b")
-
-const goodbye = q.router()
-  .function("a", () => "goodbye from a")
-  .function("b", () => "goodbye from b")
-
-export const router = q.router()
-  .router("hello", hello)
-  .router("goodbye", goodbye)
-
-```
-
-And the client:
-
-```JavaScript
-
-// client.ts
-
-import { q } from "./q";
-
-const client = q.client(process.env.SERVER_ADDRESS);
-
-await client.hello.a(); // { data: "hello from a" }
-await client.hello.b(); // { data: "hello from b" }
-await client.goodbye.a(); // { data: "goodbye from a" }
-await client.goodbye.b(); // { data: "goodbye from b" }
-```
-
-### TypeScript!
-
-Everything you've seen so far becomes fully type-safe with one simple addition: you must provide your backend's type to the client. Thankfully, this is super easy:
-
-```TypeScript
-
-// router.ts
-
-import { q } from "./q";
-
-const router = q.router()
-  .function("a", (i: { name: string }) => `hello, ${i.name}`)
-  .function("b", () => "hello from b")
-
-// Export the type of the router
-
-export type Router = typeof router;
-
-q.serve(router);
-
-```
-
-And pass the Router type to your client:
-
-```TypeScript
-
-// client.ts
-
-import type { Router } from "./router";
-import { q } from "./q";
-
-// Notice the generic here.
-
-const client = q.client<Router>(process.env.SERVER_ADDRESS);
-
-```
-
-Now your client is type-safe! If you try to call a function that doesn't exist, you'll get a TypeScript error, if you pass the wrong arguments, you'll get a TypeScript error, and the return value's `data` field will be correctly typed!
-
-### Middleware
-
-`quiver` supports a simple but powerful type-safe middleware API. A `QuiverMiddleware` is ultimately a function that reads from and writes to a context object. Here's a couple extremely simple middleware:
 
 ```JavaScript
 
@@ -290,7 +298,7 @@ const logger = q.middleware(ctx => {
   console.log(ctx);
 });
 
-const timestamp = q.middleware(ctx => {
+const timestamp = q.middleware(() => {
   return {
     timestamp: Date.now(),
   };
@@ -298,7 +306,7 @@ const timestamp = q.middleware(ctx => {
 
 ```
 
-To use a middleware in your server, you attach it to a `QuiverRouter` or `QuiverFunction`:
+To use a middleware in your server, you attach it to a `QuiverRouter` or `QuiverFunction`. Here's an example with a router:
 
 ```JavaScript
 
@@ -334,7 +342,7 @@ const router = q.router()
 
 ```
 
-#### Merging Middleware
+### Merging Middleware
 
 Middleware can be merged in a type-safe manner using `mw.extend(other)` and `mw.pipe(other)`. `extend` can be thought of as "parallel merge" and `pipe` can be thought of as "sequential merge". Some examples:
 
@@ -366,9 +374,11 @@ __TODO__
 
 ### `Quiver`
 
-### `QuiverClient`
-
 ### `QuiverRouter`
+
+### `QuiverFunction`
+
+### `QuiverClient`
 
 ### `QuiverMiddleware`
 
