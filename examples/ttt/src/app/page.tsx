@@ -29,9 +29,6 @@ export default function Page() {
     }
 
     q.serve((props: { cell: number }) => {
-      console.log("Setting selection", props);
-      console.log("Props.cell", props.cell);
-
       setSelections((prev) => {
         return [...prev, { cell: props.cell, player: "X" }];
       });
