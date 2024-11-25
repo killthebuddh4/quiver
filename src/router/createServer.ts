@@ -8,13 +8,13 @@ import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
 import { QuiverContext } from "../types/QuiverContext.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
-import { QuiverHandlerOptions } from "../types/QuiverHandlerOptions.js";
 import { route } from "./route.js";
+import { QuiverServerOptions } from "../types/QuiverServerOptions.js";
 
-export const createHandler = (
+export const createServer = (
   xmtp: QuiverXmtp,
   router: QuiverRouter<any, any, any> | QuiverFunction<any>,
-  options?: QuiverHandlerOptions,
+  options?: QuiverServerOptions,
 ) => {
   /* 
     Ok, let's clarify the flow control here.

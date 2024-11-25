@@ -11,6 +11,7 @@ import { QuiverXmtp } from "../types/QuiverXmtp.js";
 import { RootRouter } from "../types/router/RootRouter.js";
 import { serve } from "../router/serve.js";
 import { RootFn } from "../types/function/RootFn.js";
+import { QuiverServerOptions } from "../types/QuiverServerOptions.js";
 
 export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
   /* TODO. We need to design the XMTP initialization API. See dev notes from
@@ -39,8 +40,9 @@ export const createQuiver = (options?: { xmtp?: QuiverXmtp }) => {
 
     serve: <Root extends QuiverRouter<any, any, any> | QuiverFunction<any>>(
       root: RootRouter<Root> | RootFn<Root>,
+      options?: QuiverServerOptions,
     ) => {
-      return serve(xmtp, root);
+      return serve(xmtp, root, options);
     },
 
     router: () => {

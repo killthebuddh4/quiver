@@ -1,15 +1,17 @@
 import { QuiverFunction } from "../types/QuiverFunction.js";
 import { QuiverRouter } from "../types/QuiverRouter.js";
+import { QuiverServerOptions } from "../types/QuiverServerOptions.js";
 import { QuiverXmtp } from "../types/QuiverXmtp.js";
-import { createHandler } from "./createHandler.js";
+import { createServer } from "./createServer.js";
 
 export const serve = (
   xmtp: QuiverXmtp,
   root: QuiverRouter<any, any, any> | QuiverFunction<any>,
+  options?: QuiverServerOptions,
 ) => {
-  const handler = createHandler(xmtp, root);
+  const server = createServer(xmtp, root, options);
 
-  const sub = xmtp.subscribe(handler);
+  const sub = xmtp.subscribe(server);
 
   return () => {
     sub.then((s) => {
