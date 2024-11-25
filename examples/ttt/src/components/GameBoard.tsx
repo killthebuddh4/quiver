@@ -1,24 +1,14 @@
 "use client";
+import { Game, Cell } from "@/hooks/useGame";
 
-type Player = "X" | "O";
-
-type Selection = {
-  cell: number;
-  player: Player;
-};
-
-type Game = {
-  selections: Selection[];
-  select: (cell: number) => void;
-};
-
-export const GameBoard = (props: { game: Game; perspective: Player }) => {
+export const GameBoard = (props: {
+  game: Game;
+  onClick: (cell: Cell) => void;
+}) => {
   const cells = [];
   for (let i = 0; i < 9; i++) {
     cells.push(i);
   }
-
-  console.log("Rendering game with board", props.game);
 
   return (
     <div>
@@ -27,22 +17,27 @@ export const GameBoard = (props: { game: Game; perspective: Player }) => {
         <div className="absolute w-[4px] bg-black h-[596px] left-[398px]"></div>
         <div className="absolute h-[4px] bg-black w-[596px] top-[198px]"></div>
         <div className="absolute h-[4px] bg-black w-[596px] top-[398px]"></div>
-        {cells.map((cell, i) => {
+        {cells.map((cell) => {
           return (
             <div
-              key={i}
+              key={cell}
               className="flex min-w-[200px] max-w-[200px] h-[200px] items-center justify-center text-6xl"
+              onClick={() =>
+                props.onClick({
+                  id: cell as Cell["id"],
+                })
+              }
             >
               {(() => {
-                const selection = props.game.selections.find(
-                  (selection) => selection.cell === cell,
+                const move = props.game.moves.find(
+                  (move) => move.cell.id === cell,
                 );
 
-                if (selection === undefined) {
+                if (move === undefined) {
                   return "";
                 }
 
-                return selection.player;
+                return move.player.symbol;
               })()}
             </div>
           );
