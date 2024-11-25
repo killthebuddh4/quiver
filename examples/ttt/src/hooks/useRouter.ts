@@ -45,15 +45,7 @@ export const useRouter = () => {
 
       console.log(`useRouter :: serving router for address ${q.address}`);
 
-      q.serve(router, {
-        logs: {
-          onRecvMessage: (m) => {
-            console.log(
-              `useRouter :: received a message from ${m.message.senderAddress} at url ${m.message.conversation.context?.conversationId}`,
-            );
-          },
-        },
-      });
+      q.serve(router);
 
       return router;
     });

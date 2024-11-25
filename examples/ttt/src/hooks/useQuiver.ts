@@ -13,6 +13,24 @@ const useQuiverStore = create<{
         return prev;
       }
 
+      const x = quiver.x({
+        logs: {
+          handle: {
+            onMessage: (message) => {
+              console.log("onMessage");
+              // console.log(
+              //   `useQuiverStore :: received xmtp message from ${message.senderAddress}, content: ${message.content}, cid: ${message.conversation.context?.conversationId}`,
+              // );
+            },
+          },
+          pubsub: {
+            onPublished: (sent) => {
+              console.log("onPublished");
+            },
+          },
+        },
+      });
+
       const q = quiver.q();
 
       console.log(`useQuiverStore :: setting q for address: ${q.address}`);

@@ -37,17 +37,7 @@ export const useClient = (props: { address?: string }) => {
         return prev;
       }
       console.log(`Creating client targeting ${address}`);
-      const client = q.client<Router>(address, {
-        logs: {
-          onSendingRequest: (args) => {
-            console.log(
-              `useClient :: sending request, args: ${JSON.stringify(args)}`,
-            );
-          },
-        },
-      });
-
-      return client;
+      return q.client<Router>(address);
     });
   }, [q, props.address]);
 
