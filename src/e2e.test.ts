@@ -292,4 +292,38 @@ describe("end-to-end tests", () => {
       throw new Error(`Expected "C", got ${cResponse.data}`);
     }
   });
+
+  it.only("options are passed to server", async function () {
+    this.timeout(10000);
+
+    const backend = quiver.q();
+
+    CLEANUP.push(() => backend.kill());
+
+    let called = false;
+
+    backend.serve(() => 10, {
+      logs: {
+        onRecvMessage: () => {
+          called = true;
+        },
+      },
+    });
+
+    const frontend = quiver.q();
+
+    CLEANUP.push(() => frontend.kill());
+
+    const client = frontend.client<() => number>(backend.address);
+
+    const res = (await client()) as QuiverResult<any>;
+
+    if (!res.ok) {
+      throw new Error(`Response not ok`);
+    }
+
+    if (!called) {
+      throw new Error(`Expected onRecvMessage to be called`);
+    }
+  });
 });
