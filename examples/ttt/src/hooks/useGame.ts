@@ -93,10 +93,6 @@ export const useGame = () => {
 
   const join = (props: { player: Player }): Maybe<Game> => {
     if (props.player.symbol === "X") {
-      if (game?.x !== null) {
-        return { ok: false, err: "ERR_X_IS_TAKEN" };
-      }
-
       const next = {
         ...game,
         x: props.player,

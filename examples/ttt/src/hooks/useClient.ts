@@ -36,7 +36,16 @@ export const useClient = (props: { address?: string }) => {
       if (prev !== null) {
         return prev;
       }
-      const client = q.client<Router>(address);
+      console.log(`Creating client targeting ${address}`);
+      const client = q.client<Router>(address, {
+        logs: {
+          onSendingRequest: (args) => {
+            console.log(
+              `useClient :: sending request, args: ${JSON.stringify(args)}`,
+            );
+          },
+        },
+      });
 
       return client;
     });

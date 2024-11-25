@@ -5,6 +5,8 @@ import { useGame } from "./useGame";
 
 export const useRouter = () => {
   const { q } = useQuiver();
+  console.log(`useRouter q address is ${q?.address}`);
+
   const { move, join } = useGame();
   const [router, setRouter] = useState<QuiverRouter<
     any,
@@ -25,11 +27,7 @@ export const useRouter = () => {
       return;
     }
 
-    setRouter((prev) => {
-      if (prev !== null) {
-        return prev;
-      }
-
+    setRouter(() => {
       const router = q
         .router()
         .function("move", (props: Parameters<typeof move>[0]) => {
@@ -45,7 +43,17 @@ export const useRouter = () => {
           return join(props);
         });
 
-      q.serve(router);
+      console.log(`useRouter :: serving router for address ${q.address}`);
+
+      q.serve(router, {
+        logs: {
+          onRecvMessage: (m) => {
+            console.log(
+              `useRouter :: received a message from ${m.message.senderAddress} at url ${m.message.conversation.context?.conversationId}`,
+            );
+          },
+        },
+      });
 
       return router;
     });

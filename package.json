@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@ethersproject/wallet": "^5.7.0",
-    "@xmtp/xmtp-js": "latest"
+    "@xmtp/xmtp-js": "latest",
+    "zustand": "^5.0.1"
   }
 }
