@@ -32,7 +32,7 @@ export default function Host() {
 
       console.log("Host :: joined game", result);
     })();
-  }, [q]);
+  }, [q, join]);
 
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center">
@@ -56,19 +56,7 @@ export default function Host() {
             player: game.x,
           };
 
-          const result = move({ move: m });
-
-          if (!result.ok) {
-            console.error("Host :: move failed", result);
-            return;
-          }
-
-          const response = await client.move({
-            move: {
-              cell,
-              player: game.x,
-            },
-          });
+          const response = await client.move({ move: m });
 
           if (!response.ok) {
             console.error("Host :: move failed", response);
@@ -77,6 +65,13 @@ export default function Host() {
 
           if (!response.data.ok) {
             console.error("Host :: move failed", response.data.err);
+            return;
+          }
+
+          const result = move({ move: m });
+
+          if (!result.ok) {
+            console.error("Host :: move failed", result);
             return;
           }
         }}

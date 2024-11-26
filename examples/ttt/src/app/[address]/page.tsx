@@ -33,7 +33,7 @@ export default function Challenger() {
     (async () => {
       console.log(`Challenger :: joining game hosted by address ${address}`);
 
-      const player = { address, symbol: "O" } as const;
+      const player = { address: q.address, symbol: "O" } as const;
 
       const response = await client.join({ player });
 
@@ -45,8 +45,24 @@ export default function Challenger() {
         return;
       }
 
+      if (!response.data.ok) {
+        console.error(
+          `Challenger :: Could not join game hosted by address ${address}`,
+          response.data.err,
+        );
+        return;
+      }
+
+      if (response.data.value.x === null) {
+        console.error(
+          `Challenger :: game hosted by address ${address} has no host`,
+        );
+        return;
+      }
+
       console.log(`Challenger :: joined game hosted by address ${address}`);
       join({ player });
+      join({ player: response.data.value.x });
     })();
   }, [q, client]);
 
@@ -54,8 +70,45 @@ export default function Challenger() {
     <div className="h-screen w-screen flex flex-col items-center justify-center">
       <GameBoard
         game={game}
-        onClick={(cell: Cell) => {
-          // TODO
+        onClick={async (cell: Cell) => {
+          if (game.x === null) {
+            console.error("Host :: game.x is null");
+            return;
+          }
+
+          if (game.o === null) {
+            console.error("Host :: game.o is null");
+            return;
+          }
+
+          if (client === null) {
+            console.error("Host :: client is null");
+            return;
+          }
+
+          const m = {
+            cell,
+            player: game.o,
+          };
+
+          const response = await client.move({ move: m });
+
+          if (!response.ok) {
+            console.error("Host :: move failed", response);
+            return;
+          }
+
+          if (!response.data.ok) {
+            console.error("Host :: move failed", response.data.err);
+            return;
+          }
+
+          const result = move({ move: m });
+
+          if (!result.ok) {
+            console.error("Host :: move failed", result);
+            return;
+          }
         }}
       />
     </div>

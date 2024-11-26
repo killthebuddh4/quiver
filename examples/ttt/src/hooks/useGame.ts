@@ -53,91 +53,91 @@ export const useGame = () => {
   const { game, setGame } = useGameStore();
 
   const move = (props: { move: Move }): Maybe<Game> => {
+    let next: Game;
+
     if (game.moves.length === 0) {
       if (props.move.player.symbol !== "X") {
         return { ok: false, err: "ERR_FIRST_MOVE_MUST_BE_X" };
       }
 
-      const withMove = {
+      next = {
         ...game,
         moves: [props.move],
       };
 
-      const withWinner = {
-        ...withMove,
-        winner: getWinner(withMove),
+      next = {
+        ...next,
+        winner: getWinner(next),
+      };
+    } else {
+      const lastMove = game.moves[game.moves.length - 1];
+
+      if (lastMove.player.symbol === props.move.player.symbol) {
+        return { ok: false, err: "ERR_PLAYER_MUST_ALTERNATE" };
+      }
+
+      const isCellFilled = Boolean(
+        game.moves.find((s) => s.cell.id === props.move.cell.id),
+      );
+
+      if (isCellFilled) {
+        return { ok: false, err: "ERR_CELL_IS_FILLED" };
+      }
+
+      next = {
+        ...game,
+        moves: [...game.moves, props.move],
       };
 
-      setGame(withWinner);
-
-      return { ok: true, value: withWinner };
+      next = {
+        ...next,
+        winner: getWinner(next),
+      };
     }
 
-    const lastMove = game.moves[game.moves.length - 1];
+    console.log("useGame :: setting game from move", next, props);
+    setGame(next);
 
-    if (lastMove.player.symbol === props.move.player.symbol) {
-      return { ok: false, err: "ERR_PLAYER_MUST_ALTERNATE" };
-    }
-
-    const isCellFilled = Boolean(
-      game.moves.find((s) => s.cell.id === props.move.cell.id),
-    );
-
-    if (isCellFilled) {
-      return { ok: false, err: "ERR_CELL_IS_FILLED" };
-    }
-
-    const withMove = {
-      ...game,
-      moves: [...game.moves, props.move],
-    };
-
-    const withWinner = {
-      ...withMove,
-      winner: getWinner(withMove),
-    };
-
-    setGame(withWinner);
-
-    return { ok: true, value: withWinner };
+    return { ok: true, value: next };
   };
 
   const join = (props: { player: Player }): Maybe<Game> => {
+    let next: Game;
+
     if (props.player.symbol === "X") {
-      const next = {
+      if (game?.x !== null) {
+        return { ok: false, err: "ERR_X_IS_TAKEN" };
+      }
+
+      next = {
         ...game,
         x: props.player,
       };
-
-      setGame(next);
-
-      return { ok: true, value: next };
-    }
-
-    if (props.player.symbol === "O") {
+    } else if (props.player.symbol === "O") {
       if (game?.o !== null) {
         return { ok: false, err: "ERR_O_IS_TAKEN" };
       }
 
-      const next = {
+      next = {
         ...game,
         o: props.player,
       };
-
-      setGame(next);
-
-      return { ok: true, value: next };
+    } else {
+      throw new Error("ERR_INVALID_SYMBOL");
     }
 
-    throw new Error("ERR_INVALID_SYMBOL");
+    next = {
+      ...next,
+      winner: getWinner(next),
+    };
+
+    console.log("useGame :: setting game from join", next, props);
+    setGame(next);
+
+    return { ok: true, value: next };
   };
 
-  const withWinner = {
-    ...game,
-    winner: getWinner(game),
-  };
-
-  return { game: { ...withWinner }, move, join };
+  return { game, move, join };
 };
 
 const getWinner = (game: Game) => {
