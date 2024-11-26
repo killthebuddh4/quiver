@@ -32,11 +32,7 @@ export const useClient = (props: { address?: string }) => {
       return;
     }
 
-    setClient((prev) => {
-      if (prev !== null) {
-        return prev;
-      }
-      console.log(`Creating client targeting ${address}`);
+    setClient(() => {
       return q.client<Router>(address);
     });
   }, [q, props.address]);

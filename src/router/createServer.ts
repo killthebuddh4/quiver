@@ -59,6 +59,15 @@ export const createServer = (
           break outer;
         }
 
+        if (url.value.channel !== "requests") {
+          ctx.exit = {
+            code: "NOT_REQUESTS_CHANNEL",
+            reason: `Server only handles requests, but got ${url.value.channel}`,
+          };
+
+          break outer;
+        }
+
         ctx.url = url.value;
 
         options?.logs?.onParsedUrl?.(ctx);

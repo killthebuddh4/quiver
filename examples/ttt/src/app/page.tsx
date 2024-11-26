@@ -22,6 +22,7 @@ export default function Host() {
 
     (async () => {
       console.log(`Host :: ${q.address} is joining game`);
+
       const result = join({
         player: {
           address: q.address,

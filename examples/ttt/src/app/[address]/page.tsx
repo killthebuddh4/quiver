@@ -32,7 +32,9 @@ export default function Challenger() {
 
     (async () => {
       console.log(`Challenger :: joining game hosted by address ${address}`);
+
       const player = { address, symbol: "O" } as const;
+
       const response = await client.join({ player });
 
       if (!response.ok) {
@@ -43,6 +45,7 @@ export default function Challenger() {
         return;
       }
 
+      console.log(`Challenger :: joined game hosted by address ${address}`);
       join({ player });
     })();
   }, [q, client]);

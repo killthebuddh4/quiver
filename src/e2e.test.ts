@@ -293,7 +293,7 @@ describe("end-to-end tests", () => {
     }
   });
 
-  it.only("options are passed to server", async function () {
+  it("options are passed to server", async function () {
     this.timeout(10000);
 
     const backend = quiver.q();

@@ -1,4 +1,4 @@
-import { createClient } from "./createClient.js";
+import { createClient } from "../client/createClient.js";
 import { createXmtp } from "./createXmtp.js";
 import { createRouter } from "../router/createRouter.js";
 import { createMiddleware } from "../middleware/createMiddleware.js";
