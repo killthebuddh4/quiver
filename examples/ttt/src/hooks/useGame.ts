@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { create } from "zustand";
 
 export type Player = {
   address: string;
@@ -33,13 +34,23 @@ export type Maybe<T> =
       err: string;
     };
 
-export const useGame = () => {
-  const [game, setGame] = useState<Game>({
+const useGameStore = create<{
+  game: Game;
+  setGame: (game: Game) => void;
+}>((set) => ({
+  game: {
     x: null,
     o: null,
     moves: [],
     winner: null,
-  });
+  },
+  setGame: (game) => {
+    set({ game });
+  },
+}));
+
+export const useGame = () => {
+  const { game, setGame } = useGameStore();
 
   const move = (props: { move: Move }): Maybe<Game> => {
     if (game.moves.length === 0) {

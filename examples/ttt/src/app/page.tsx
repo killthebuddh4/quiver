@@ -36,11 +36,49 @@ export default function Host() {
 
   return (
     <div className="h-screen w-screen flex flex-col items-center justify-center">
-      <h1>{game.x?.address}</h1>
+      <h1>{`Host: ${game.x?.address}`}</h1>
+      <h2>{`Challenger: ${game.o?.address || "no challenger"}`}</h2>
       <GameBoard
         game={game}
-        onClick={(cell: Cell) => {
-          // TODO
+        onClick={async (cell: Cell) => {
+          if (game.x === null) {
+            console.error("Host :: game.x is null");
+            return;
+          }
+
+          if (client === null) {
+            console.error("Host :: client is null");
+            return;
+          }
+
+          const m = {
+            cell,
+            player: game.x,
+          };
+
+          const result = move({ move: m });
+
+          if (!result.ok) {
+            console.error("Host :: move failed", result);
+            return;
+          }
+
+          const response = await client.move({
+            move: {
+              cell,
+              player: game.x,
+            },
+          });
+
+          if (!response.ok) {
+            console.error("Host :: move failed", response);
+            return;
+          }
+
+          if (!response.data.ok) {
+            console.error("Host :: move failed", response.data.err);
+            return;
+          }
         }}
       />
     </div>
