@@ -11,7 +11,6 @@ import { useEffect } from "react";
 export default function Challenger() {
   const address = useParams().address as string;
   const { q } = useQuiver();
-  const { router } = useRouter();
   const { client } = useClient({ address });
   const { game, move, join } = useGame();
 

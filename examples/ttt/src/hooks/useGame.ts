@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { create } from "zustand";
 
 export type Player = {
@@ -52,90 +52,97 @@ const useGameStore = create<{
 export const useGame = () => {
   const { game, setGame } = useGameStore();
 
-  const move = (props: { move: Move }): Maybe<Game> => {
-    let next: Game;
+  const move = useCallback(
+    (props: { move: Move }): Maybe<Game> => {
+      let next: Game;
 
-    if (game.moves.length === 0) {
-      if (props.move.player.symbol !== "X") {
-        return { ok: false, err: "ERR_FIRST_MOVE_MUST_BE_X" };
+      if (game.moves.length === 0) {
+        if (props.move.player.symbol !== "X") {
+          return { ok: false, err: "ERR_FIRST_MOVE_MUST_BE_X" };
+        }
+
+        next = {
+          ...game,
+          moves: [props.move],
+        };
+
+        next = {
+          ...next,
+          winner: getWinner(next),
+        };
+      } else {
+        const lastMove = game.moves[game.moves.length - 1];
+
+        if (lastMove.player.symbol === props.move.player.symbol) {
+          return { ok: false, err: "ERR_PLAYER_MUST_ALTERNATE" };
+        }
+
+        const isCellFilled = Boolean(
+          game.moves.find((s) => s.cell.id === props.move.cell.id),
+        );
+
+        if (isCellFilled) {
+          return { ok: false, err: "ERR_CELL_IS_FILLED" };
+        }
+
+        next = {
+          ...game,
+          moves: [...game.moves, props.move],
+        };
+
+        next = {
+          ...next,
+          winner: getWinner(next),
+        };
       }
 
-      next = {
-        ...game,
-        moves: [props.move],
-      };
+      console.log("useGame :: setting game from move", next, props);
+      setGame(next);
+
+      return { ok: true, value: next };
+    },
+    [game, setGame],
+  );
+
+  const join = useCallback(
+    (props: { player: Player }): Maybe<Game> => {
+      console.log("useGame :: join", props, game);
+      let next: Game;
+
+      if (props.player.symbol === "X") {
+        if (game?.x !== null) {
+          return { ok: false, err: "ERR_X_IS_TAKEN" };
+        }
+
+        next = {
+          ...game,
+          x: props.player,
+        };
+      } else if (props.player.symbol === "O") {
+        if (game?.o !== null) {
+          return { ok: false, err: "ERR_O_IS_TAKEN" };
+        }
+
+        next = {
+          ...game,
+          o: props.player,
+        };
+      } else {
+        throw new Error("ERR_INVALID_SYMBOL");
+      }
 
       next = {
         ...next,
         winner: getWinner(next),
       };
-    } else {
-      const lastMove = game.moves[game.moves.length - 1];
 
-      if (lastMove.player.symbol === props.move.player.symbol) {
-        return { ok: false, err: "ERR_PLAYER_MUST_ALTERNATE" };
-      }
+      console.log("useGame :: setting game from join", next, props);
+      setGame(next);
 
-      const isCellFilled = Boolean(
-        game.moves.find((s) => s.cell.id === props.move.cell.id),
-      );
-
-      if (isCellFilled) {
-        return { ok: false, err: "ERR_CELL_IS_FILLED" };
-      }
-
-      next = {
-        ...game,
-        moves: [...game.moves, props.move],
-      };
-
-      next = {
-        ...next,
-        winner: getWinner(next),
-      };
-    }
-
-    console.log("useGame :: setting game from move", next, props);
-    setGame(next);
-
-    return { ok: true, value: next };
-  };
-
-  const join = (props: { player: Player }): Maybe<Game> => {
-    let next: Game;
-
-    if (props.player.symbol === "X") {
-      if (game?.x !== null) {
-        return { ok: false, err: "ERR_X_IS_TAKEN" };
-      }
-
-      next = {
-        ...game,
-        x: props.player,
-      };
-    } else if (props.player.symbol === "O") {
-      if (game?.o !== null) {
-        return { ok: false, err: "ERR_O_IS_TAKEN" };
-      }
-
-      next = {
-        ...game,
-        o: props.player,
-      };
-    } else {
-      throw new Error("ERR_INVALID_SYMBOL");
-    }
-
-    next = {
-      ...next,
-      winner: getWinner(next),
-    };
-
-    console.log("useGame :: setting game from join", next, props);
-    setGame(next);
-
-    return { ok: true, value: next };
-  };
+      return { ok: true, value: next };
+    },
+    [game, setGame],
+  );
 
   return { game, move, join };
 };

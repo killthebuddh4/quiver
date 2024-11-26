@@ -8,14 +8,7 @@ export const useRouter = () => {
   console.log(`useRouter q address is ${q?.address}`);
 
   const { move, join } = useGame();
-  const [router, setRouter] = useState<QuiverRouter<
-    any,
-    any,
-    {
-      join: typeof join;
-      move: typeof move;
-    }
-  > | null>(null);
+  const [server, setServer] = useState<(() => void) | null>(null);
 
   useEffect(() => {
     console.log("useRouter :: useEffect in useRouter is running");
@@ -27,7 +20,11 @@ export const useRouter = () => {
       return;
     }
 
-    setRouter(() => {
+    setServer((prev) => {
+      if (prev !== null) {
+        prev();
+      }
+
       const router = q
         .router()
         .function("move", (props: Parameters<typeof move>[0]) => {
@@ -45,11 +42,7 @@ export const useRouter = () => {
 
       console.log(`useRouter :: serving router for address ${q.address}`);
 
-      q.serve(router);
-
-      return router;
+      return q.serve(router);
     });
-  }, [q]);
-
-  return { router };
+  }, [q, join, move]);
 };

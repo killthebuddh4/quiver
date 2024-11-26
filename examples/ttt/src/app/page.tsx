@@ -7,10 +7,10 @@ import { useGame, Cell } from "@/hooks/useGame";
 import { useEffect } from "react";
 
 export default function Host() {
+  useRouter();
   const { q } = useQuiver();
   const { game, join, move } = useGame();
   const { client } = useClient({ address: game.o?.address });
-  const { router } = useRouter();
 
   console.log(`Host :: Quiver started for host at address ${q?.address}`);
 
